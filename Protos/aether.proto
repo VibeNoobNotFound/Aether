@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+option csharp_namespace = "Aether.Protos";
+package aether;
+
+// -----------------------------------------------------------
+// SERVICES
+// -----------------------------------------------------------
+
+service AetherOrchestrator {
+  // LIBRARY: Getting games into the UI
+  rpc ScanLibrary (ScanRequest) returns (stream ScanProgress);
+  rpc GetLibrary (Empty) returns (stream Game);
+  
+  // LAUNCHING: The core function
+  rpc LaunchGame (LaunchRequest) returns (LaunchResponse);
+  rpc StopGame (GameId) returns (OperationStatus);
+  // Streams updates (e.g., "Running", "Stopping") so the UI Play button changes color
+  rpc SubscribeToGameState (Empty) returns (stream GameStateUpdate);
+
+  // PLUGINS: The interactive layer
+  // Frontend asks: "What widgets should I show for this game?"
+  rpc GetGameDetailWidgets (GameId) returns (WidgetList);
+  // Frontend says: "User clicked the button in the plugin widget"
+  rpc TriggerPluginAction (PluginAction) returns (OperationStatus);
+}
+
+// -----------------------------------------------------------
+// DATA MODELS
+// -----------------------------------------------------------
+
+message Empty {}
+
+message Game {
+  string id = 1;
+  string title = 2;
+  string executable_path = 3;
+  string box_art_url = 4;
+  string backdrop_url = 5;
+  Platform platform = 6; // STEAM, EPIC, GOG, LOCAL, EMULATOR
+  int64 playtime_minutes = 7;
+}
+
+message GameId {
+  string id = 1;
+}
+
+enum Platform {
+  UNKNOWN = 0;
+  STEAM = 1;
+  EPIC = 2;
+  GOG = 3;
+  LOCAL = 4;
+  BATTLE_NET = 5;
+}
+
+// -----------------------------------------------------------
+// LAUNCHING LOGIC
+// -----------------------------------------------------------
+
+message LaunchRequest {
+  string game_id = 1;
+  bool run_as_admin = 2;
+  // E.g., for Mac: "Use Game Porting Toolkit"
+  map<string, string> launch_arguments = 3; 
+}
+
+message LaunchResponse {
+  bool success = 1;
+  string error_message = 2;
+  int32 process_id = 3;
+}
+
+message GameStateUpdate {
+  string game_id = 1;
+  enum State {
+    STOPPED = 0;
+    LAUNCHING = 1;
+    RUNNING = 2;
+    SUSPENDED = 3;
+  }
+  State new_state = 2;
+}
+
+// -----------------------------------------------------------
+// PLUGIN & UI SYSTEM
+// -----------------------------------------------------------
+
+message WidgetList {
+  repeated PluginWidget widgets = 1;
+}
+
+// The "Adaptive Card" JSON. 
+// The backend defines the layout, Frontend just renders it.
+message PluginWidget {
+  string plugin_id = 1;
+  string title = 2;
+  // JSON string defining layout (e.g., { "type": "Button", "label": "Sync Saves" })
+  string layout_json = 3; 
+  int32 sort_order = 4;
+}
+
+message PluginAction {
+  string plugin_id = 1;
+  string action_id = 2; // e.g., "SYNC_BUTTON_CLICKED"
+  string payload_json = 3; // Any extra data needed
+}
+
+message OperationStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+message ScanRequest {
+  bool force_refresh = 1;
+}
+
+message ScanProgress {
+  string current_status = 1; // "Scanning Steam..."
+  int32 percent_complete = 2;
+}
