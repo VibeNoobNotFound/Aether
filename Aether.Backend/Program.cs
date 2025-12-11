@@ -1,43 +1,71 @@
 ﻿using Aether.Backend.Services;
+using Aether.Backend.Plugins;
+using Aether.Backend.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using System.IO;
 
-var builder = WebApplication.CreateBuilder(args);
+// Initialize Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console()
+    .WriteTo.File("logs/backend.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+try
 {
-    var socketPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library/Application Support/Aether/aether.sock");
-    // Ensure directory exists
-    Directory.CreateDirectory(Path.GetDirectoryName(socketPath)!);
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog(); // Use Serilog for all logging
 
-    if (File.Exists(socketPath)) File.Delete(socketPath);
-
+    // Listen on 0.0.0.0:50051 for all platforms
     builder.WebHost.ConfigureKestrel(options =>
     {
-        options.ListenUnixSocket(socketPath, listenOptions =>
+        options.ListenAnyIP(50051, listenOptions =>
         {
             listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
         });
     });
-    Console.WriteLine($"Configured to listen on UDS: {socketPath}");
+    Log.Information("Configured to listen on http://0.0.0.0:50051");
+
+    // Add services to the container.
+    builder.Services.AddGrpc();
+
+    // Initialize database
+    var dbPath = LibraryDatabase.GetDefaultDatabasePath();
+    builder.Services.AddSingleton(sp =>
+    {
+        var logger = sp.GetRequiredService<Serilog.ILogger>();
+        return new LibraryDatabase(dbPath, logger);
+    });
+    Log.Information("Database initialized at {Path}", dbPath);
+
+    // Initialize plugin system
+    var pluginPath = Path.Combine(AppContext.BaseDirectory, "plugins");
+    builder.Services.AddSingleton(sp =>
+    {
+        var logger = sp.GetRequiredService<Serilog.ILogger>();
+        var manager = new PluginManager(pluginPath, logger);
+        manager.LoadPlugins();
+        return manager;
+    });
+    Log.Information("Plugin system initialized at {Path}", pluginPath);
+
+    var app = builder.Build();
+
+    // Configure the HTTP request pipeline.
+    app.MapGrpcService<AetherGrpcService>();
+    app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
+
+    app.Run();
 }
-
-// Add services to the container.
-builder.Services.AddGrpc();
-
-var app = builder.Build();
-
-if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+catch (Exception ex)
 {
-    app.Urls.Add("http://localhost:50051");
-    Console.WriteLine("Listening on http://localhost:50051");
+    Log.Fatal(ex, "Application terminated unexpectedly");
 }
-
-// Configure the HTTP request pipeline.
-app.MapGrpcService<AetherGrpcService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-
-app.Run();
+finally
+{
+    Log.CloseAndFlush();
+}

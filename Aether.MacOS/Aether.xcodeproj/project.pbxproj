@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5D249FB52EEAA90B00FC2755 /* AetherIPC in Frameworks */ = {isa = PBXBuildFile; productRef = 5D249FB42EEAA90B00FC2755 /* AetherIPC */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5D4BAE992EEA14430013C288 /* Aether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,16 +27,25 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5D249FB52EEAA90B00FC2755 /* AetherIPC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5D249FB22EEAA6F500FC2755 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		5D4BAE902EEA14430013C288 = {
 			isa = PBXGroup;
 			children = (
 				5D4BAE9B2EEA14430013C288 /* Aether */,
+				5D249FB22EEAA6F500FC2755 /* Frameworks */,
 				5D4BAE9A2EEA14430013C288 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +78,7 @@
 			);
 			name = Aether;
 			packageProductDependencies = (
+				5D249FB42EEAA90B00FC2755 /* AetherIPC */,
 			);
 			productName = Aether;
 			productReference = 5D4BAE992EEA14430013C288 /* Aether.app */;
@@ -94,6 +108,9 @@
 			);
 			mainGroup = 5D4BAE902EEA14430013C288;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5D249FB32EEAA7CF00FC2755 /* XCLocalSwiftPackageReference "AetherIPC" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5D4BAE9A2EEA14430013C288 /* Products */;
 			projectDirPath = "";
@@ -252,7 +269,17 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -282,7 +309,17 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -325,6 +362,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5D249FB32EEAA7CF00FC2755 /* XCLocalSwiftPackageReference "AetherIPC" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = AetherIPC;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5D249FB42EEAA90B00FC2755 /* AetherIPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AetherIPC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5D4BAE912EEA14430013C288 /* Project object */;
 }

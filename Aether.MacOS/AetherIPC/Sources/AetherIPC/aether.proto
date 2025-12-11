@@ -34,54 +34,12 @@ message Empty {}
 message Game {
   string id = 1;
   string title = 2;
-  string platform = 3;
-  string external_id = 4;
-  string install_path = 5;
-  string executable_path = 6;
-  
-  // Images & Media
-  string cover_image_url = 7;
-  string background_image_url = 8;
-  string logo_image_url = 9;
-  repeated string screenshots = 10;
-  repeated string videos = 11;
-  
-  // Description & Classification
-  string description = 12;
-  string short_description = 13;
-  repeated string genres = 14;
-  repeated string tags = 15;
-  repeated string categories = 16;
-  
-  // People & Dates
-  string developer = 17;
-  string publisher = 18;
-  int64 release_date_unix = 19; // Unix timestamp
-  
-  // Ratings & Reviews
-  double metacritic_score = 20;
-  double user_score = 21;
-  int32 review_count = 22;
-  
-  // Features
-  bool has_achievements = 23;
-  int32 achievement_count = 24;
-  bool has_multiplayer = 25;
-  bool has_single_player = 26;
-  bool has_cloud_saves = 27;
-  
-  // System Requirements
-  string minimum_requirements = 28;
-  string recommended_requirements = 29;
-  repeated string supported_languages = 30;
-  
-  // User Stats
-  int64 last_played_unix = 31; // Unix timestamp
-  int64 total_playtime_seconds = 32;
-  bool is_favorite = 33;
-  bool is_installed = 34;
+  string executable_path = 3;
+  string box_art_url = 4;
+  string backdrop_url = 5;
+  Platform platform = 6; // STEAM, EPIC, GOG, LOCAL, EMULATOR
+  int64 playtime_minutes = 7;
 }
-
 
 message GameId {
   string id = 1;
@@ -158,9 +116,6 @@ message ScanRequest {
 }
 
 message ScanProgress {
-  string current_platform = 1;
-  int32 games_found = 2;
-  int32 games_processed = 3;
-  string current_game = 4;
-  double progress_percentage = 5;
+  string current_status = 1; // "Scanning Steam..."
+  int32 percent_complete = 2;
 }

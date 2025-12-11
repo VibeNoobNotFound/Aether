@@ -8,6 +8,7 @@ public partial class AetherGrpcService
 {
     public override Task<LaunchResponse> LaunchGame(LaunchRequest request, ServerCallContext context)
     {
+        _logger.LogInformation("Received LaunchGame request for Game ID: {GameId} (Admin: {RunAsAdmin})", request.GameId, request.RunAsAdmin);
         _logger.LogInformation($"Launching game {request.GameId}");
         return Task.FromResult(new LaunchResponse { Success = true, ProcessId = 1234 });
     }

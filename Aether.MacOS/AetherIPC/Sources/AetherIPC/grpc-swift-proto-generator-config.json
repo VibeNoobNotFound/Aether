@@ -1,0 +1,12 @@
+{
+  "invocations": [
+    {
+      "proto_files": [
+        "aether.proto"
+      ],
+      "visibility": "public",
+      "server": false,
+      "client": true
+    }
+  ]
+}

@@ -408,3 +408,103 @@ solution-config.props
 Emerald.App/MsalClientID.txt
 Emerald/.DS_Store
 .DS_Store
+
+# ============================================
+# macOS / Xcode / Swift
+# ============================================
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root directory
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+**/xcshareddata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+*.xcodeproj
+
+# CocoaPods
+Pods/
+*.podspec
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# macOS App Bundles (build output)
+*.app
+*.dSYM.zip
+*.dSYM
+
+# Swift/Objective-C specific
+*.swp
+*~.nib
+DerivedData/
+*.hmap
+
+# ============================================
+# Aether Project Specific
+# ============================================
+
+# Backend logs
+Aether.Backend/logs/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Plugin directory (will be populated during build)
+Aether.Backend/bin/*/plugins/
+
+# macOS Frontend Build Artifacts
+Aether.MacOS/.build/
+Aether.MacOS/build/
+Aether.MacOS/DerivedData/
+Aether.MacOS/**/*.xcuserdata
+Aether.MacOS/**/*.xcodeproj/xcuserdata/
+Aether.MacOS/**/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Swift Package Manager (Frontend)
+Aether.MacOS/.swiftpm/
+Aether.MacOS/Packages/
+Aether.MacOS/Package.resolved
+
+# Protobuf generated files (auto-generated)
+Aether.MacOS/AetherIPC/Sources/AetherIPC/*.pb.swift
+Aether.MacOS/AetherIPC/Sources/AetherIPC/*.grpc.swift
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
