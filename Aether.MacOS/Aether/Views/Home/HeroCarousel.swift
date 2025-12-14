@@ -109,23 +109,20 @@ struct HeroCarousel: View {
 
     @ViewBuilder
     func gameCard(title: String, id: String, imageUrl: String?, width: CGFloat) -> some View {
+        // Find the game object if possible to get more metadata
+        let game = appState.games.first(where: { $0.id == id })
+
         ZStack(alignment: .bottomLeading) {
-            // Background Image (when available) or Gradient Placeholder
-            if let imageUrl = imageUrl {
-                // Future: Load AsyncImage from URL
-                AsyncImage(url: URL(string: imageUrl)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: width - 40)
-                            .clipped()
-                    case .failure(_), .empty:
-                        gradientPlaceholder(width: width - 40)
-                    @unknown default:
-                        gradientPlaceholder(width: width - 40)
-                    }
+            // Background Image
+            if let game = game, let coverURL = game.coverImageURL {
+                AsyncImage(url: coverURL) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: width - 40)
+                        .clipped()
+                } placeholder: {
+                    gradientPlaceholder(width: width - 40)
                 }
             } else {
                 gradientPlaceholder(width: width - 40)
@@ -134,14 +131,36 @@ struct HeroCarousel: View {
             // Content Overlay with Glass Effect
             VStack(alignment: .leading, spacing: 10) {
                 Text(title)
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
+                    .lineLimit(2)
+
+                if let game = game {
+                    HStack {
+                        if !game.genres.isEmpty {
+                            Text(game.genres.prefix(2).joined(separator: " • "))
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+
+                        if let score = game.metacriticScore {
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow)
+                                Text("\(Int(score))")
+                                    .foregroundStyle(.white)
+                            }
+                            .font(.subheadline)
+                        }
+                    }
+                    .shadow(radius: 5)
+                }
 
                 if !id.isEmpty {
                     HStack {
                         Button(action: {
-                            appState.launch(gameId: id)
+                            appState.launchGame(id: id)
                         }) {
                             Label("Play Now", systemImage: "play.fill")
                                 .padding(.horizontal, 20)
@@ -149,16 +168,9 @@ struct HeroCarousel: View {
                                 .font(.headline)
                         }
                         .buttonStyle(.plain)
-                        .background(Capsule().fill(.ultraThinMaterial))
+                        .background(Capsule().fill(Material.ultraThin))
                         .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
                         .shadow(radius: 5)
-
-                        Button(action: {}) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
             }

@@ -2,21 +2,28 @@ import SwiftUI
 
 struct LibraryView: View {
     @EnvironmentObject var appState: AppState
+    @State private var selectedGame: GameViewModel?
 
     let columns = [
-        GridItem(.adaptive(minimum: 160, maximum: 200), spacing: 20)
+        GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 20)
     ]
 
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 20) {
                 ForEach(appState.games) { game in
-                    GameCard(game: game)
+                    GameGridCard(game: game)
+                        .onTapGesture {
+                            selectedGame = game
+                        }
                 }
             }
             .padding()
         }
-        .background(Color.clear)  // Prepare for glass
+        .background(Color.clear)
+        .sheet(item: $selectedGame) { game in
+            GameDetailView(game: game)
+        }
     }
 }
 
