@@ -1,7 +1,15 @@
+using System.Text.Json;
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
 
+using Aether.PluginSDK.UI;
+
 namespace Aether.Importers.Custom;
+
+// ...
+
+
+
 
 /// <summary>
 /// Custom game importer for manually added games
@@ -132,9 +140,6 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
     private async Task<GameMetadata?> FetchSteamMetadataAsync(string steamAppId)
     {
         // For now, just return CDN URLs
-        // TODO: Implement full Steam Web API integration (requires API key)
-        // API endpoint: https://store.steampowered.com/api/appdetails?appids={appId}
-
         return new GameMetadata
         {
             CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{steamAppId}/library_600x900_2x.jpg",
@@ -142,6 +147,73 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
             LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{steamAppId}/logo.png"
         };
     }
+
+    public List<Widget> GetSetupWidgets()
+    {
+        // Define fields for adding a custom game
+        // Ideally this returns a list of widgets the frontend renders
+        var widgets = new List<Widget>
+        {
+            new Widget
+            {
+                PluginId = Name,
+                Title = "Add Custom Game",
+                SortOrder = 1,
+                LayoutJson = @"
+                {
+                    ""type"": ""Form"",
+                    ""fields"": [
+                        { ""id"": ""title"", ""type"": ""Text"", ""label"": ""Game Title"", ""required"": true },
+                        { ""id"": ""installPath"", ""type"": ""FolderPicker"", ""label"": ""Install Path"", ""required"": true },
+                        { ""id"": ""executablePath"", ""type"": ""FilePicker"", ""label"": ""Executable Path"", ""required"": false },
+                        { ""id"": ""steamId"", ""type"": ""Text"", ""label"": ""Steam App ID (Optional)"", ""required"": false, ""placeholder"": ""For metadata fetch"" }
+                    ],
+                    ""actions"": [
+                        { ""id"": ""add_game"", ""label"": ""Add Game"", ""actionType"": ""submit"" }
+                    ]
+                }"
+            }
+        };
+        return widgets;
+    }
+
+    // IPlugin Implementation stubs
+    public List<Widget> GetWidgets(Game game) => new List<Widget>();
+    public Task OnWidgetAction(string actionId, string payload)
+    {
+        if (actionId == "add_game")
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(payload)) return Task.CompletedTask;
+
+                var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
+                if (data != null)
+                {
+                    // Extract fields safely
+                    data.TryGetValue("title", out var title);
+                    data.TryGetValue("installPath", out var installPath);
+                    data.TryGetValue("executablePath", out var executablePath);
+                    data.TryGetValue("steamId", out var steamId);
+
+                    if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(installPath))
+                    {
+                        AddCustomGame(title, installPath, executablePath, steamId);
+                    }
+                }
+            }
+            catch
+            {
+                // Simple swallow for now as we lack logger in this context easily
+                // or use Console.WriteLine
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
+    public Task OnGameLaunched(Game game) => Task.CompletedTask;
+    public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
 }
 
 /// <summary>

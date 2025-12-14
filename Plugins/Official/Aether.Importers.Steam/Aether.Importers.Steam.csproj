@@ -2,15 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+
+
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnableDynamicLoading>true</EnableDynamicLoading>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aether.PluginSDK\Aether.PluginSDK.csproj">
-      <Private>false</Private>
-    </ProjectReference>
+    <PackageReference Include="SteamKit2" Version="3.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Aether.PluginSDK\Aether.PluginSDK.csproj" />
   </ItemGroup>
 
 </Project>

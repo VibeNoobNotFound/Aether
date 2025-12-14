@@ -147,10 +147,27 @@ struct GameViewModel: Identifiable {
     }
 }
 
+struct PluginViewModel: Identifiable {
+    let id = UUID()
+    let name: String
+    let version: String
+    let author: String
+    let isImporter: Bool
+
+    init(from proto: Aether_PluginInfo) {
+        self.name = proto.name
+        self.version = proto.version
+        self.author = proto.author
+        self.isImporter = proto.isImporter
+    }
+}
+
 @MainActor
 class AppState: ObservableObject {
     @Published var games: [GameViewModel] = []
+    @Published var plugins: [PluginViewModel] = []
     @Published var currentScreen: AppScreen = .home
+
     private let grpcClient = GrpcClient()
 
     init() {
@@ -173,6 +190,10 @@ class AppState: ObservableObject {
 
             self.games = protos.map { GameViewModel(from: $0) }
             Logger.shared.log("Library refreshed. Total games: \(self.games.count)")
+
+            // Also refresh plugins
+            await fetchPlugins()
+
         } catch {
             Logger.shared.log("Failed to fetch library: \(error)", type: .error)
         }
@@ -199,13 +220,25 @@ class AppState: ObservableObject {
         }
     }
 
-    func launchGame(id: String) {
-        Logger.shared.log("Launching game with ID: \(id)")
+    func fetchSetupWidgets(for pluginName: String) async -> [Aether_PluginWidget] {
+        do {
+            var request = Aether_PluginName()
+            request.name = pluginName
+            let response = try await grpcClient.client.getSetupWidgets(request)
+            return response.widgets
+        } catch {
+            Logger.shared.log("Failed to fetch setup widgets: \(error)", type: .error)
+            return []
+        }
+    }
+
+    func launchGame(_ game: GameViewModel) {
+        Logger.shared.log("Launching game with ID: \(game.id)")
 
         Task {
             do {
                 let request = Aether_LaunchRequest.with {
-                    $0.gameID = id
+                    $0.gameID = game.id
                 }
 
                 let response = try await grpcClient.client.launchGame(request)
@@ -218,6 +251,17 @@ class AppState: ObservableObject {
             } catch {
                 Logger.shared.log("Launch error: \(error)", type: .error)
             }
+        }
+    }
+
+    func fetchPlugins() async {
+        Logger.shared.log("Fetching plugins...")
+        do {
+            let pluginsList = try await grpcClient.client.getPlugins(Aether_Empty())
+            self.plugins = pluginsList.plugins.map { PluginViewModel(from: $0) }
+            Logger.shared.log("Plugins fetched: \(self.plugins.count)")
+        } catch {
+            Logger.shared.log("Failed to fetch plugins: \(error)", type: .error)
         }
     }
 }

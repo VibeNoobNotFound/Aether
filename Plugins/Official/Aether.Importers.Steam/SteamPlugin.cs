@@ -131,6 +131,11 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
         // Track playtime
     }
 
+    public List<Aether.PluginSDK.UI.Widget> GetSetupWidgets()
+    {
+        return new List<Aether.PluginSDK.UI.Widget>();
+    }
+
     // Helper Methods
     private static List<string> GetPossibleSteamPaths()
     {

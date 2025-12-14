@@ -18,7 +18,11 @@ public interface IPlugin
     // Hook 4: Lifecycle
     Task OnGameLaunched(Game game);
     Task OnGameStopped(Game game, TimeSpan sessionDuration);
+
+    // Hook 5: Setup (Server-Driven UI for adding games)
+    List<Widget> GetSetupWidgets();
 }
+
 
 public class LibraryContext
 {

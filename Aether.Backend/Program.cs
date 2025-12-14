@@ -32,6 +32,8 @@ try
 
     // Add services to the container.
     builder.Services.AddGrpc();
+    builder.Services.AddSingleton<Serilog.ILogger>(Log.Logger);
+
 
     // Initialize database
     var dbPath = LibraryDatabase.GetDefaultDatabasePath();

@@ -176,10 +176,10 @@ struct HeroCarousel: View {
             }
             .padding(40)
         }
-        .frame(width: width - 40)
+        .frame(width: max(0, width - 40))  // Prevent negative width
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .padding(.horizontal, 20)
-        .containerRelativeFrame(.horizontal)
+        // .containerRelativeFrame(.horizontal) // Remove this as we set explicit frame based on geometry
     }
 
     @ViewBuilder
@@ -193,6 +193,6 @@ struct HeroCarousel: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-        .frame(width: width)
+        .frame(width: max(0, width))
     }
 }

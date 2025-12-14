@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
+using Aether.PluginSDK.UI;
+
 
 namespace Aether.Importers.Epic;
 
@@ -97,4 +99,14 @@ public class EpicPlugin : ILibraryImporter
             return null;
         }
     }
+
+    // IPlugin Implementation stubs
+
+    public List<Widget> GetWidgets(Game game) => new List<Widget>();
+    public Task OnWidgetAction(string actionId, string payload) => Task.CompletedTask;
+    public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
+    public Task OnGameLaunched(Game game) => Task.CompletedTask;
+    public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
+    public List<Widget> GetSetupWidgets() => new List<Widget>();
 }
+

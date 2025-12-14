@@ -2,7 +2,14 @@ using System.Diagnostics;
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
 
+using Aether.PluginSDK.UI;
+
 namespace Aether.Importers.AppStore;
+
+// ... (existing code) ...
+
+
+
 
 /// <summary>
 /// macOS App Store and .app bundle importer
@@ -64,6 +71,18 @@ public class AppStorePlugin : ILibraryImporter
 
             var bundleId = await RunPlistBuddyAsync(infoPlistPath, "CFBundleIdentifier");
 
+            // CATEGORY CHECK: Ensure it's a game
+            // LSApplicationCategoryType string usually looks like "public.app-category.games" or specific genres.
+            var category = await RunPlistBuddyAsync(infoPlistPath, "LSApplicationCategoryType");
+
+            // If category is found, check if it contains "game"
+            // If category is null (some apps don't have it), we currently skip it to be safe, or we could include it if known game.
+            // User requested strict "only games".
+            bool isGame = !string.IsNullOrEmpty(category) && category.ToLower().Contains("game");
+
+            if (!isGame)
+                return null;
+
             if (string.IsNullOrEmpty(appName))
                 appName = Path.GetFileNameWithoutExtension(appBundlePath);
 
@@ -78,6 +97,7 @@ public class AppStorePlugin : ILibraryImporter
                 appBundlePath,
                 appBundlePath // The .app itself is executable
             );
+
         }
         catch
         {
@@ -112,4 +132,17 @@ public class AppStorePlugin : ILibraryImporter
             return null;
         }
     }
+
+    public List<Widget> GetSetupWidgets()
+    {
+        return new List<Widget>();
+    }
+
+    // IPlugin Implementation stubs
+    public List<Widget> GetWidgets(Game game) => new List<Widget>();
+    public Task OnWidgetAction(string actionId, string payload) => Task.CompletedTask;
+    public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
+    public Task OnGameLaunched(Game game) => Task.CompletedTask;
+    public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
 }
+

@@ -9,22 +9,56 @@ struct LibraryView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 20) {
-                ForEach(appState.games) { game in
-                    GameGridCard(game: game)
-                        .onTapGesture {
-                            selectedGame = game
+        Group {
+            if appState.games.isEmpty {
+                VStack(spacing: 20) {
+                    Image(systemName: "gamecontroller.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+
+                    Text("No Games Found")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    Text("Scan your library to find games from Steam, Epic, and more.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+
+                    Button {
+                        Task {
+                            await appState.scanLibrary()
                         }
+                    } label: {
+                        Label("Scan Library", systemImage: "arrow.clockwise")
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(appState.games) { game in
+                            GameGridCard(game: game)
+                                .onTapGesture {
+                                    selectedGame = game
+                                }
+                        }
+                    }
+                    .padding()
                 }
             }
-            .padding()
         }
         .background(Color.clear)
         .sheet(item: $selectedGame) { game in
             GameDetailView(game: game)
         }
     }
+
 }
 
 struct GameCard: View {

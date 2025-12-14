@@ -17,11 +17,14 @@ struct MainWindowView: View {
                     HomeView()
                 case .library:
                     LibraryView()
-                case .store, .settings:
+                case .store:
                     Text("Coming Soon")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
+                case .settings:
+                    SettingsView()
                 }
+
             }
         }
         .frame(minWidth: 800, minHeight: 600)

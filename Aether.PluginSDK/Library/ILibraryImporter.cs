@@ -3,10 +3,11 @@ namespace Aether.PluginSDK.Library;
 /// <summary>
 /// Library importer interface for plugins that can detect and import games from various platforms
 /// </summary>
-public interface ILibraryImporter
+public interface ILibraryImporter : IPlugin
 {
-    string Name { get; } // "Steam", "Epic", "App Store", etc.
+    // Name is inherited from IPlugin
     string Version { get; }
+
     
     /// <summary>
     /// Check if this platform's launcher is installed on the system

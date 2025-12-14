@@ -23,7 +23,15 @@ service AetherOrchestrator {
   rpc GetGameDetailWidgets (GameId) returns (WidgetList);
   // Frontend says: "User clicked the button in the plugin widget"
   rpc TriggerPluginAction (PluginAction) returns (OperationStatus);
+  
+  // Get list of loaded plugins
+  rpc GetPlugins (Empty) returns (PluginList);
+
+  // Server-Driven UI for Plugin Setup (e.g., "Add Game" for Custom Importer)
+  rpc GetSetupWidgets (PluginName) returns (WidgetList);
 }
+
+
 
 // -----------------------------------------------------------
 // DATA MODELS
@@ -143,12 +151,30 @@ message PluginWidget {
 }
 
 message PluginAction {
-  string plugin_id = 1;
-  string action_id = 2; // e.g., "SYNC_BUTTON_CLICKED"
-  string payload_json = 3; // Any extra data needed
+  string pluginName = 1;
+  string actionId = 2; // e.g., "SYNC_BUTTON_CLICKED"
+  string gameId = 3;
+  string payload_json = 4; // Any extra data needed
+}
+
+message PluginList {
+  repeated PluginInfo plugins = 1;
+}
+
+message PluginInfo {
+  string name = 1;
+  string version = 2;
+  string author = 3;
+  bool isImporter = 4;
+  bool isMetadataProvider = 5;
+}
+
+message PluginName {
+  string name = 1;
 }
 
 message OperationStatus {
+
   bool success = 1;
   string message = 2;
 }

@@ -10,8 +10,5 @@ public partial class AetherGrpcService
         return Task.FromResult(new WidgetList());
     }
 
-    public override Task<OperationStatus> TriggerPluginAction(PluginAction request, ServerCallContext context)
-    {
-        return Task.FromResult(new OperationStatus { Success = true });
-    }
+
 }
