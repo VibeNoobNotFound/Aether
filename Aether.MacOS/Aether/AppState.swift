@@ -232,6 +232,17 @@ class AppState: ObservableObject {
         }
     }
 
+    func triggerPluginAction(pluginName: String, actionId: String, payload: String) async throws
+        -> Aether_OperationStatus
+    {
+        var request = Aether_PluginAction()
+        request.pluginName = pluginName
+        request.actionID = actionId
+        request.payloadJson = payload
+
+        return try await grpcClient.client.triggerPluginAction(request)
+    }
+
     func launchGame(_ game: GameViewModel) {
         Logger.shared.log("Launching game with ID: \(game.id)")
 

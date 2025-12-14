@@ -1,5 +1,5 @@
 import AetherIPC
-import GRPC
+import GRPCCore
 import NIOCore
 import SwiftUI
 
@@ -95,14 +95,12 @@ struct PluginSetupView: View {
             return
         }
 
-        var request = Aether_PluginAction()
-        request.pluginName = plugin.name
-        request.actionID = action.id
-        request.payloadJson = payloadString
-        // request.gameID = "" // Not needed for adding game
-
         do {
-            let response = try await appState.grpcClient.client.triggerPluginAction(request)
+            let response = try await appState.triggerPluginAction(
+                pluginName: plugin.name,
+                actionId: action.id,
+                payload: payloadString
+            )
             if response.success {
                 dismiss()
                 // Optionally trigger library rescan

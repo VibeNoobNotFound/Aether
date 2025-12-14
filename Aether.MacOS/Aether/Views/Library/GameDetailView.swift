@@ -163,3 +163,4 @@ struct StatBadge: View {
         }
     }
 }
+
