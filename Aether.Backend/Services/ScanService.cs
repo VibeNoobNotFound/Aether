@@ -28,14 +28,15 @@ public partial class AetherGrpcService
 
             var progress = new Progress<PluginSDK.Library.ScanProgress>(p =>
             {
-                // Convert plugin ScanProgress to proto ScanProgress
+                // This callback is for generic progress (scanning stages)
+                // Actual game discovery is handled in the loop below
                 var protoProgress = new ScanProgress
                 {
                     CurrentPlatform = p.CurrentPlatform,
                     GamesFound = p.GamesFound,
                     GamesProcessed = p.GamesProcessed,
                     CurrentGame = p.CurrentGame ?? "",
-                    ProgressPercentage = p.ProgressPercentage
+                    ProgressPercentage = (float)p.ProgressPercentage
                 };
 
                 responseStream.WriteAsync(protoProgress).Wait();
@@ -54,13 +55,50 @@ public partial class AetherGrpcService
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to fetch metadata for {GameTitle}", importedGame.Title);
+                        _logger.LogWarning(ex, "Failed to fetch metadata for {GameTitle} from {Provider}", importedGame.Title, importer.Name);
                     }
                 }
 
-                // Create entity and save to database
+                // Fallback: If metadata is missing/incomplete, try searching other providers
+                if (metadata == null)
+                {
+                    foreach (var provider in metadataProviders)
+                    {
+                        if (provider == metadataProvider) continue; // Already tried by ID
+
+                        try
+                        {
+                            var searchResult = await provider.SearchAsync(importedGame.Title);
+                            if (searchResult != null)
+                            {
+                                metadata = searchResult;
+                                _logger.LogInformation("Found metadata for {GameTitle} via {Provider} search",
+                                    importedGame.Title, provider.Name);
+                                break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning("Fallback search failed on {Provider}: {Message}", provider.Name, ex.Message);
+                        }
+                    }
+                }
+
+                // Create entity and update database
                 var entity = GameEntity.FromImportedGame(importedGame, metadata);
                 _database.UpsertGame(entity);
+
+                // Stream the found game to the client immediately
+                var foundGameProto = MapToProto(entity);
+                await responseStream.WriteAsync(new ScanProgress
+                {
+                    CurrentPlatform = importer.Name,
+                    GamesFound = totalGamesFound + 1,
+                    GamesProcessed = totalGamesFound + 1,
+                    CurrentGame = entity.Title,
+                    ProgressPercentage = (float)((double)totalGamesFound / 100 * 100),
+                    FoundGame = foundGameProto
+                });
 
                 totalGamesFound++;
             }
@@ -71,11 +109,8 @@ public partial class AetherGrpcService
         // Send final status
         await responseStream.WriteAsync(new ScanProgress
         {
-            CurrentPlatform = "Complete",
-            GamesFound = totalGamesFound,
-            GamesProcessed = totalGamesFound,
-            CurrentGame = "",
-            ProgressPercentage = 100
+            CurrentStatus = "Complete",
+            PercentComplete = 100
         });
     }
 
@@ -87,61 +122,71 @@ public partial class AetherGrpcService
 
         foreach (var entity in games)
         {
-            var protoGame = new Game
-            {
-                Id = entity.Id.ToString(),
-                Title = entity.Title,
-                Platform = entity.Platform,
-                ExternalId = entity.ExternalId ?? "",
-                InstallPath = entity.InstallPath,
-                ExecutablePath = entity.ExecutablePath ?? "",
-
-                // Images
-                CoverImageUrl = entity.CoverImageUrl ?? "",
-                BackgroundImageUrl = entity.BackgroundImageUrl ?? "",
-                LogoImageUrl = entity.LogoImageUrl ?? "",
-
-                // Description
-                Description = entity.Description ?? "",
-                ShortDescription = entity.ShortDescription ?? "",
-                Developer = entity.Developer ?? "",
-                Publisher = entity.Publisher ?? "",
-
-                // Features
-                HasAchievements = entity.HasAchievements,
-                AchievementCount = entity.AchievementCount ?? 0,
-                HasMultiplayer = entity.HasMultiplayer,
-                HasSinglePlayer = entity.HasSinglePlayer,
-                HasCloudSaves = entity.HasCloudSaves,
-
-                // User stats
-                IsFavorite = entity.IsFavorite,
-                IsInstalled = entity.IsInstalled,
-                TotalPlaytimeSeconds = (long)(entity.TotalPlaytime?.TotalSeconds ?? 0),
-
-                // Timestamps
-                ReleaseDateUnix = entity.ReleaseDate.HasValue ? new DateTimeOffset(entity.ReleaseDate.Value).ToUnixTimeSeconds() : 0,
-                LastPlayedUnix = entity.LastPlayed.HasValue ? new DateTimeOffset(entity.LastPlayed.Value).ToUnixTimeSeconds() : 0,
-            };
-
-            // Add arrays
-            if (entity.Screenshots != null)
-                protoGame.Screenshots.AddRange(entity.Screenshots);
-            if (entity.Videos != null)
-                protoGame.Videos.AddRange(entity.Videos);
-            if (entity.Genres != null)
-                protoGame.Genres.AddRange(entity.Genres);
-            if (entity.Tags != null)
-                protoGame.Tags.AddRange(entity.Tags);
-            if (entity.Categories != null)
-                protoGame.Categories.AddRange(entity.Categories);
-            if (entity.SupportedLanguages != null)
-                protoGame.SupportedLanguages.AddRange(entity.SupportedLanguages);
-
+            var protoGame = MapToProto(entity);
             await responseStream.WriteAsync(protoGame);
             _logger.LogDebug("Streamed game: {GameTitle}", entity.Title);
         }
 
         _logger.LogInformation("Finished streaming {Count} games", games.Count);
+    }
+
+    private static Game MapToProto(GameEntity entity)
+    {
+        var protoGame = new Game
+        {
+            Id = entity.Id.ToString(),
+            Title = entity.Title,
+            Platform = entity.Platform,
+            ExternalId = entity.ExternalId ?? "",
+            InstallPath = entity.InstallPath,
+            ExecutablePath = entity.ExecutablePath ?? "",
+
+            // Images
+            CoverImageUrl = entity.CoverImageUrl ?? "",
+            BackgroundImageUrl = entity.BackgroundImageUrl ?? "",
+            LogoImageUrl = entity.LogoImageUrl ?? "",
+
+            // Description
+            Description = entity.Description ?? "",
+            ShortDescription = entity.ShortDescription ?? "",
+            Developer = entity.Developer ?? "",
+            Publisher = entity.Publisher ?? "",
+
+            // Features
+            HasAchievements = entity.HasAchievements,
+            AchievementCount = entity.AchievementCount ?? 0,
+            HasMultiplayer = entity.HasMultiplayer,
+            HasSinglePlayer = entity.HasSinglePlayer,
+            HasCloudSaves = entity.HasCloudSaves,
+
+            // User stats
+            IsFavorite = entity.IsFavorite,
+            IsInstalled = entity.IsInstalled,
+            TotalPlaytimeSeconds = (long)(entity.TotalPlaytime?.TotalSeconds ?? 0),
+
+            // Timestamps
+            ReleaseDateUnix = entity.ReleaseDate.HasValue ? new DateTimeOffset(entity.ReleaseDate.Value).ToUnixTimeSeconds() : 0,
+            LastPlayedUnix = entity.LastPlayed.HasValue ? new DateTimeOffset(entity.LastPlayed.Value).ToUnixTimeSeconds() : 0,
+
+            // Requirements
+            MinimumRequirements = entity.MinimumRequirements ?? "",
+            RecommendedRequirements = entity.RecommendedRequirements ?? ""
+        };
+
+        // Add arrays
+        if (entity.Screenshots != null)
+            protoGame.Screenshots.AddRange(entity.Screenshots);
+        if (entity.Videos != null)
+            protoGame.Videos.AddRange(entity.Videos);
+        if (entity.Genres != null)
+            protoGame.Genres.AddRange(entity.Genres);
+        if (entity.Tags != null)
+            protoGame.Tags.AddRange(entity.Tags);
+        if (entity.Categories != null)
+            protoGame.Categories.AddRange(entity.Categories);
+        if (entity.SupportedLanguages != null)
+            protoGame.SupportedLanguages.AddRange(entity.SupportedLanguages);
+
+        return protoGame;
     }
 }

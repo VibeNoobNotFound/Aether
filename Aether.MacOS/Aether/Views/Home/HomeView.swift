@@ -8,6 +8,15 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HeroCarousel()
 
+                if !appState.games.filter({ $0.isFavorite }).isEmpty {
+                    Text("Favorites")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal)
+
+                    favoritesList
+                }
+
                 Text("Jump Back In")
                     .font(.title2)
                     .fontWeight(.bold)
@@ -30,28 +39,70 @@ struct HomeView: View {
         }
     }
 
+    var favoritesList: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 15) {
+                ForEach(appState.games.filter { $0.isFavorite }) { game in
+                    NavigationLink(value: game) {
+                        GameGridCard(game: game)
+                            .frame(width: 200)
+                            .contextMenu {
+                                Button {
+                                    appState.launchGame(game)
+                                } label: {
+                                    Label("Play", systemImage: "play.fill")
+                                }
+
+                                Button {
+                                    Task { await appState.toggleFavorite(game: game) }
+                                } label: {
+                                    Label("Unfavorite", systemImage: "heart.slash")
+                                }
+
+                                Button {
+                                    Task { await appState.openGameLocation(game: game) }
+                                } label: {
+                                    Label("Show in Finder", systemImage: "folder")
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
     var recentGamesList: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 15) {
                 ForEach(appState.games) { game in
-                    Button(action: {
-                        appState.launchGame(id: game.id)
-                    }) {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.1))
-                            .frame(width: 200, height: 120)
-                            .overlay(
-                                VStack {
-                                    Text(game.title)
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                    Text("Play")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                    NavigationLink(value: game) {
+                        GameGridCard(game: game)
+                            .frame(width: 200)
+                            .contextMenu {
+                                Button {
+                                    appState.launchGame(game)
+                                } label: {
+                                    Label("Play", systemImage: "play.fill")
                                 }
-                            )
+
+                                Button {
+                                    Task { await appState.toggleFavorite(game: game) }
+                                } label: {
+                                    Label(
+                                        game.isFavorite ? "Unfavorite" : "Favorite",
+                                        systemImage: game.isFavorite ? "heart.slash" : "heart")
+                                }
+
+                                Button {
+                                    Task { await appState.openGameLocation(game: game) }
+                                } label: {
+                                    Label("Show in Finder", systemImage: "folder")
+                                }
+                            }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal)

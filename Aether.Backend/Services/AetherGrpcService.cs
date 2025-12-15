@@ -129,7 +129,189 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             return new OperationStatus { Success = false, Message = ex.Message };
         }
     }
+
+
+
+    public override Task<OperationStatus> ClearLibrary(Empty request, ServerCallContext context)
+    {
+        try
+        {
+            var count = _database.ClearAllGames();
+            _logger.LogInformation("Library cleared. Removed {Count} games", count);
+            return Task.FromResult(new OperationStatus { Success = true, Message = $"Cleared {count} games." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing library");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> RemoveGame(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            // Note: DB needs DeleteGame method
+            var success = _database.DeleteGame(request.Id);
+            return Task.FromResult(new OperationStatus
+            {
+                Success = success,
+                Message = success ? "Game removed." : "Game not found."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing game");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> ToggleFavorite(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            // DB already has ToggleFavorite taking int, but ID is string?
+            // Wait, Game entity uses int ID in LiteDB but string ID in Proto?
+            // Need to verify ID mapping. Assuming proto ID matches what we stored.
+            // Actually, proto ID is string. LiteDB internal ID is int. 
+            // We should use ExternalId or GUID for string ID.
+            // Let's assume for now we parse it if it's int, or use string ID if we migrated.
+            // Upon checking LibraryDatabase, GetGameById takes 'int id'.
+            // But Aether uses string IDs in proto.
+            // We need to resolve this.
+
+            if (int.TryParse(request.Id, out int dbId))
+            {
+                _database.ToggleFavorite(dbId);
+                return Task.FromResult(new OperationStatus { Success = true, Message = "Favorite toggled." });
+            }
+            return Task.FromResult(new OperationStatus { Success = false, Message = "Invalid ID format." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling favorite");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> OpenGameLocation(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            if (int.TryParse(request.Id, out int dbId))
+            {
+                var game = _database.GetGameById(dbId);
+                if (game != null && !string.IsNullOrEmpty(game.InstallPath))
+                {
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        // Use -R to reveal in Finder instead of launching
+                        var startInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "open",
+                            Arguments = $"-R \"{game.InstallPath}\"",
+                            UseShellExecute = false
+                        };
+                        System.Diagnostics.Process.Start(startInfo);
+                    }
+                    else if (OperatingSystem.IsWindows())
+                    {
+                        // explorer /select,path
+                        System.Diagnostics.Process.Start("explorer", $"/select,\"{game.InstallPath}\"");
+                    }
+                    return Task.FromResult(new OperationStatus { Success = true, Message = "Location opened." });
+                }
+            }
+            return Task.FromResult(new OperationStatus { Success = false, Message = "Game or path not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening location");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override async Task<OperationStatus> UpdateGameMetadata(GameMetadataUpdate request, ServerCallContext context)
+    {
+        try
+        {
+            if (!int.TryParse(request.GameId, out int dbId))
+            {
+                return new OperationStatus { Success = false, Message = "Invalid game ID" };
+            }
+
+            var game = _database.GetGameById(dbId);
+            if (game == null)
+            {
+                return new OperationStatus { Success = false, Message = "Game not found" };
+            }
+
+            // Update fields if provided
+            if (request.HasTitle) game.Title = request.Title;
+            if (request.HasDeveloper) game.Developer = request.Developer;
+            if (request.HasPublisher) game.Publisher = request.Publisher;
+            if (request.HasDescription) game.Description = request.Description;
+            if (request.HasCoverImageUrl) game.CoverImageUrl = request.CoverImageUrl;
+            if (request.HasBackgroundImageUrl) game.BackgroundImageUrl = request.BackgroundImageUrl;
+            if (request.Genres.Count > 0) game.Genres = request.Genres.ToList();
+            if (request.HasReleaseDateUnix) game.ReleaseDate = DateTimeOffset.FromUnixTimeSeconds(request.ReleaseDateUnix).DateTime;
+
+            game.UpdatedAt = DateTime.UtcNow;
+            _database.UpsertGame(game);
+
+            _logger.LogInformation("Updated metadata for game: {Title}", game.Title);
+            return new OperationStatus { Success = true, Message = "Metadata updated successfully" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating metadata");
+            return new OperationStatus { Success = false, Message = ex.Message };
+        }
+    }
+
+    public override async Task<MetadataSearchResponse> SearchMetadataProviders(MetadataSearchRequest request, ServerCallContext context)
+    {
+        var response = new MetadataSearchResponse();
+
+        try
+        {
+            var providers = _pluginManager.GetMetadataProviders().ToList();
+
+            // Filter by provider name if specified
+            if (!string.IsNullOrEmpty(request.Provider))
+            {
+                providers = providers.Where(p => p.Name.Equals(request.Provider, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            foreach (var provider in providers)
+            {
+                try
+                {
+                    var metadata = await provider.SearchAsync(request.Query);
+                    if (metadata != null)
+                    {
+                        response.Results.Add(new MetadataSearchResult
+                        {
+                            Provider = provider.Name,
+                            ExternalId = "", // Would need SearchAsync to return this
+                            Title = request.Query, // Use query as title since SearchAsync returns full metadata
+                            Developer = metadata.Developer ?? "",
+                            CoverImageUrl = metadata.CoverImageUrl ?? "",
+                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Search failed on provider {Provider}: {Error}", provider.Name, ex.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching metadata providers");
+        }
+
+        return response;
+    }
 }
-
-
-

@@ -171,6 +171,27 @@ public class LibraryDatabase : IDisposable
     }
 
     /// <summary>
+    /// Delete game by ID
+    /// </summary>
+    public bool DeleteGame(string id)
+    {
+        // Try parsing int ID
+        if (int.TryParse(id, out int dbId))
+        {
+            return _games.Delete(dbId);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Clear all games from database
+    /// </summary>
+    public int ClearAllGames()
+    {
+        return _games.DeleteAll();
+    }
+
+    /// <summary>
     /// Get total game count
     /// </summary>
     public int GetGameCount()

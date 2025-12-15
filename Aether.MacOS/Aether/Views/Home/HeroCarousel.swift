@@ -28,12 +28,15 @@ struct HeroCarousel: View {
                         } else {
                             ForEach(Array(displayGames.enumerated()), id: \.element.id) {
                                 index, game in
-                                gameCard(
-                                    title: game.title,
-                                    id: game.id,
-                                    imageUrl: nil,
-                                    width: geometry.size.width
-                                )
+                                NavigationLink(value: game) {
+                                    gameCard(
+                                        title: game.title,
+                                        id: game.id,
+                                        imageUrl: nil,
+                                        width: geometry.size.width
+                                    )
+                                }
+                                .buttonStyle(.plain)
                                 .id(index)
                             }
                         }
@@ -114,8 +117,8 @@ struct HeroCarousel: View {
 
         ZStack(alignment: .bottomLeading) {
             // Background Image
-            if let game = game, let coverURL = game.coverImageURL {
-                AsyncImage(url: coverURL) { image in
+            if let game = game, let bgURL = game.backgroundImageURL ?? game.coverImageURL {
+                AsyncImage(url: bgURL) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -156,30 +159,35 @@ struct HeroCarousel: View {
                     }
                     .shadow(radius: 5)
                 }
-
-                if !id.isEmpty {
-                    HStack {
-                        Button(action: {
-                            appState.launchGame(id: id)
-                        }) {
-                            Label("Play Now", systemImage: "play.fill")
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .font(.headline)
-                        }
-                        .buttonStyle(.plain)
-                        .background(Capsule().fill(Material.ultraThin))
-                        .overlay(Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1))
-                        .shadow(radius: 5)
-                    }
-                }
             }
             .padding(40)
         }
         .frame(width: max(0, width - 40))  // Prevent negative width
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .contextMenu {
+            if let game = game {
+                Button {
+                    appState.launchGame(game)
+                } label: {
+                    Label("Play", systemImage: "play.fill")
+                }
+
+                Button {
+                    Task { await appState.toggleFavorite(game: game) }
+                } label: {
+                    Label(
+                        game.isFavorite ? "Unfavorite" : "Favorite",
+                        systemImage: game.isFavorite ? "heart.slash" : "heart")
+                }
+
+                Button {
+                    Task { await appState.openGameLocation(game: game) }
+                } label: {
+                    Label("Show in Finder", systemImage: "folder")
+                }
+            }
+        }
         .padding(.horizontal, 20)
-        // .containerRelativeFrame(.horizontal) // Remove this as we set explicit frame based on geometry
     }
 
     @ViewBuilder

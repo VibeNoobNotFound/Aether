@@ -73,7 +73,7 @@ struct GameDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     // Action buttons
                     HStack(spacing: 16) {
-                        Button(action: { appState.launchGame(id: game.id) }) {
+                        Button(action: { appState.launchGame(game) }) {
                             Label("Play", systemImage: "play.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -126,25 +126,61 @@ struct GameDetailView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("About")
                                 .font(.headline)
-                            Text(game.description)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
+                            HTMLText(html: game.description)
+                        }
+                    }
+
+                    // Screenshots
+                    if !game.screenshots.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Screenshots")
+                                .font(.headline)
+
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(game.screenshots, id: \.self) { url in
+                                        AsyncImage(url: url) { image in
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 300, height: 170)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } placeholder: {
+                                            Rectangle()
+                                                .fill(.gray.opacity(0.3))
+                                                .frame(width: 300, height: 170)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
                 .padding()
             }
         }
-        .frame(minWidth: 500, minHeight: 600)
         .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { dismiss() }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingMetadataEditor = true
+                } label: {
+                    Label("Edit Metadata", systemImage: "pencil")
+                }
             }
+        }
+        .sheet(isPresented: $showingMetadataEditor) {
+            MetadataEditorView(game: game)
+                .environmentObject(appState)
         }
     }
 
+    @State private var showingMetadataEditor = false
+
     func toggleFavorite() {
-        // TODO: Call backend to toggle favorite
+        Task {
+            await appState.toggleFavorite(game: game)
+        }
     }
 }
 
@@ -163,4 +199,3 @@ struct StatBadge: View {
         }
     }
 }
-

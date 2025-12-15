@@ -3,6 +3,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedGame: GameViewModel?
+    @State private var selectedPlugin: PluginViewModel?
 
     let columns = [
         GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 20)
@@ -43,10 +44,40 @@ struct LibraryView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 20) {
                         ForEach(appState.games) { game in
-                            GameGridCard(game: game)
-                                .onTapGesture {
-                                    selectedGame = game
-                                }
+                            NavigationLink(value: game) {
+                                GameGridCard(game: game)
+                                    .contextMenu {
+                                        Button {
+                                            appState.launchGame(game)
+                                        } label: {
+                                            Label("Play", systemImage: "play.fill")
+                                        }
+
+                                        Button {
+                                            Task { await appState.toggleFavorite(game: game) }
+                                        } label: {
+                                            Label(
+                                                game.isFavorite ? "Unfavorite" : "Favorite",
+                                                systemImage: game.isFavorite
+                                                    ? "heart.slash" : "heart")
+                                        }
+
+                                        Button {
+                                            Task { await appState.openGameLocation(game: game) }
+                                        } label: {
+                                            Label("Show in Finder", systemImage: "folder")
+                                        }
+
+                                        Divider()
+
+                                        Button(role: .destructive) {
+                                            Task { await appState.removeGame(id: game.id) }
+                                        } label: {
+                                            Label("Remove from Library", systemImage: "trash")
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding()
@@ -54,44 +85,40 @@ struct LibraryView: View {
             }
         }
         .background(Color.clear)
-        .sheet(item: $selectedGame) { game in
-            GameDetailView(game: game)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                HStack {
+                    Button(action: {
+                        if let customPlugin = appState.plugins.first(where: { $0.name == "Custom" })
+                        {
+                            selectedPlugin = customPlugin
+                        }
+                    }) {
+                        Label("Add Game", systemImage: "plus")
+                    }
+
+                    Menu {
+                        Button {
+                            Task { await appState.scanLibrary() }
+                        } label: {
+                            Label("Scan Library", systemImage: "arrow.clockwise")
+                        }
+
+                        Button(role: .destructive) {
+                            Task { await appState.clearLibrary() }
+                        } label: {
+                            Label("Clear Library", systemImage: "trash")
+                        }
+                    } label: {
+                        Label("Manage", systemImage: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .sheet(item: $selectedPlugin) { plugin in
+            PluginSetupView(plugin: plugin)
+                .frame(minWidth: 500, minHeight: 400)
         }
     }
 
-}
-
-struct GameCard: View {
-    let game: GameViewModel
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            // Placeholder Box Art
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .aspectRatio(2 / 3, contentMode: .fit)
-                .cornerRadius(12)
-                .overlay(
-                    Image(systemName: "gamecontroller")
-                        .font(.largeTitle)
-                        .foregroundStyle(.white.opacity(0.5))
-                )
-
-            Text(game.title)
-                .font(.headline)
-                .lineLimit(1)
-
-            Text(game.platform)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(10)
-        .background(Material.regular)  // Fallback or use glassEffect if compiler supported
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .onTapGesture {
-            // Open Detail
-        }
-        // Attempting to use the new "Liquid Glass" style if available
-        // .glassEffect()
-    }
 }

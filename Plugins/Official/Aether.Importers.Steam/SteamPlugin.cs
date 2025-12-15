@@ -61,36 +61,167 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
         }
     }
 
-    // IMetadataProvider Implementation
+    private readonly HttpClient _httpClient = new HttpClient();
+
     public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
     {
-        // For now, return minimal metadata
-        // TODO: Implement SteamKit2 API calls
+        try
+        {
+            var term = System.Web.HttpUtility.UrlEncode(gameName);
+            var url = $"https://store.steampowered.com/api/storesearch/?term={term}&l=english&cc=US";
+            var response = await _httpClient.GetStringAsync(url);
+
+            using var doc = System.Text.Json.JsonDocument.Parse(response);
+            if (doc.RootElement.TryGetProperty("items", out var items) && items.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in items.EnumerateArray())
+                {
+                    if (item.TryGetProperty("id", out var idElem))
+                    {
+                        var id = idElem.ToString();
+                        // Put "id" back into standard flow to get full richness
+                        return await GetByIdAsync(id);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Steam search failed for {gameName}: {ex.Message}");
+        }
         return null;
     }
 
     public async Task<GameMetadata?> GetByIdAsync(string gameId)
     {
-        // TODO: Fetch from Steam API using SteamKit2
-        var coverUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_600x900_2x.jpg";
+        try
+        {
+            var url = $"https://store.steampowered.com/api/appdetails?appids={gameId}";
+            var response = await _httpClient.GetStringAsync(url);
 
+            // Parse JSON using System.Text.Json
+            using var doc = System.Text.Json.JsonDocument.Parse(response);
+            if (doc.RootElement.TryGetProperty(gameId, out var appData))
+            {
+                if (appData.TryGetProperty("success", out var success) && success.GetBoolean())
+                {
+                    if (appData.TryGetProperty("data", out var data))
+                    {
+                        // Prepare Genre list
+                        string[]? genresList = null;
+                        if (data.TryGetProperty("genres", out var genres))
+                        {
+                            genresList = genres.EnumerateArray()
+                                .Select(g => GetString(g, "description"))
+                                .Where(s => !string.IsNullOrEmpty(s))
+                                .Cast<string>()
+                                .ToArray();
+                        }
+
+                        // Prepare Metacritic score
+                        decimal? metacriticScore = null;
+                        if (data.TryGetProperty("metacritic", out var metacritic))
+                        {
+                            if (metacritic.TryGetProperty("score", out var score))
+                                metacriticScore = (decimal)score.GetInt32();
+                        }
+
+                        // Prepare Screenshots list
+                        string[]? screenshotsList = null;
+                        if (data.TryGetProperty("screenshots", out var screenshots))
+                        {
+                            screenshotsList = screenshots.EnumerateArray()
+                                .Select(s => GetString(s, "path_full"))
+                                .Where(s => !string.IsNullOrEmpty(s))
+                                .Cast<string>()
+                                .ToArray();
+                        }
+
+                        var metadata = new GameMetadata
+                        {
+                            Description = GetString(data, "detailed_description"),
+                            ShortDescription = GetString(data, "short_description"),
+                            Developer = GetFirstString(data, "developers"),
+                            Publisher = GetFirstString(data, "publishers"),
+                            ReleaseDate = ParseDate(GetString(data, "release_date", "date")),
+
+                            // Images - Use portrait cover art (600x900), not wide header
+                            // Steam library_600x900 is the proper vertical box art
+                            CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_600x900_2x.jpg",
+                            // Header image is wide and works well for backgrounds
+                            BackgroundImageUrl = GetString(data, "header_image") ?? GetString(data, "background") ?? $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_hero.jpg",
+                            LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/logo.png",
+
+                            // Assign pre-calculated values
+                            Genres = genresList,
+                            MetacriticScore = metacriticScore,
+                            Screenshots = screenshotsList
+                        };
+
+                        return metadata;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching Steam metadata for {gameId}: {ex.Message}");
+        }
+
+        // Fallback
         return new GameMetadata
         {
-            CoverImageUrl = coverUrl,
+            CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_600x900_2x.jpg",
             BackgroundImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_hero.jpg",
             LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/logo.png"
         };
     }
 
+    private string? GetString(System.Text.Json.JsonElement element, string property, string? subProperty = null)
+    {
+        if (element.TryGetProperty(property, out var prop))
+        {
+            if (subProperty != null)
+            {
+                if (prop.TryGetProperty(subProperty, out var subProp))
+                    return subProp.GetString();
+            }
+            else
+            {
+                if (prop.ValueKind == System.Text.Json.JsonValueKind.String)
+                    return prop.GetString();
+            }
+        }
+        return null;
+    }
+
+    private string? GetFirstString(System.Text.Json.JsonElement element, string property)
+    {
+        if (element.TryGetProperty(property, out var array) && array.ValueKind == System.Text.Json.JsonValueKind.Array)
+        {
+            foreach (var item in array.EnumerateArray())
+            {
+                return item.GetString();
+            }
+        }
+        return null;
+    }
+
+    private DateTime? ParseDate(string? dateString)
+    {
+        if (string.IsNullOrEmpty(dateString)) return null;
+        if (DateTime.TryParse(dateString, out var date)) return date;
+        return null;
+    }
+
     public async Task<List<string>> GetScreenshotsAsync(string gameId)
     {
-        // TODO: Implement via SteamKit2
+        // TODO: Extract screens from Store API if needed
         return new List<string>();
     }
 
     public async Task<List<Achievement>> GetAchievementsAsync(string gameId)
     {
-        // TODO: Implement via SteamKit2 ISteamUserStats
         return new List<Achievement>();
     }
 

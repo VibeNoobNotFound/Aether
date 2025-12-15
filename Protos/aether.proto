@@ -29,6 +29,16 @@ service AetherOrchestrator {
 
   // Server-Driven UI for Plugin Setup (e.g., "Add Game" for Custom Importer)
   rpc GetSetupWidgets (PluginName) returns (WidgetList);
+
+  // DATA MANAGEMENT
+  rpc ClearLibrary (Empty) returns (OperationStatus);
+  rpc RemoveGame (GameId) returns (OperationStatus);
+  rpc ToggleFavorite (GameId) returns (OperationStatus);
+  rpc OpenGameLocation (GameId) returns (OperationStatus);
+  
+  // METADATA MANAGEMENT
+  rpc UpdateGameMetadata (GameMetadataUpdate) returns (OperationStatus);
+  rpc SearchMetadataProviders (MetadataSearchRequest) returns (MetadataSearchResponse);
 }
 
 
@@ -105,78 +115,9 @@ enum Platform {
 }
 
 // -----------------------------------------------------------
-// LAUNCHING LOGIC
-// -----------------------------------------------------------
-
-message LaunchRequest {
-  string game_id = 1;
-  bool run_as_admin = 2;
-  // E.g., for Mac: "Use Game Porting Toolkit"
-  map<string, string> launch_arguments = 3; 
-}
-
-message LaunchResponse {
-  bool success = 1;
-  string error_message = 2;
-  int32 process_id = 3;
-}
-
-message GameStateUpdate {
-  string game_id = 1;
-  enum State {
-    STOPPED = 0;
-    LAUNCHING = 1;
-    RUNNING = 2;
-    SUSPENDED = 3;
-  }
-  State new_state = 2;
-}
-
-// -----------------------------------------------------------
-// PLUGIN & UI SYSTEM
-// -----------------------------------------------------------
-
-message WidgetList {
-  repeated PluginWidget widgets = 1;
-}
-
-// The "Adaptive Card" JSON. 
-// The backend defines the layout, Frontend just renders it.
-message PluginWidget {
-  string plugin_id = 1;
-  string title = 2;
-  // JSON string defining layout (e.g., { "type": "Button", "label": "Sync Saves" })
-  string layout_json = 3; 
-  int32 sort_order = 4;
-}
-
-message PluginAction {
-  string pluginName = 1;
-  string actionId = 2; // e.g., "SYNC_BUTTON_CLICKED"
-  string gameId = 3;
-  string payload_json = 4; // Any extra data needed
-}
-
-message PluginList {
-  repeated PluginInfo plugins = 1;
-}
-
-message PluginInfo {
-  string name = 1;
-  string version = 2;
-  string author = 3;
-  bool isImporter = 4;
-  bool isMetadataProvider = 5;
-}
 
 message PluginName {
   string name = 1;
-}
-
-message OperationStatus {
-
-  bool success = 1;
-  string message = 2;
 }
 
 message ScanRequest {
@@ -184,9 +125,102 @@ message ScanRequest {
 }
 
 message ScanProgress {
-  string current_platform = 1;
-  int32 games_found = 2;
-  int32 games_processed = 3;
-  string current_game = 4;
-  double progress_percentage = 5;
+  string current_status = 1; // "Scanning Steam..."
+  int32 percent_complete = 2;
+  Game found_game = 3; // The game that was just found (streaming)
+  
+  // Detailed progress
+  string current_platform = 4;
+  int32 games_found = 5;
+  int32 games_processed = 6;
+  string current_game = 7;
+  float progress_percentage = 8; // Float version if needed
+}
+
+message LaunchRequest {
+  string game_id = 1;
+  bool run_as_admin = 2;
+}
+
+message LaunchResponse {
+  bool success = 1;
+  string message = 2;
+  string process_id = 3;
+}
+
+message OperationStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+message GameStateUpdate {
+  string game_id = 1;
+  string state = 2; // "Running", "Stopped"
+}
+
+// Plugin UI Models
+message WidgetList {
+  repeated PluginWidget widgets = 1;
+}
+
+message PluginWidget {
+  string id = 1; // Unique ID for this instance
+  string plugin_id = 2; // ID of the plugin that created it
+  string title = 3;
+  string type = 4; // "Button", "Label", "Image", "Markdown"
+  string content = 5; // Text content or Image URL
+  string action_id = 6; // If it's a button, this ID is sent back on click
+  string layout_json = 7; // For complex layouts (Server-Driven UI)
+  int32 sort_order = 8;
+}
+
+message PluginAction {
+  string plugin_name = 1;
+  string action_id = 2;
+  string payload_json = 3; // JSON payload for form data etc.
+}
+
+message PluginList {
+  repeated PluginInfo plugins = 1; 
+}
+
+message PluginInfo {
+  string name = 1;
+  string version = 2;
+  string author = 3;
+  bool is_enabled = 4;
+  bool is_importer = 5;
+  bool is_metadata_provider = 6;
+}
+
+// Metadata Management
+message GameMetadataUpdate {
+  string game_id = 1;
+  optional string title = 2;
+  optional string developer = 3;
+  optional string publisher = 4;
+  optional string description = 5;
+  optional string cover_image_url = 6;
+  optional string background_image_url = 7;
+  repeated string genres = 8;
+  repeated string screenshots = 9;
+  optional int64 release_date_unix = 10;
+}
+
+message MetadataSearchRequest {
+  string query = 1;
+  string provider = 2;
+}
+
+message MetadataSearchResponse {
+  repeated MetadataSearchResult results = 1;
+}
+
+message MetadataSearchResult {
+  string title = 1;
+  string developer = 2;
+  string cover_image_url = 3;
+  string provider = 4;
+  string external_id = 5;
+  int32 release_year = 6;
 }

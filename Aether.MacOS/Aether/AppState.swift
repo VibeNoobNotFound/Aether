@@ -51,7 +51,7 @@ struct GameViewModel: Identifiable {
     // User Stats
     let totalPlaytime: TimeInterval
     let lastPlayed: Date?
-    let isFavorite: Bool
+    var isFavorite: Bool
     let isInstalled: Bool
 
     // Computed Properties
@@ -147,6 +147,16 @@ struct GameViewModel: Identifiable {
     }
 }
 
+extension GameViewModel: Hashable {
+    static func == (lhs: GameViewModel, rhs: GameViewModel) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
 struct PluginViewModel: Identifiable {
     let id = UUID()
     let name: String
@@ -205,16 +215,40 @@ class AppState: ObservableObject {
         do {
             let request = Aether_ScanRequest.with { $0.forceRefresh = false }
 
+            // Clean start or append?
+            // If we are doing a full scan, maybe we want to keep existing until replaced?
+            // For now, let's just append updates.
+
             try await grpcClient.client.scanLibrary(request) { response in
                 for try await progress in response.messages {
-                    Logger.shared.log(
-                        "Scan: \(progress.currentPlatform) - \(progress.currentGame) (\(Int(progress.progressPercentage))%)"
-                    )
+                    // Log progress
+                    if !progress.currentStatus.isEmpty {
+                        Logger.shared.log("Scan Status: \(progress.currentStatus)")
+                    } else {
+                        Logger.shared.log(
+                            "Scan: \(progress.currentPlatform) - \(progress.currentGame) (\(Int(progress.progressPercentage))%)"
+                        )
+                    }
+
+                    // Handle found game
+                    if progress.hasFoundGame {
+                        let newGame = GameViewModel(from: progress.foundGame)
+
+                        // Update state on MainActor
+                        await MainActor.run {
+                            // Update or append
+                            if let index = self.games.firstIndex(where: { $0.id == newGame.id }) {
+                                self.games[index] = newGame
+                            } else {
+                                self.games.append(newGame)
+                            }
+                        }
+                    }
                 }
             }
 
-            Logger.shared.log("Scan complete! Refreshing library...")
-            await refreshLibrary()
+            Logger.shared.log("Scan complete!")
+            // No need to refresh library as we streamed the updates
         } catch {
             Logger.shared.log("Scan failed: \(error)", type: .error)
         }
@@ -257,7 +291,7 @@ class AppState: ObservableObject {
                 if response.success {
                     Logger.shared.log("Game launched successfully. PID: \(response.processID)")
                 } else {
-                    Logger.shared.log("Launch failed: \(response.errorMessage)", type: .error)
+                    Logger.shared.log("Launch failed: \(response.message)", type: .error)
                 }
             } catch {
                 Logger.shared.log("Launch error: \(error)", type: .error)
@@ -273,6 +307,124 @@ class AppState: ObservableObject {
             Logger.shared.log("Plugins fetched: \(self.plugins.count)")
         } catch {
             Logger.shared.log("Failed to fetch plugins: \(error)", type: .error)
+        }
+    }
+
+    // MARK: - QoL Actions
+
+    func clearLibrary() async {
+        Logger.shared.log("Clearing library...")
+        do {
+            _ = try await grpcClient.client.clearLibrary(Aether_Empty())
+            self.games = []  // Clear locally
+            Logger.shared.log("Library cleared.")
+        } catch {
+            Logger.shared.log("Failed to clear library: \(error)", type: .error)
+        }
+    }
+
+    func removeGame(id: String) async {
+        do {
+            var request = Aether_GameId()
+            request.id = id
+            let response = try await grpcClient.client.removeGame(request)
+            if response.success {
+                self.games.removeAll { $0.id == id }
+                Logger.shared.log("Game removed: \(id)")
+            }
+        } catch {
+            Logger.shared.log("Failed to remove game: \(error)", type: .error)
+        }
+    }
+
+    func toggleFavorite(game: GameViewModel) async {
+        // Optimistic update
+        if let index = games.firstIndex(where: { $0.id == game.id }) {
+            games[index].isFavorite.toggle()
+        }
+
+        do {
+            var request = Aether_GameId()
+            request.id = game.id
+            let response = try await grpcClient.client.toggleFavorite(request)
+
+            if !response.success {
+                // Revert on failure
+                if let index = games.firstIndex(where: { $0.id == game.id }) {
+                    games[index].isFavorite.toggle()
+                }
+                Logger.shared.log(
+                    "Failed to toggle favorite on server: \(response.message)", type: .error)
+            }
+        } catch {
+            // Revert on failure
+            if let index = games.firstIndex(where: { $0.id == game.id }) {
+                games[index].isFavorite.toggle()
+            }
+            Logger.shared.log("Failed to toggle favorite: \(error)", type: .error)
+        }
+    }
+
+    func openGameLocation(game: GameViewModel) async {
+        do {
+            var request = Aether_GameId()
+            request.id = game.id
+            _ = try await grpcClient.client.openGameLocation(request)
+        } catch {
+            Logger.shared.log("Failed to open location: \(error)", type: .error)
+        }
+    }
+
+    func updateGameMetadata(
+        gameId: String,
+        title: String,
+        developer: String,
+        publisher: String,
+        description: String,
+        coverImageUrl: String,
+        backgroundImageUrl: String,
+        genres: [String]
+    ) async throws {
+        var request = Aether_GameMetadataUpdate()
+        request.gameID = gameId
+        request.title = title
+        request.developer = developer
+        request.publisher = publisher
+        request.description_p = description
+        request.coverImageURL = coverImageUrl
+        request.backgroundImageURL = backgroundImageUrl
+        request.genres = genres
+
+        let response = try await grpcClient.client.updateGameMetadata(request)
+
+        if !response.success {
+            throw NSError(
+                domain: "MetadataError", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: response.message])
+        }
+
+        // Refresh library to get updated data
+        await refreshLibrary()
+    }
+
+    func searchMetadataProviders(query: String, provider: String) async throws
+        -> [MetadataSearchResult]
+    {
+        var request = Aether_MetadataSearchRequest()
+        request.query = query
+        request.provider = provider
+
+        let response = try await grpcClient.client.searchMetadataProviders(request)
+
+        return response.results.map { result in
+            MetadataSearchResult(
+                provider: result.provider,
+                externalId: result.externalID,
+                title: result.title,
+                developer: result.developer,
+                coverImageUrl: result.coverImageURL,
+                releaseYear: Int(result.releaseYear)
+            )
         }
     }
 }
