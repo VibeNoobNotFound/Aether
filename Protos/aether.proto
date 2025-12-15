@@ -205,6 +205,7 @@ message GameMetadataUpdate {
   repeated string genres = 8;
   repeated string screenshots = 9;
   optional int64 release_date_unix = 10;
+  repeated string videos = 11;
 }
 
 message MetadataSearchRequest {
@@ -223,4 +224,5 @@ message MetadataSearchResult {
   string provider = 4;
   string external_id = 5;
   int32 release_year = 6;
+  repeated string videos = 7;
 }

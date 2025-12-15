@@ -31,7 +31,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
             request.Headers.Add("Authorization", $"Bearer {_accessToken}");
 
             // IGDB uses a custom query language
-            var query = $"search \"{gameName}\"; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url; limit 1;";
+            var query = $"search \"{gameName}\"; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url,videos.video_id; limit 1;";
             request.Content = new StringContent(query);
 
             var response = await _httpClient.SendAsync(request);
@@ -65,7 +65,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
             request.Headers.Add("Client-ID", _clientId);
             request.Headers.Add("Authorization", $"Bearer {_accessToken}");
 
-            var query = $"where id = {gameId}; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url,storyline; limit 1;";
+            var query = $"where id = {gameId}; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url,storyline,videos.video_id; limit 1;";
             request.Content = new StringContent(query);
 
             var response = await _httpClient.SendAsync(request);
@@ -302,6 +302,17 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
                 releaseDate = DateTimeOffset.FromUnixTimeSeconds(releaseProp.GetInt64()).DateTime;
             }
 
+            // Parse videos
+            string[]? videos = null;
+            if (game.TryGetProperty("videos", out var videosArray))
+            {
+                videos = videosArray.EnumerateArray()
+                    .Select(v => v.TryGetProperty("video_id", out var id) ? "https://www.youtube.com/watch?v=" + id.GetString() : null)
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .Cast<string>()
+                    .ToArray();
+            }
+
             return new GameMetadata
             {
                 Description = game.TryGetProperty("summary", out var summary) ? summary.GetString() : null,
@@ -309,6 +320,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
                 CoverImageUrl = coverUrl,
                 Genres = genres,
                 Screenshots = screenshots,
+                Videos = videos,
                 Developer = developer,
                 ReleaseDate = releaseDate
             };

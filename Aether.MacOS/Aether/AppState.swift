@@ -20,6 +20,7 @@ struct GameViewModel: Identifiable {
     let backgroundImageURL: URL?
     let logoImageURL: URL?
     let screenshots: [URL]
+    let videos: [URL]
 
     // Metadata
     let description: String
@@ -101,6 +102,7 @@ struct GameViewModel: Identifiable {
         self.backgroundImageURL = URL(string: proto.backgroundImageURL)
         self.logoImageURL = URL(string: proto.logoImageURL)
         self.screenshots = proto.screenshots.compactMap { URL(string: $0) }
+        self.videos = proto.videos.compactMap { URL(string: $0) }
 
         // Metadata
         self.description = proto.description_p
@@ -189,17 +191,20 @@ class AppState: ObservableObject {
 
         do {
             // Use gRPC Swift v2 closure pattern
-            let protos = try await grpcClient.client.getLibrary(Aether_Empty()) { response in
+            try await grpcClient.client.getLibrary(Aether_Empty()) { response in
                 var games: [Aether_Game] = []
                 for try await game in response.messages {
                     Logger.shared.log("Received game: \(game.title)")
                     games.append(game)
                 }
-                return games
-            }
 
-            self.games = protos.map { GameViewModel(from: $0) }
-            Logger.shared.log("Library refreshed. Total games: \(self.games.count)")
+                // Update state on MainActor
+                let fetchedGames = games.map { GameViewModel(from: $0) }
+                await MainActor.run {
+                    self.games = fetchedGames
+                    Logger.shared.log("Library refreshed. Total games: \(self.games.count)")
+                }
+            }
 
             // Also refresh plugins
             await fetchPlugins()
@@ -215,10 +220,6 @@ class AppState: ObservableObject {
         do {
             let request = Aether_ScanRequest.with { $0.forceRefresh = false }
 
-            // Clean start or append?
-            // If we are doing a full scan, maybe we want to keep existing until replaced?
-            // For now, let's just append updates.
-
             try await grpcClient.client.scanLibrary(request) { response in
                 for try await progress in response.messages {
                     // Log progress
@@ -232,11 +233,11 @@ class AppState: ObservableObject {
 
                     // Handle found game
                     if progress.hasFoundGame {
+                        // Create view model locally (off-main-actor safety depends on Sendable, assuming GameViewModel is value type and Sendable)
                         let newGame = GameViewModel(from: progress.foundGame)
 
                         // Update state on MainActor
                         await MainActor.run {
-                            // Update or append
                             if let index = self.games.firstIndex(where: { $0.id == newGame.id }) {
                                 self.games[index] = newGame
                             } else {
@@ -248,7 +249,6 @@ class AppState: ObservableObject {
             }
 
             Logger.shared.log("Scan complete!")
-            // No need to refresh library as we streamed the updates
         } catch {
             Logger.shared.log("Scan failed: \(error)", type: .error)
         }
@@ -383,7 +383,8 @@ class AppState: ObservableObject {
         description: String,
         coverImageUrl: String,
         backgroundImageUrl: String,
-        genres: [String]
+        genres: [String],
+        videos: [String]
     ) async throws {
         var request = Aether_GameMetadataUpdate()
         request.gameID = gameId
@@ -394,6 +395,7 @@ class AppState: ObservableObject {
         request.coverImageURL = coverImageUrl
         request.backgroundImageURL = backgroundImageUrl
         request.genres = genres
+        request.videos = videos
 
         let response = try await grpcClient.client.updateGameMetadata(request)
 
@@ -423,7 +425,8 @@ class AppState: ObservableObject {
                 title: result.title,
                 developer: result.developer,
                 coverImageUrl: result.coverImageURL,
-                releaseYear: Int(result.releaseYear)
+                releaseYear: Int(result.releaseYear),
+                videos: result.videos
             )
         }
     }

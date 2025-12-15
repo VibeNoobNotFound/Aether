@@ -137,6 +137,25 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
                                 .ToArray();
                         }
 
+                        // Prepare Videos list
+                        string[]? videosList = null;
+                        if (data.TryGetProperty("movies", out var movies))
+                        {
+                            videosList = movies.EnumerateArray()
+                                .Select(m =>
+                                {
+                                    // Try MP4 max quality first
+                                    var url = GetString(m, "mp4", "max");
+                                    // Fallback to HLS
+                                    if (string.IsNullOrEmpty(url))
+                                        url = GetString(m, "hls_h264");
+                                    return url;
+                                })
+                                .Where(s => !string.IsNullOrEmpty(s))
+                                .Cast<string>()
+                                .ToArray();
+                        }
+
                         var metadata = new GameMetadata
                         {
                             Description = GetString(data, "detailed_description"),
@@ -155,7 +174,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
                             // Assign pre-calculated values
                             Genres = genresList,
                             MetacriticScore = metacriticScore,
-                            Screenshots = screenshotsList
+                            Screenshots = screenshotsList,
+                            Videos = videosList
                         };
 
                         return metadata;

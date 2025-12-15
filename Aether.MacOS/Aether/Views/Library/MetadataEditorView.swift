@@ -13,6 +13,8 @@ struct MetadataEditorView: View {
     @State private var coverImageUrl: String = ""
     @State private var backgroundImageUrl: String = ""
     @State private var genres: String = ""
+    @State private var videos: [String] = []
+    @State private var newVideoUrl: String = ""
 
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -43,6 +45,37 @@ struct MetadataEditorView: View {
                     }
 
                     TextField("Background Image URL", text: $backgroundImageUrl)
+                }
+
+                Section("Videos") {
+                    ForEach(videos, id: \.self) { video in
+                        HStack {
+                            Text(video)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                            Button {
+                                if let index = videos.firstIndex(of: video) {
+                                    videos.remove(at: index)
+                                }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    HStack {
+                        TextField("Add Video URL", text: $newVideoUrl)
+                        Button("Add") {
+                            if !newVideoUrl.isEmpty {
+                                videos.append(newVideoUrl)
+                                newVideoUrl = ""
+                            }
+                        }
+                        .disabled(newVideoUrl.isEmpty)
+                    }
                 }
 
                 Section("Description") {
@@ -99,6 +132,10 @@ struct MetadataEditorView: View {
                         title = result.title
                         developer = result.developer
                         coverImageUrl = result.coverImageUrl
+                        // Optionally update other fields if available in result
+                        if !result.videos.isEmpty {
+                            videos = result.videos
+                        }
                     }
                 )
             }
@@ -113,6 +150,7 @@ struct MetadataEditorView: View {
             coverImageUrl = game.coverImageURL?.absoluteString ?? ""
             backgroundImageUrl = game.backgroundImageURL?.absoluteString ?? ""
             genres = game.genres.joined(separator: ", ")
+            videos = game.videos.map { $0.absoluteString }
         }
     }
 
@@ -134,7 +172,8 @@ struct MetadataEditorView: View {
                     description: description,
                     coverImageUrl: coverImageUrl,
                     backgroundImageUrl: backgroundImageUrl,
-                    genres: genresList
+                    genres: genresList,
+                    videos: videos
                 )
 
                 await MainActor.run {
@@ -289,4 +328,5 @@ struct MetadataSearchResult: Identifiable {
     let developer: String
     let coverImageUrl: String
     let releaseYear: Int
+    let videos: [String]
 }

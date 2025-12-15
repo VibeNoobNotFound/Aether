@@ -123,7 +123,8 @@ struct PluginSetupView: View {
         for widget in widgets {
             if !widget.layoutJson.isEmpty,
                 let data = widget.layoutJson.data(using: .utf8),
-                let layout = try? JSONDecoder().decode(WidgetLayout.self, from: data)
+                let layout = try? JSONDecoder().decode(WidgetLayout.self, from: data),
+                layout.type != "Form"  // Ignore legacy Form type here
             {
                 parsed.append(
                     ParsedWidget(
