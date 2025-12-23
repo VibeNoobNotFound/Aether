@@ -39,6 +39,10 @@ service AetherOrchestrator {
   // METADATA MANAGEMENT
   rpc UpdateGameMetadata (GameMetadataUpdate) returns (OperationStatus);
   rpc SearchMetadataProviders (MetadataSearchRequest) returns (MetadataSearchResponse);
+
+  // NEWS
+  rpc GetGameNews (GameId) returns (NewsList);
+  rpc GetGeneralNews (Empty) returns (NewsList);
 }
 
 
@@ -225,4 +229,21 @@ message MetadataSearchResult {
   string external_id = 5;
   int32 release_year = 6;
   repeated string videos = 7;
+  string description = 8;
+  string publisher = 9;
+}
+
+message NewsItem {
+  string id = 1;         // 'gid' from Steam
+  string title = 2;
+  string url = 3;
+  string content_html = 4; // 'contents' (needs stripping/sanitizing on front)
+  string author = 5;      // 'author' or 'feedlabel'
+  int64 date_unix = 6;    // 'date'
+  string image_url = 7;   // Optional (parsed from content or unknown)
+  string source = 8;      // "Steam", "RSS", etc.
+}
+
+message NewsList {
+  repeated NewsItem news = 1;
 }

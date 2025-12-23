@@ -16,4 +16,6 @@ enum AppScreen: String, CaseIterable, Identifiable {
         case .settings: return "gearshape.fill"
         }
     }
+
+    var title: String { rawValue }
 }

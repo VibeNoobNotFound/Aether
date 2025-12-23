@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HeroCarousel: View {
     @EnvironmentObject var appState: AppState
+    @Binding var currentIndex: Int
     @State private var scrollID: Int? = 0
 
     // Fallback if no games
@@ -11,13 +12,9 @@ struct HeroCarousel: View {
         Array(appState.games.prefix(5))
     }
 
-    var currentIndex: Int {
-        scrollID ?? 0
-    }
-
     var body: some View {
         ZStack {
-            // ScrollView-based Carousel
+            // ScrollView-based Carousel (interactive content)
             GeometryReader { geometry in
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 0) {
@@ -45,10 +42,17 @@ struct HeroCarousel: View {
                 }
                 .scrollTargetBehavior(.viewAligned)
                 .scrollPosition(id: $scrollID)
+                .onChange(of: scrollID) { oldValue, newValue in
+                    if let val = newValue {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            currentIndex = val
+                        }
+                    }
+                }
             }
-            .frame(height: 400)
+            .frame(height: 380)
 
-            // Custom Page Indicators (rounded dots)
+            // Custom Page Indicators (non-blocking)
             VStack {
                 Spacer()
                 if !appState.games.isEmpty && displayGames.count > 1 {
@@ -69,8 +73,9 @@ struct HeroCarousel: View {
                     .padding(.bottom, 20)
                 }
             }
+            .allowsHitTesting(true)  // Allow dot clicks
 
-            // Navigation Arrows (overlaid)
+            // Navigation Arrows (overlaid, only capture clicks on arrows)
             if !appState.games.isEmpty && displayGames.count > 1 {
                 HStack {
                     // Previous Button
@@ -106,6 +111,7 @@ struct HeroCarousel: View {
                     .disabled(currentIndex >= displayGames.count - 1)
                 }
                 .padding(.horizontal, 40)
+                .allowsHitTesting(true)
             }
         }
     }
@@ -116,53 +122,74 @@ struct HeroCarousel: View {
         let game = appState.games.first(where: { $0.id == id })
 
         ZStack(alignment: .bottomLeading) {
-            // Background Image
-            if let game = game, let bgURL = game.backgroundImageURL ?? game.coverImageURL {
-                AsyncImage(url: bgURL) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: width - 40)
-                        .clipped()
-                } placeholder: {
+            // Background Image - fills and clips
+            Group {
+                if let game = game, let bgURL = game.backgroundImageURL ?? game.coverImageURL {
+                    AsyncImage(url: bgURL) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        gradientPlaceholder(width: width - 40)
+                    }
+                } else {
                     gradientPlaceholder(width: width - 40)
                 }
-            } else {
-                gradientPlaceholder(width: width - 40)
             }
+            .frame(width: width - 40, height: 380)
+            .clipped()
 
-            // Content Overlay with Glass Effect
-            VStack(alignment: .leading, spacing: 10) {
+            // Bottom Gradient for text readability
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.6), .black.opacity(0.85)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            // Content Overlay - FIXED at bottom left
+            VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
                 if let game = game {
-                    HStack {
+                    HStack(spacing: 8) {
                         if !game.genres.isEmpty {
                             Text(game.genres.prefix(2).joined(separator: " • "))
-                                .font(.subheadline)
+                                .font(.caption)
+                                .fontWeight(.medium)
                                 .foregroundStyle(.white.opacity(0.9))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
                         }
 
                         if let score = game.metacriticScore {
-                            HStack(spacing: 4) {
+                            HStack(spacing: 3) {
                                 Image(systemName: "star.fill")
                                     .foregroundStyle(.yellow)
                                 Text("\(Int(score))")
                                     .foregroundStyle(.white)
                             }
-                            .font(.subheadline)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
                         }
                     }
-                    .shadow(radius: 5)
                 }
             }
-            .padding(40)
+            .frame(maxWidth: width - 100, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
-        .frame(width: max(0, width - 40))  // Prevent negative width
+        .frame(width: max(0, width - 40), height: 380)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .contextMenu {
             if let game = game {

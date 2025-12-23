@@ -9,6 +9,7 @@ struct GameDetailView: View {
     @State private var showingMetadataEditor = false
     @State private var selectedMedia: MediaItem?
     @State private var isDescriptionExpanded = false
+    @State private var news: [NewsItem] = []
 
     var body: some View {
         GeometryReader { geo in
@@ -50,6 +51,18 @@ struct GameDetailView: View {
                             // Info Grid
                             InfoGridView(game: game)
 
+                            // Latest News
+                            if !news.isEmpty {
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Label("Latest News", systemImage: "newspaper.fill")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(.white.opacity(0.9))
+
+                                    NewsFeedView(news: news)
+                                }
+                            }
+
                             // About Section
                             aboutSection
 
@@ -64,6 +77,9 @@ struct GameDetailView: View {
                     }
                 }
                 .edgesIgnoringSafeArea(.top)
+                .task {
+                    self.news = await appState.fetchGameNews(gameId: game.id)
+                }
 
                 // Lightbox Overlay
                 if let selected = selectedMedia {

@@ -17,6 +17,7 @@ namespace Aether.Importers.AppStore;
 public class AppStorePlugin : ILibraryImporter
 {
     public string Name => "App Store";
+    public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
     public async Task<bool> CanImportAsync()

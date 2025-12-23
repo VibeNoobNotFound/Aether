@@ -12,6 +12,7 @@ namespace Aether.Importers.Epic;
 public class EpicPlugin : ILibraryImporter
 {
     public string Name => "Epic Games";
+    public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
     public async Task<bool> CanImportAsync()

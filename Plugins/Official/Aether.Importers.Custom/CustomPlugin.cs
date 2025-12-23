@@ -18,6 +18,7 @@ namespace Aether.Importers.Custom;
 public class CustomPlugin : ILibraryImporter, IMetadataProvider
 {
     public string Name => "Custom";
+    public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
     // In-memory storage for custom games

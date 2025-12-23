@@ -2,32 +2,33 @@ import SwiftUI
 
 struct GameGridCard: View {
     let game: GameViewModel
+    @State private var isHovered = false
+    @State private var hasAppeared = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Cover art with proper 2:3 aspect ratio for game covers
-            Group {
-                if let coverURL = game.coverImageURL {
-                    CachedAsyncImage(url: coverURL) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundStyle(.white.opacity(0.5))
-                            )
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.gray.opacity(0.3))
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .overlay {
+                    if let coverURL = game.coverImageURL {
+                        CachedAsyncImage(url: coverURL) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    } else {
+                        Image(systemName: "gamecontroller")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
                     }
-                } else {
-                    // No cover URL - show game icon placeholder (not loading spinner)
-                    placeholderView(icon: "gamecontroller")
                 }
-            }
-            .aspectRatio(2 / 3, contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .frame(maxWidth: .infinity)
 
             // Title
             Text(game.title)
@@ -52,6 +53,22 @@ struct GameGridCard: View {
             }
         }
         .contentShape(Rectangle())  // Make entire area clickable
+        .scaleEffect(isHovered ? 1.03 : 1.0)
+        .shadow(
+            color: .black.opacity(isHovered ? 0.3 : 0.1), radius: isHovered ? 12 : 4,
+            y: isHovered ? 6 : 2
+        )
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+        .onHover { hover in
+            isHovered = hover
+        }
+        .opacity(hasAppeared ? 1 : 0)
+        .offset(y: hasAppeared ? 0 : 20)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.4).delay(Double.random(in: 0...0.2))) {
+                hasAppeared = true
+            }
+        }
     }
 
     func platformColor(_ platform: String) -> Color {

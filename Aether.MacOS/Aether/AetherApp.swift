@@ -16,7 +16,7 @@ struct AetherApp: App {
             ContentView()
                 .environmentObject(appState)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .windowResizability(.contentSize)
     }
 }

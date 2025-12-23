@@ -11,6 +11,8 @@ namespace Aether.Importers.IGDB;
 public class IGDBPlugin : IPlugin, IMetadataProvider
 {
     public string Name => "IGDB";
+    public string Author => "VibeNoobNotFound";
+    public string Version => "1.0.0";
 
     private readonly HttpClient _httpClient = new HttpClient();
     private string? _clientId;

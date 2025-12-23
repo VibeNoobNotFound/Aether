@@ -4,80 +4,255 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(appState.plugins) { plugin in
-                        NavigationLink(destination: PluginSetupView(plugin: plugin)) {
-                            PluginRow(plugin: plugin)
+        ZStack {
+            // Ambient Background
+            Color.black.ignoresSafeArea()
+
+            // Subtle gradient blobs
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 400, height: 400)
+                    .blur(radius: 100)
+                    .position(x: 0, y: 0)
+
+                Circle()
+                    .fill(Color.purple.opacity(0.1))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 80)
+                    .position(x: proxy.size.width, y: proxy.size.height)
+            }
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Settings")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        Text("Manage your library and plugins")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 40)
+                    .padding(.horizontal)
+
+                    // Appearance Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("APPEARANCE")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+
+                        HStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.orange.opacity(0.2))
+                                    .frame(width: 40, height: 40)
+
+                                Image(systemName: "sidebar.left")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.orange)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Navigation Style")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.white)
+
+                                Text("Choose between sidebar or top navigation")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Picker(
+                                "",
+                                selection: Binding(
+                                    get: { UserDefaults.standard.bool(forKey: "useTopNavigation") },
+                                    set: {
+                                        UserDefaults.standard.set($0, forKey: "useTopNavigation")
+                                    }
+                                )
+                            ) {
+                                Text("Sidebar").tag(false)
+                                Text("Top").tag(true)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 150)
                         }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
                     }
 
-                } header: {
-                    Text("Installed Plugins")
-                } footer: {
-                    Text("Plugins extend Aether with new libraries and features.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    // Plugins Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("INSTALLED PLUGINS")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], spacing: 16
+                        ) {
+                            ForEach(appState.plugins) { plugin in
+                                NavigationLink(destination: PluginSetupView(plugin: plugin)) {
+                                    PluginCard(plugin: plugin)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    // Library Management
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("LIBRARY")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+
+                        Button {
+                            Task { await appState.scanLibrary() }
+                        } label: {
+                            SettingsActionCard(
+                                icon: "arrow.triangle.2.circlepath",
+                                color: .blue,
+                                title: "Rescan Library",
+                                description: "Scan all sources for new games"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            Task { await appState.clearLibrary() }
+                        } label: {
+                            SettingsActionCard(
+                                icon: "trash",
+                                color: .red,
+                                title: "Clear Library",
+                                description: "Remove all games from the database"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.bottom, 50)
             }
-            .listStyle(.sidebar)  // or .insetGrouped for a different look
-            .navigationTitle("Settings")
-            .task {
-                await appState.fetchPlugins()
-            }
+        }
+        .task {
+            await appState.fetchPlugins()
         }
     }
 }
 
-struct PluginRow: View {
+struct PluginCard: View {
     let plugin: PluginViewModel
+    @State private var isHovered = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Icon based on type
+        HStack(spacing: 16) {
+            // Icon
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(plugin.isImporter ? Color.blue.opacity(0.1) : Color.green.opacity(0.1))
-                    .frame(width: 36, height: 36)
+                Circle()
+                    .fill(plugin.isImporter ? Color.blue.opacity(0.2) : Color.green.opacity(0.2))
+                    .frame(width: 48, height: 48)
 
                 Image(systemName: plugin.isImporter ? "arrow.down.circle.fill" : "puzzlepiece.fill")
+                    .font(.system(size: 24))
                     .foregroundStyle(plugin.isImporter ? .blue : .green)
-                    .font(.system(size: 18))
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(plugin.name)
-                    .font(.body)
-                    .fontWeight(.medium)
+                    .font(.headline)
+                    .foregroundStyle(.white)
 
                 HStack(spacing: 6) {
                     Text("v\(plugin.version)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
 
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text(plugin.author)
-                        .font(.caption)
+                    Text("by \(plugin.author)")
                         .foregroundStyle(.secondary)
                 }
+                .font(.caption)
             }
 
             Spacer()
 
-            // Status Badge
-            Text(plugin.isImporter ? "Importer" : "Plugin")
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.1))
-                .clipShape(Capsule())
+            Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
+                .opacity(isHovered ? 1 : 0.5)
         }
-        .padding(.vertical, 4)
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.white.opacity(isHovered ? 0.2 : 0.05), lineWidth: 1)
+        )
+        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3), value: isHovered)
+        .onHover { isHovered = $0 }
+    }
+}
+
+struct SettingsActionCard: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let description: String
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 40, height: 40)
+
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isHovered ? color.opacity(0.5) : Color.clear, lineWidth: 1)
+                .padding(.horizontal)
+        )
+        .scaleEffect(isHovered ? 1.01 : 1.0)
+        .animation(.snappy, value: isHovered)
+        .onHover { isHovered = $0 }
     }
 }

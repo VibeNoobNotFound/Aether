@@ -27,6 +27,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .frame(minWidth: 200, maxWidth: 300)
         .navigationTitle("Aether")
     }
 }

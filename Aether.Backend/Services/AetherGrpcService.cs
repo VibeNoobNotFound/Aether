@@ -294,10 +294,13 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
                         {
                             Provider = provider.Name,
                             ExternalId = "", // Would need SearchAsync to return this
-                            Title = request.Query, // Use query as title since SearchAsync returns full metadata
+                            Title = request.Query,
                             Developer = metadata.Developer ?? "",
+                            Publisher = metadata.Publisher ?? "",
+                            Description = metadata.Description ?? "",
                             CoverImageUrl = metadata.CoverImageUrl ?? "",
-                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0
+                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0,
+                            Videos = { metadata.Videos ?? Array.Empty<string>() }
                         });
                     }
                 }
@@ -312,6 +315,98 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             _logger.LogError(ex, "Error searching metadata providers");
         }
 
+        return response;
+    }
+
+    public override async Task<NewsList> GetGameNews(GameId request, ServerCallContext context)
+    {
+        var response = new NewsList();
+        try
+        {
+            if (!int.TryParse(request.Id, out int dbId))
+                return response;
+
+            var game = _database.GetGameById(dbId);
+            if (game == null) return response;
+
+            // Find valid news providers (can be the game's importer or any other configured provider)
+            // For now, prioritize the plugin associated with the game's library (Platform)
+            var providers = _pluginManager.GetPlugins().OfType<INewsProvider>().ToList();
+            providers.AddRange(_pluginManager.GetLibraryImporters().OfType<INewsProvider>());
+
+            // Select best provider (Simplistic: if Platform is Steam, use Steam plugin)
+            var provider = providers.FirstOrDefault(p => (p as IPlugin)?.Name == game.Platform);
+
+            if (provider != null)
+            {
+                var news = await provider.GetNewsAsync(game.ExternalId); // Use standard External ID
+                foreach (var n in news)
+                {
+                    response.News.Add(new Aether.Protos.NewsItem
+                    {
+                        Id = n.Id,
+                        Title = n.Title,
+                        Url = n.Url,
+                        ContentHtml = n.ContentHtml,
+                        Author = n.Author,
+                        DateUnix = n.DateUnix,
+                        ImageUrl = n.ImageUrl,
+                        Source = n.Source
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching game news");
+        }
+        return response;
+    }
+
+    public override async Task<NewsList> GetGeneralNews(Empty request, ServerCallContext context)
+    {
+        var response = new NewsList();
+        try
+        {
+            var providers = _pluginManager.GetPlugins().OfType<INewsProvider>().ToList();
+            providers.AddRange(_pluginManager.GetLibraryImporters().OfType<INewsProvider>());
+
+            var allNews = new List<Aether.Protos.NewsItem>();
+
+            foreach (var provider in providers)
+            {
+                try
+                {
+                    var news = await provider.GetGeneralNewsAsync();
+                    foreach (var n in news)
+                    {
+                        allNews.Add(new Aether.Protos.NewsItem
+                        {
+                            Id = n.Id,
+                            Title = n.Title,
+                            Url = n.Url,
+                            ContentHtml = n.ContentHtml,
+                            Author = n.Author,
+                            DateUnix = n.DateUnix,
+                            ImageUrl = n.ImageUrl,
+                            Source = n.Source
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to fetch general news from provider");
+                }
+            }
+
+            // Sort by date descending and take top 20
+            var sortedNews = allNews.OrderByDescending(n => n.DateUnix).Take(20);
+            response.News.AddRange(sortedNews);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching general news");
+        }
         return response;
     }
 }

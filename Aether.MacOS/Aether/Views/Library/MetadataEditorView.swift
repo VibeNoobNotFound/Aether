@@ -39,6 +39,7 @@ struct MetadataEditorView: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(height: 150)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         } placeholder: {
                             ProgressView()
                         }
@@ -317,16 +318,4 @@ struct MetadataSearchSheet: View {
             }
         }
     }
-}
-
-// Model for search results
-struct MetadataSearchResult: Identifiable {
-    var id: String { externalId.isEmpty ? title : externalId }
-    let provider: String
-    let externalId: String
-    let title: String
-    let developer: String
-    let coverImageUrl: String
-    let releaseYear: Int
-    let videos: [String]
 }

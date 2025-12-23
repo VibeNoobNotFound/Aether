@@ -6,9 +6,10 @@ namespace Aether.Importers.Steam;
 /// <summary>
 /// Steam library importer and metadata provider
 /// </summary>
-public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
+public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider
 {
     public string Name => "Steam";
+    public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
     // ILibraryImporter Implementation
@@ -285,6 +286,79 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
     public List<Aether.PluginSDK.UI.Widget> GetSetupWidgets()
     {
         return new List<Aether.PluginSDK.UI.Widget>();
+    }
+
+    // INewsProvider Implementation
+    public async Task<List<NewsItem>> GetNewsAsync(string gameId)
+    {
+        try
+        {
+            var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid={gameId}&count=5&format=json";
+            var response = await _httpClient.GetStringAsync(url);
+
+            using var doc = System.Text.Json.JsonDocument.Parse(response);
+            if (doc.RootElement.TryGetProperty("appnews", out var appNews) &&
+                appNews.TryGetProperty("newsitems", out var newsItems) &&
+                newsItems.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var newsList = new List<NewsItem>();
+                foreach (var item in newsItems.EnumerateArray())
+                {
+                    var newsItem = new NewsItem
+                    {
+                        Id = GetString(item, "gid") ?? Guid.NewGuid().ToString(),
+                        Title = GetString(item, "title") ?? "News",
+                        Url = GetString(item, "url") ?? "",
+                        Author = GetString(item, "author") ?? GetString(item, "feedlabel") ?? "Steam",
+                        ContentHtml = GetString(item, "contents") ?? "",
+                        Source = "Steam"
+                    };
+
+                    if (item.TryGetProperty("date", out var dateElem))
+                    {
+                        newsItem.DateUnix = dateElem.GetInt64();
+                    }
+
+                    // Attempt to extract image from content
+                    newsItem.ImageUrl = ExtractImageFromHtml(newsItem.ContentHtml);
+
+                    newsList.Add(newsItem);
+                }
+                return newsList;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching news for {gameId}: {ex.Message}");
+        }
+        return new List<NewsItem>();
+    }
+
+    public async Task<List<NewsItem>> GetGeneralNewsAsync()
+    {
+        // Fetch news for Steam Client (753) as "General" news
+        return await GetNewsAsync("753");
+    }
+
+    private string ExtractImageFromHtml(string html)
+    {
+        if (string.IsNullOrEmpty(html)) return "";
+
+        // Simple regex to find src="..."
+        var match = System.Text.RegularExpressions.Regex.Match(html, "src=\"(http[^\"]+)\"");
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+
+        // Fallback: look for [img] tags if Steam uses BBCode
+        var bbMatch = System.Text.RegularExpressions.Regex.Match(html, @"\[img\](.*?)\[/img\]");
+        if (bbMatch.Success)
+        {
+            return bbMatch.Groups[1].Value;
+        }
+
+        return "";
     }
 
     // Helper Methods
