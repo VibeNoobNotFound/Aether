@@ -8,23 +8,17 @@ struct GameGridCard: View {
             // Cover art with proper 2:3 aspect ratio for game covers
             Group {
                 if let coverURL = game.coverImageURL {
-                    AsyncImage(url: coverURL) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure(_):
-                            placeholderView(icon: "exclamationmark.triangle")
-                        case .empty:
-                            Rectangle()
-                                .fill(.gray.opacity(0.3))
-                                .overlay {
-                                    ProgressView()
-                                }
-                        @unknown default:
-                            placeholderView(icon: "gamecontroller")
-                        }
+                    CachedAsyncImage(url: coverURL) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .foregroundStyle(.white.opacity(0.5))
+                            )
                     }
                 } else {
                     // No cover URL - show game icon placeholder (not loading spinner)

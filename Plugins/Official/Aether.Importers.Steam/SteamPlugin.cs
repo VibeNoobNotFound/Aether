@@ -61,7 +61,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider
         }
     }
 
-    private readonly HttpClient _httpClient = new HttpClient();
+    private readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
 
     public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
     {
