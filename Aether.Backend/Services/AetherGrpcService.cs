@@ -324,36 +324,83 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         try
         {
             if (!int.TryParse(request.Id, out int dbId))
+            {
+                _logger.LogWarning("GetGameNews: Invalid game ID format: {Id}", request.Id);
                 return response;
+            }
 
             var game = _database.GetGameById(dbId);
-            if (game == null) return response;
-
-            // Find valid news providers (can be the game's importer or any other configured provider)
-            // For now, prioritize the plugin associated with the game's library (Platform)
-            var providers = _pluginManager.GetPlugins().OfType<INewsProvider>().ToList();
-            providers.AddRange(_pluginManager.GetLibraryImporters().OfType<INewsProvider>());
-
-            // Select best provider (Simplistic: if Platform is Steam, use Steam plugin)
-            var provider = providers.FirstOrDefault(p => (p as IPlugin)?.Name == game.Platform);
-
-            if (provider != null)
+            if (game == null)
             {
-                var news = await provider.GetNewsAsync(game.ExternalId); // Use standard External ID
-                foreach (var n in news)
+                _logger.LogWarning("GetGameNews: Game not found with ID: {Id}", dbId);
+                return response;
+            }
+
+            _logger.LogInformation("GetGameNews: Fetching news for {Title} (Platform: {Platform}, ExternalId: {ExternalId})",
+                game.Title, game.Platform, game.ExternalId);
+
+            // Find valid news providers - collect from both sources and deduplicate
+            var providers = new List<INewsProvider>();
+            providers.AddRange(_pluginManager.GetPlugins().OfType<INewsProvider>());
+            providers.AddRange(_pluginManager.GetLibraryImporters().OfType<INewsProvider>());
+            providers = providers.Distinct().ToList();
+
+            _logger.LogInformation("GetGameNews: Found {Count} news providers", providers.Count);
+
+            // Try to find Steam provider (can use ExternalId if it's a Steam App ID)
+            INewsProvider? provider = null;
+            string? newsId = game.ExternalId;
+
+            // First, try to match platform directly
+            foreach (var p in providers)
+            {
+                var pluginName = (p as IPlugin)?.Name;
+                if (pluginName == game.Platform)
                 {
-                    response.News.Add(new Aether.Protos.NewsItem
-                    {
-                        Id = n.Id,
-                        Title = n.Title,
-                        Url = n.Url,
-                        ContentHtml = n.ContentHtml,
-                        Author = n.Author,
-                        DateUnix = n.DateUnix,
-                        ImageUrl = n.ImageUrl,
-                        Source = n.Source
-                    });
+                    provider = p;
+                    break;
                 }
+            }
+
+            // If no platform match but we have a numeric ExternalId, try Steam provider
+            if (provider == null && !string.IsNullOrEmpty(game.ExternalId) && int.TryParse(game.ExternalId, out _))
+            {
+                provider = providers.FirstOrDefault(p => (p as IPlugin)?.Name == "Steam");
+                if (provider != null)
+                {
+                    _logger.LogInformation("GetGameNews: Using Steam provider for numeric ExternalId");
+                }
+            }
+
+            if (provider != null && !string.IsNullOrEmpty(newsId))
+            {
+                _logger.LogInformation("GetGameNews: Using provider {Name} to fetch news for ID: {NewsId}",
+                    (provider as IPlugin)?.Name, newsId);
+
+                var news = await provider.GetNewsAsync(newsId);
+                _logger.LogInformation("GetGameNews: Received {Count} news items", news?.Count ?? 0);
+
+                if (news != null)
+                {
+                    foreach (var n in news)
+                    {
+                        response.News.Add(new Aether.Protos.NewsItem
+                        {
+                            Id = n.Id ?? "",
+                            Title = n.Title ?? "",
+                            Url = n.Url ?? "",
+                            ContentHtml = n.ContentHtml ?? "",
+                            Author = n.Author ?? "",
+                            DateUnix = n.DateUnix,
+                            ImageUrl = n.ImageUrl ?? "",
+                            Source = n.Source ?? ""
+                        });
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogWarning("GetGameNews: No news provider found for platform: {Platform}", game.Platform);
             }
         }
         catch (Exception ex)
@@ -362,6 +409,7 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         }
         return response;
     }
+
 
     public override async Task<NewsList> GetGeneralNews(Empty request, ServerCallContext context)
     {
