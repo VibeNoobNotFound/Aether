@@ -14,7 +14,7 @@ namespace Aether.Importers.AppStore;
 /// <summary>
 /// macOS App Store and .app bundle importer
 /// </summary>
-public class AppStorePlugin : ILibraryImporter
+public class AppStorePlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";
@@ -132,6 +132,34 @@ public class AppStorePlugin : ILibraryImporter
         {
             return null;
         }
+    }
+
+    // IGameLauncher Implementation
+    public bool CanLaunch(LaunchContext context)
+    {
+        // Can launch App Store games and Custom .app bundles on macOS
+        return OperatingSystem.IsMacOS() &&
+               (context.Platform == "App Store" || context.Platform == "Custom") &&
+               !string.IsNullOrEmpty(context.InstallPath) &&
+               context.InstallPath.EndsWith(".app");
+    }
+
+    public Task<LaunchResult> LaunchAsync(LaunchContext context)
+    {
+        // Use the install path which points to the .app bundle
+        var appPath = context.InstallPath;
+        if (string.IsNullOrEmpty(appPath) || !Directory.Exists(appPath))
+        {
+            return Task.FromResult(LaunchResult.Failed($"App bundle not found: {appPath}"));
+        }
+
+        return Task.FromResult(LaunchHelper.LaunchMacOSApp(appPath));
+    }
+
+    public string? GetLaunchUri(string externalId)
+    {
+        // macOS apps don't have a protocol URI, just use open command
+        return null;
     }
 
     public List<Widget> GetSetupWidgets()

@@ -6,7 +6,7 @@ namespace Aether.Importers.Steam;
 /// <summary>
 /// Steam library importer and metadata provider
 /// </summary>
-public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider
+public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider, IGameLauncher
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
@@ -286,6 +286,30 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
     public List<Aether.PluginSDK.UI.Widget> GetSetupWidgets()
     {
         return new List<Aether.PluginSDK.UI.Widget>();
+    }
+
+    // IGameLauncher Implementation
+    public bool CanLaunch(LaunchContext context)
+    {
+        // Can launch if it's a Steam game or has a valid Steam App ID
+        return context.Platform == "Steam" ||
+               (!string.IsNullOrEmpty(context.ExternalId) && int.TryParse(context.ExternalId, out _));
+    }
+
+    public Task<LaunchResult> LaunchAsync(LaunchContext context)
+    {
+        var uri = GetLaunchUri(context.ExternalId);
+        if (string.IsNullOrEmpty(uri))
+            return Task.FromResult(LaunchResult.Failed("Invalid Steam App ID"));
+
+        return Task.FromResult(LaunchHelper.LaunchUri(uri));
+    }
+
+    public string? GetLaunchUri(string externalId)
+    {
+        if (string.IsNullOrEmpty(externalId) || !int.TryParse(externalId, out _))
+            return null;
+        return $"steam://rungameid/{externalId}";
     }
 
     // INewsProvider Implementation

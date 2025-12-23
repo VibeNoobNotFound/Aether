@@ -14,6 +14,7 @@ service AetherOrchestrator {
   
   // LAUNCHING: The core function
   rpc LaunchGame (LaunchRequest) returns (LaunchResponse);
+  rpc CanLaunchGame (GameId) returns (CanLaunchResponse);
   rpc StopGame (GameId) returns (OperationStatus);
   // Streams updates (e.g., "Running", "Stopping") so the UI Play button changes color
   rpc SubscribeToGameState (Empty) returns (stream GameStateUpdate);
@@ -150,6 +151,12 @@ message LaunchResponse {
   bool success = 1;
   string message = 2;
   string process_id = 3;
+}
+
+message CanLaunchResponse {
+  bool can_launch = 1;
+  string reason = 2;           // Why it can't be launched (if can_launch is false)
+  string launch_method = 3;    // "steam", "epic", "appstore", "direct", etc.
 }
 
 message OperationStatus {

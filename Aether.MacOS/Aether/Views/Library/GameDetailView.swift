@@ -10,6 +10,10 @@ struct GameDetailView: View {
     @State private var selectedMedia: MediaItem?
     @State private var isDescriptionExpanded = false
     @State private var news: [NewsItem] = []
+    @State private var canLaunchInfo: (canLaunch: Bool, reason: String?, launchMethod: String?) = (
+        false, nil, nil
+    )
+    @State private var isCheckingLaunch = true
 
     var body: some View {
         GeometryReader { geo in
@@ -79,6 +83,8 @@ struct GameDetailView: View {
                 .edgesIgnoringSafeArea(.top)
                 .task {
                     self.news = await appState.fetchGameNews(gameId: game.id)
+                    self.canLaunchInfo = await appState.canLaunchGame(game.id)
+                    self.isCheckingLaunch = false
                 }
 
                 // Lightbox Overlay
@@ -108,20 +114,36 @@ struct GameDetailView: View {
     var headerContent: some View {
         HStack(alignment: .bottom, spacing: 24) {
             // Actions
-            Button(action: { appState.launchGame(game) }) {
-                HStack {
-                    Image(systemName: "play.fill")
-                    Text("Play Now")
-                        .fontWeight(.bold)
+            if isCheckingLaunch {
+                ProgressView()
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+            } else if canLaunchInfo.canLaunch {
+                Button(action: { appState.launchGame(game) }) {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text(playButtonText)
+                            .fontWeight(.bold)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
+                    .background(Color.blue.gradient)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: .blue.opacity(0.5), radius: 20, x: 0, y: 10)
                 }
-                .padding(.horizontal, 32)
-                .padding(.vertical, 16)
-                .background(Color.blue.gradient)
-                .foregroundStyle(.white)
-                .clipShape(Capsule())
-                .shadow(color: .blue.opacity(0.5), radius: 20, x: 0, y: 10)
+                .buttonStyle(.plain)
+            } else {
+                Text(canLaunchInfo.reason ?? "Cannot launch")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
 
             Button(action: { toggleFavorite() }) {
                 Image(systemName: game.isFavorite ? "heart.fill" : "heart")
@@ -152,6 +174,19 @@ struct GameDetailView: View {
                 .background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+        }
+    }
+
+    var playButtonText: String {
+        guard let method = canLaunchInfo.launchMethod else {
+            return "Play Now"
+        }
+        switch method.lowercased() {
+        case "steam": return "Play on Steam"
+        case "epic_games": return "Play on Epic"
+        case "app_store": return "Play"
+        case "direct": return "Launch"
+        default: return "Play Now"
         }
     }
 

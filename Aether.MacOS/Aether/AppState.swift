@@ -332,6 +332,21 @@ class AppState: ObservableObject {
         }
     }
 
+    func canLaunchGame(_ gameId: String) async -> (
+        canLaunch: Bool, reason: String?, launchMethod: String?
+    ) {
+        do {
+            let request = Aether_GameId.with {
+                $0.id = gameId
+            }
+            let response = try await grpcClient.client.canLaunchGame(request)
+            return (response.canLaunch, response.reason, response.launchMethod)
+        } catch {
+            await Logger.shared.log("Error checking canLaunch: \(error)", type: .error)
+            return (false, "Error checking launch capability", nil)
+        }
+    }
+
     func fetchPlugins() async {
         await Logger.shared.log("Fetching plugins...")
         do {

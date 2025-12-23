@@ -9,7 +9,7 @@ namespace Aether.Importers.Epic;
 /// <summary>
 /// Epic Games Store library importer
 /// </summary>
-public class EpicPlugin : ILibraryImporter
+public class EpicPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "Epic Games";
     public string Author => "VibeNoobNotFound";
@@ -101,8 +101,37 @@ public class EpicPlugin : ILibraryImporter
         }
     }
 
-    // IPlugin Implementation stubs
+    // IGameLauncher Implementation
+    public bool CanLaunch(LaunchContext context)
+    {
+        return context.Platform == "Epic Games";
+    }
 
+    public Task<LaunchResult> LaunchAsync(LaunchContext context)
+    {
+        var uri = GetLaunchUri(context.ExternalId);
+        if (string.IsNullOrEmpty(uri))
+        {
+            // Fallback: try direct executable launch
+            if (!string.IsNullOrEmpty(context.ExecutablePath))
+            {
+                return Task.FromResult(LaunchHelper.LaunchExecutable(context.ExecutablePath, context.RunAsAdmin));
+            }
+            return Task.FromResult(LaunchResult.Failed("No launch method available for Epic game"));
+        }
+
+        return Task.FromResult(LaunchHelper.LaunchUri(uri));
+    }
+
+    public string? GetLaunchUri(string externalId)
+    {
+        if (string.IsNullOrEmpty(externalId))
+            return null;
+        // Epic format: com.epicgames.launcher://apps/{AppName}?action=launch&silent=true
+        return $"com.epicgames.launcher://apps/{Uri.EscapeDataString(externalId)}?action=launch&silent=true";
+    }
+
+    // IPlugin Implementation stubs
     public List<Widget> GetWidgets(Game game) => new List<Widget>();
     public Task OnWidgetAction(string actionId, string payload) => Task.CompletedTask;
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
