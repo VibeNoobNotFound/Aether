@@ -180,36 +180,72 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
 
     // IPlugin Implementation stubs
     public List<Widget> GetWidgets(Game game) => new List<Widget>();
-    public Task OnWidgetAction(string actionId, string payload)
+
+    public Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
         if (actionId == "add_game")
         {
             try
             {
-                if (string.IsNullOrEmpty(payload)) return Task.CompletedTask;
+                if (string.IsNullOrEmpty(payload))
+                {
+                    return Task.FromResult(WidgetActionResult.Fail("No payload provided"));
+                }
 
                 var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
-                if (data != null)
+                if (data == null)
                 {
-                    // Extract fields safely
-                    data.TryGetValue("title", out var title);
-                    data.TryGetValue("installPath", out var installPath);
-                    data.TryGetValue("executablePath", out var executablePath);
-                    data.TryGetValue("steamId", out var steamId);
-
-                    if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(installPath))
-                    {
-                        AddCustomGame(title, installPath, executablePath, steamId);
-                    }
+                    return Task.FromResult(WidgetActionResult.Fail("Invalid payload"));
                 }
+
+                // Extract fields safely
+                data.TryGetValue("title", out var title);
+                data.TryGetValue("installPath", out var installPath);
+                data.TryGetValue("executablePath", out var executablePath);
+                data.TryGetValue("steamId", out var steamId);
+
+                if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(installPath))
+                {
+                    return Task.FromResult(WidgetActionResult.Fail("Title and Install Path are required"));
+                }
+
+                // Create the game to be added to the library
+                var importedGame = new ImportedGame(
+                    Title: title,
+                    Platform: "Custom",
+                    ExternalId: steamId ?? title, // Use Steam ID if provided, else title
+                    InstallPath: installPath,
+                    ExecutablePath: executablePath
+                );
+
+                // Optionally fetch metadata if Steam ID is provided
+                Dictionary<string, GameMetadata>? metadata = null;
+                if (!string.IsNullOrEmpty(steamId))
+                {
+                    metadata = new Dictionary<string, GameMetadata>
+                    {
+                        [importedGame.ExternalId] = new GameMetadata
+                        {
+                            ExternalId = steamId,
+                            CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{steamId}/library_600x900_2x.jpg",
+                            BackgroundImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{steamId}/library_hero.jpg",
+                            LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{steamId}/logo.png"
+                        }
+                    };
+                }
+
+                return Task.FromResult(WidgetActionResult.AddGames(
+                    new List<ImportedGame> { importedGame },
+                    metadata
+                ));
             }
-            catch
+            catch (Exception ex)
             {
-                // Simple swallow for now as we lack logger in this context easily
-                // or use Console.WriteLine
+                return Task.FromResult(WidgetActionResult.Fail($"Error: {ex.Message}"));
             }
         }
-        return Task.CompletedTask;
+
+        return Task.FromResult(WidgetActionResult.Ok());
     }
 
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;

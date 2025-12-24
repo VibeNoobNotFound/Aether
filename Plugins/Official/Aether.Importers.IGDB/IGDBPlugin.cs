@@ -164,7 +164,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
 
     public List<Widget> GetWidgets(Game game) => new List<Widget>();
 
-    public async Task OnWidgetAction(string actionId, string payload)
+    public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
         try
         {
@@ -191,10 +191,12 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
                     if (await GetAccessToken())
                     {
                         Console.WriteLine("IGDB authentication successful!");
+                        return WidgetActionResult.Ok("Authentication successful!");
                     }
                     else
                     {
                         Console.WriteLine("IGDB authentication failed.");
+                        return WidgetActionResult.Fail("Authentication failed.");
                     }
                 }
             }
@@ -202,7 +204,10 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
         catch (Exception ex)
         {
             Console.WriteLine($"Widget action failed: {ex.Message}");
+            return WidgetActionResult.Fail(ex.Message);
         }
+
+        return WidgetActionResult.Ok();
     }
 
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;

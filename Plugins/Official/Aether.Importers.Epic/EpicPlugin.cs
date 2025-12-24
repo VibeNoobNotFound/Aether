@@ -153,7 +153,7 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
 
     // IPlugin Implementation stubs
     public List<Widget> GetWidgets(Game game) => new List<Widget>();
-    public Task OnWidgetAction(string actionId, string payload) => Task.CompletedTask;
+    public Task<WidgetActionResult> OnWidgetAction(string actionId, string payload) => Task.FromResult(WidgetActionResult.Ok());
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
     public Task OnGameLaunched(Game game) => Task.CompletedTask;
     public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;

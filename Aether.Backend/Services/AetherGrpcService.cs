@@ -120,8 +120,27 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
                 return new OperationStatus { Success = false, Message = $"Plugin '{request.PluginName}' not found." };
             }
 
-            await plugin.OnWidgetAction(request.ActionId, request.PayloadJson);
-            return new OperationStatus { Success = true, Message = "Action executed." };
+            var result = await plugin.OnWidgetAction(request.ActionId, request.PayloadJson);
+
+            // Handle games returned by the plugin action
+            if (result.GamesToAdd != null && result.GamesToAdd.Count > 0)
+            {
+                foreach (var importedGame in result.GamesToAdd)
+                {
+                    // Apply optional metadata if provided
+                    PluginSDK.Library.GameMetadata? metadata = null;
+                    if (result.GameMetadata != null && result.GameMetadata.TryGetValue(importedGame.ExternalId, out var meta))
+                    {
+                        metadata = meta;
+                    }
+
+                    var entity = GameEntity.FromImportedGame(importedGame, metadata);
+                    _database.UpsertGame(entity);
+                    _logger.LogInformation("Added custom game '{Title}' to library via plugin action", entity.Title);
+                }
+            }
+
+            return new OperationStatus { Success = result.Success, Message = result.Message ?? "Action executed." };
         }
         catch (Exception ex)
         {

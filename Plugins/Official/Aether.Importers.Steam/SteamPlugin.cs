@@ -1,6 +1,6 @@
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
-
+using Aether.PluginSDK.UI;
 namespace Aether.Importers.Steam;
 
 /// <summary>
@@ -269,9 +269,10 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         return new List<Aether.PluginSDK.UI.Widget>();
     }
 
-    public async Task OnWidgetAction(string actionId, string payload)
+    public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
         // Handle widget actions
+        return WidgetActionResult.Ok();
     }
 
     public async Task OnGameLaunched(Aether.PluginSDK.Game game)
