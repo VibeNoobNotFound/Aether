@@ -46,12 +46,20 @@ public partial class AetherGrpcService
             {
                 // Try to get metadata
                 PluginSDK.Library.GameMetadata? metadata = null;
+                string? metadataSourceProvider = null;  // Track which provider gave us metadata
+                string? metadataExternalId = null;      // Track the external ID from that provider
+
                 var metadataProvider = metadataProviders.FirstOrDefault(p => p.Name == importer.Name);
                 if (metadataProvider != null && !string.IsNullOrEmpty(importedGame.ExternalId))
                 {
                     try
                     {
                         metadata = await metadataProvider.GetByIdAsync(importedGame.ExternalId);
+                        if (metadata != null)
+                        {
+                            metadataSourceProvider = metadataProvider.Name;
+                            metadataExternalId = importedGame.ExternalId;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -72,6 +80,9 @@ public partial class AetherGrpcService
                             if (searchResult != null)
                             {
                                 metadata = searchResult;
+                                metadataSourceProvider = provider.Name;
+                                // ExternalId from search result (if metadata has it)
+                                metadataExternalId = searchResult.ExternalId;
                                 _logger.LogInformation("Found metadata for {GameTitle} via {Provider} search",
                                     importedGame.Title, provider.Name);
                                 break;
@@ -86,6 +97,15 @@ public partial class AetherGrpcService
 
                 // Create entity and update database
                 var entity = GameEntity.FromImportedGame(importedGame, metadata);
+
+                // Set SteamId based on source: if Steam was the provider (either direct or fallback), use that ID
+                if (metadataSourceProvider == "Steam" && !string.IsNullOrEmpty(metadataExternalId))
+                {
+                    entity.SteamId = metadataExternalId;
+                    _logger.LogInformation("Set SteamId={SteamId} for {GameTitle} from {Provider}",
+                        metadataExternalId, entity.Title, metadataSourceProvider);
+                }
+
                 _database.UpsertGame(entity);
 
                 // Stream the found game to the client immediately
@@ -170,7 +190,10 @@ public partial class AetherGrpcService
 
             // Requirements
             MinimumRequirements = entity.MinimumRequirements ?? "",
-            RecommendedRequirements = entity.RecommendedRequirements ?? ""
+            RecommendedRequirements = entity.RecommendedRequirements ?? "",
+
+            // Cross-Platform News
+            SteamId = entity.SteamId ?? ""
         };
 
         // Add arrays

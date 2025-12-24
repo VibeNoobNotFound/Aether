@@ -76,6 +76,14 @@ public partial class AetherGrpcService
 
                 _logger.LogInformation("Successfully launched {Title} via {Method}", game.Title, result.LaunchMethod);
 
+                // Start playtime tracking if it's a direct launch and we have a PID
+                // "bundle" (macOS open -W) also supports tracking correctly now
+                if ((result.LaunchMethod == "direct" || result.LaunchMethod == "bundle")
+                    && result.ProcessId.HasValue)
+                {
+                    _ = TrackPlaytimeAsync(game.Id, result.ProcessId.Value);
+                }
+
                 // Notify lifecycle hooks
                 var gameInfo = new Aether.PluginSDK.Game
                 {
@@ -109,6 +117,41 @@ public partial class AetherGrpcService
         {
             _logger.LogError(ex, "Error launching game {GameId}", request.GameId);
             return new LaunchResponse { Success = false, Message = ex.Message };
+        }
+    }
+
+    private async Task TrackPlaytimeAsync(int gameId, int processId)
+    {
+        try
+        {
+            // Give the process a moment to start fully
+            await Task.Delay(1000);
+
+            var process = Process.GetProcessById(processId);
+            var startTime = DateTime.UtcNow;
+
+            _logger.LogInformation("Tracking playtime for game {GameId} (PID: {Pid})", gameId, processId);
+
+            await process.WaitForExitAsync();
+
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+
+            // Only count if played for more than 1 minute (filters out crashes/failed starts)
+            if (duration.TotalMinutes > 0.5)
+            {
+                _database.UpdatePlaytime(gameId, duration);
+                _logger.LogInformation("Updated playtime for game {Id}: +{Minutes:F1} mins", gameId, duration.TotalMinutes);
+            }
+        }
+        catch (ArgumentException)
+        {
+            // Process already exited/invalid
+            _logger.LogWarning("Process {Pid} exited before tracking could start", processId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to track playtime for process {Pid}: {Message}", processId, ex.Message);
         }
     }
 

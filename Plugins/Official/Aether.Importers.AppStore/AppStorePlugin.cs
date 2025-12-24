@@ -6,11 +6,6 @@ using Aether.PluginSDK.UI;
 
 namespace Aether.Importers.AppStore;
 
-// ... (existing code) ...
-
-
-
-
 /// <summary>
 /// macOS App Store and .app bundle importer
 /// </summary>

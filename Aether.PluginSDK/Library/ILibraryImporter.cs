@@ -25,7 +25,9 @@ public record ImportedGame(
     string Platform,
     string ExternalId, // Steam AppID, Epic GUID, etc.
     string InstallPath,
-    string? ExecutablePath
+    string? ExecutablePath,
+    DateTime? LastPlayed = null,
+    long? SecondsPlayed = null
 );
 
 public record ScanProgress(

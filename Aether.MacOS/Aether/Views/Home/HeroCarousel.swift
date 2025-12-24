@@ -114,6 +114,7 @@ struct HeroCarousel: View {
                 .allowsHitTesting(true)
             }
         }
+        .clipped()
     }
 
     @ViewBuilder

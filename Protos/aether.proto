@@ -103,6 +103,9 @@ message Game {
   int64 total_playtime_seconds = 32;
   bool is_favorite = 33;
   bool is_installed = 34;
+  
+  // Cross-Platform News: If set, use this ID to fetch Steam News regardless of platform
+  optional string steam_id = 35;
 }
 
 
@@ -217,6 +220,8 @@ message GameMetadataUpdate {
   repeated string screenshots = 9;
   optional int64 release_date_unix = 10;
   repeated string videos = 11;
+  optional string logo_image_url = 12;
+  optional string steam_id = 13;  // For cross-platform news
 }
 
 message MetadataSearchRequest {
@@ -238,6 +243,9 @@ message MetadataSearchResult {
   repeated string videos = 7;
   string description = 8;
   string publisher = 9;
+  repeated string screenshots = 10;
+  string logo_image_url = 11;
+  repeated string genres = 12;
 }
 
 message NewsItem {

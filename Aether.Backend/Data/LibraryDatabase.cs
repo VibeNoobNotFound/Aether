@@ -77,6 +77,25 @@ public class LibraryDatabase : IDisposable
             game.ImportedAt = existing.ImportedAt; // Preserve original import time
             game.UpdatedAt = DateTime.UtcNow;
 
+            // Merge stats
+            if (!game.LastPlayed.HasValue) 
+                game.LastPlayed = existing.LastPlayed;
+            else if (existing.LastPlayed.HasValue && existing.LastPlayed > game.LastPlayed)
+                game.LastPlayed = existing.LastPlayed; // Keep most recent
+
+            if (!game.TotalPlaytime.HasValue)
+                game.TotalPlaytime = existing.TotalPlaytime;
+            else if (existing.TotalPlaytime.HasValue && existing.TotalPlaytime > game.TotalPlaytime)
+                game.TotalPlaytime = existing.TotalPlaytime; // Keep highest playtime
+
+            // Merge Favorites (don't overwrite favorite status on re-scan unless explicitly changed? Scan doesn't set Favorite usually)
+            // GameEntity.FromImportedGame copies IsFavorite from metadata if available, but usually it's user-set locally.
+            // Let's assume user local favorite status overrides import unless we have a reason.
+            // Actually, FromImportedGame sets IsFavorite = entity.IsFavorite (Wait, ScanService sets it from where?)
+            // ScanService sets IsFavorite = entity.IsFavorite (which is wrong, it should be false for new games).
+            // Let's ensure we preserve local IsFavorite.
+            game.IsFavorite = existing.IsFavorite; 
+
             _games.Update(game);
             _logger.Debug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
             return existing.Id;

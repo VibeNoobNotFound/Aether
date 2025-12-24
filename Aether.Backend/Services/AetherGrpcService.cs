@@ -253,8 +253,12 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             if (request.HasDescription) game.Description = request.Description;
             if (request.HasCoverImageUrl) game.CoverImageUrl = request.CoverImageUrl;
             if (request.HasBackgroundImageUrl) game.BackgroundImageUrl = request.BackgroundImageUrl;
+            if (request.HasLogoImageUrl) game.LogoImageUrl = request.LogoImageUrl;
             if (request.Genres.Count > 0) game.Genres = request.Genres.ToList();
+            if (request.Screenshots.Count > 0) game.Screenshots = request.Screenshots.ToList();
+            if (request.Videos.Count > 0) game.Videos = request.Videos.ToList();
             if (request.HasReleaseDateUnix) game.ReleaseDate = DateTimeOffset.FromUnixTimeSeconds(request.ReleaseDateUnix).DateTime;
+            if (request.HasSteamId) game.SteamId = request.SteamId;
 
             game.UpdatedAt = DateTime.UtcNow;
             _database.UpsertGame(game);
@@ -290,18 +294,25 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
                     var metadata = await provider.SearchAsync(request.Query);
                     if (metadata != null)
                     {
-                        response.Results.Add(new MetadataSearchResult
+                        var result = new MetadataSearchResult
                         {
                             Provider = provider.Name,
-                            ExternalId = "", // Would need SearchAsync to return this
-                            Title = request.Query,
+                            ExternalId = metadata.ExternalId ?? "",
+                            Title = metadata.Title ?? request.Query,
                             Developer = metadata.Developer ?? "",
                             Publisher = metadata.Publisher ?? "",
                             Description = metadata.Description ?? "",
                             CoverImageUrl = metadata.CoverImageUrl ?? "",
-                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0,
-                            Videos = { metadata.Videos ?? Array.Empty<string>() }
-                        });
+                            LogoImageUrl = metadata.LogoImageUrl ?? "",
+                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0
+                        };
+
+                        // Add arrays
+                        if (metadata.Videos != null) result.Videos.AddRange(metadata.Videos);
+                        if (metadata.Screenshots != null) result.Screenshots.AddRange(metadata.Screenshots);
+                        if (metadata.Genres != null) result.Genres.AddRange(metadata.Genres);
+
+                        response.Results.Add(result);
                     }
                 }
                 catch (Exception ex)
@@ -336,8 +347,8 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
                 return response;
             }
 
-            _logger.LogInformation("GetGameNews: Fetching news for {Title} (Platform: {Platform}, ExternalId: {ExternalId})",
-                game.Title, game.Platform, game.ExternalId);
+            _logger.LogInformation("GetGameNews: Fetching news for {Title} (Platform: {Platform}, ExternalId: {ExternalId}, SteamId: {SteamId})",
+                game.Title, game.Platform, game.ExternalId, game.SteamId);
 
             // Find valid news providers - collect from both sources and deduplicate
             var providers = new List<INewsProvider>();
@@ -347,25 +358,40 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
 
             _logger.LogInformation("GetGameNews: Found {Count} news providers", providers.Count);
 
-            // Try to find Steam provider (can use ExternalId if it's a Steam App ID)
             INewsProvider? provider = null;
-            string? newsId = game.ExternalId;
+            string? newsId = null;
 
-            // First, try to match platform directly
-            foreach (var p in providers)
+            // PRIORITY 1: SteamId override - Always use Steam provider if SteamId is set
+            if (!string.IsNullOrEmpty(game.SteamId))
             {
-                var pluginName = (p as IPlugin)?.Name;
-                if (pluginName == game.Platform)
+                provider = providers.FirstOrDefault(p => (p as IPlugin)?.Name == "Steam");
+                newsId = game.SteamId;
+                if (provider != null)
                 {
-                    provider = p;
-                    break;
+                    _logger.LogInformation("GetGameNews: Using SteamId override for news: {SteamId}", game.SteamId);
                 }
             }
 
-            // If no platform match but we have a numeric ExternalId, try Steam provider
+            // PRIORITY 2: Match by platform
+            if (provider == null)
+            {
+                foreach (var p in providers)
+                {
+                    var pluginName = (p as IPlugin)?.Name;
+                    if (pluginName == game.Platform)
+                    {
+                        provider = p;
+                        newsId = game.ExternalId;
+                        break;
+                    }
+                }
+            }
+
+            // PRIORITY 3: If no platform match but we have a numeric ExternalId, try Steam provider
             if (provider == null && !string.IsNullOrEmpty(game.ExternalId) && int.TryParse(game.ExternalId, out _))
             {
                 provider = providers.FirstOrDefault(p => (p as IPlugin)?.Name == "Steam");
+                newsId = game.ExternalId;
                 if (provider != null)
                 {
                     _logger.LogInformation("GetGameNews: Using Steam provider for numeric ExternalId");

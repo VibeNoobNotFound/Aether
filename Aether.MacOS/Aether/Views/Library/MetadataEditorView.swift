@@ -12,8 +12,11 @@ struct MetadataEditorView: View {
     @State private var description: String = ""
     @State private var coverImageUrl: String = ""
     @State private var backgroundImageUrl: String = ""
+    @State private var logoImageUrl: String = ""
     @State private var genres: String = ""
     @State private var videos: [String] = []
+    @State private var screenshots: [String] = []
+    @State private var steamId: String = ""
     @State private var newVideoUrl: String = ""
 
     @State private var isSaving = false
@@ -46,6 +49,12 @@ struct MetadataEditorView: View {
                     }
 
                     TextField("Background Image URL", text: $backgroundImageUrl)
+                    TextField("Logo Image URL", text: $logoImageUrl)
+                }
+
+                Section("Cross-Platform News (Steam ID)") {
+                    TextField("Steam App ID", text: $steamId)
+                        .help("Enter a Steam App ID to fetch news for non-Steam games")
                 }
 
                 Section("Videos") {
@@ -129,13 +138,20 @@ struct MetadataEditorView: View {
                 MetadataSearchSheet(
                     initialQuery: title,
                     onSelect: { result in
-                        // Apply selected metadata
+                        // Apply ALL available metadata from the search result
                         title = result.title
                         developer = result.developer
+                        publisher = result.publisher
+                        description = result.description
                         coverImageUrl = result.coverImageUrl
-                        // Optionally update other fields if available in result
-                        if !result.videos.isEmpty {
-                            videos = result.videos
+                        if !result.logoImageUrl.isEmpty { logoImageUrl = result.logoImageUrl }
+                        if !result.videos.isEmpty { videos = result.videos }
+                        if !result.screenshots.isEmpty { screenshots = result.screenshots }
+                        if !result.genres.isEmpty { genres = result.genres.joined(separator: ", ") }
+
+                        // Auto-set SteamId if the result comes from Steam provider
+                        if result.provider == "Steam" && !result.externalId.isEmpty {
+                            steamId = result.externalId
                         }
                     }
                 )
@@ -150,8 +166,11 @@ struct MetadataEditorView: View {
             description = game.description
             coverImageUrl = game.coverImageURL?.absoluteString ?? ""
             backgroundImageUrl = game.backgroundImageURL?.absoluteString ?? ""
+            logoImageUrl = game.logoImageURL?.absoluteString ?? ""
             genres = game.genres.joined(separator: ", ")
             videos = game.videos.map { $0.absoluteString }
+            screenshots = game.screenshots.map { $0.absoluteString }
+            steamId = game.steamId ?? ""
         }
     }
 
@@ -173,8 +192,11 @@ struct MetadataEditorView: View {
                     description: description,
                     coverImageUrl: coverImageUrl,
                     backgroundImageUrl: backgroundImageUrl,
+                    logoImageUrl: logoImageUrl,
                     genres: genresList,
-                    videos: videos
+                    videos: videos,
+                    screenshots: screenshots,
+                    steamId: steamId
                 )
 
                 await MainActor.run {

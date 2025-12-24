@@ -28,8 +28,8 @@ struct HomeView: View {
                         Color.black
                     }
                     .frame(width: proxy.size.width, height: proxy.size.height)
-                    .blur(radius: 60)
-                    .opacity(0.4)
+                    .blur(radius: 100)
+                    .opacity(0.5)
                     .ignoresSafeArea()
                     .id(game.id)  // Force transition when game changes
                     .transition(.opacity.animation(.easeInOut(duration: 1.0)))
@@ -39,13 +39,21 @@ struct HomeView: View {
             // Content
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
-                    HeroCarousel(currentIndex: $carouselIndex)
-                        .padding(.top, 20)
+                    // Wide Layout (Side by Side)
+                    HStack(alignment: .top, spacing: 12) {
+                        HeroCarousel(currentIndex: $carouselIndex)
+                            .frame(height: 380)
+                            .clipped()
 
-                    if !news.isEmpty {
-                        NewsFeedView(news: news)
-                            .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        if !news.isEmpty {
+                            NewsFeedView(news: news, orientation: .vertical, height: 380)
+                                .frame(width: 350)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .transition(.opacity)
+                                .zIndex(1)
+                        }
                     }
+                    .padding(.top, 20)
 
                     if !appState.games.filter({ $0.isFavorite }).isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
@@ -72,6 +80,7 @@ struct HomeView: View {
                 .padding(.vertical)
             }
         }
+        .padding(16)
         .toolbar {
             ToolbarItem {
                 Button(action: {

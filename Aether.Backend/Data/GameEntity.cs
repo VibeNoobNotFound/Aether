@@ -63,6 +63,9 @@ public class GameEntity
     public DateTime ImportedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // Cross-Platform News: Steam App ID for fetching news regardless of platform
+    public string? SteamId { get; set; }
+
     public static GameEntity FromImportedGame(ImportedGame game, GameMetadata? metadata = null)
     {
         return new GameEntity
@@ -99,6 +102,12 @@ public class GameEntity
             MinimumRequirements = metadata?.MinimumRequirements,
             RecommendedRequirements = metadata?.RecommendedRequirements,
             SupportedLanguages = metadata?.SupportedLanguages?.ToList(),
+
+            LastPlayed = game.LastPlayed,
+            TotalPlaytime = game.SecondsPlayed.HasValue ? TimeSpan.FromSeconds(game.SecondsPlayed.Value) : null,
+
+            // Auto-populate SteamId for Steam games
+            SteamId = game.Platform == "Steam" ? game.ExternalId : null,
 
             ImportedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

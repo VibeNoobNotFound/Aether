@@ -2,9 +2,10 @@ import Foundation
 import OSLog
 import os
 
-class Logger {
+final class Logger: @unchecked Sendable {
     static let shared = Logger()
     private let logger = OSLog(subsystem: "com.antigravity.aether", category: "Application")
+    private let queue = DispatchQueue(label: "com.antigravity.aether.logger")
     private var fileHandle: FileHandle?
 
     private init() {
@@ -37,19 +38,24 @@ class Logger {
     }
 
     func log(_ message: String, type: OSLogType = .default) {
-        // 1. Console Logging (Unified Logging System)
+        // 1. Console Logging (Unified Logging System) - Thread safe
         os_log("%{public}@", log: logger, type: type, message)
 
-        // 2. File Logging
+        // 2. File Logging - Serialized via Queue
         let timestamp = ISO8601DateFormatter().string(from: Date())
         let fileMessage = "[\(timestamp)] \(message)\n"
 
-        if let data = fileMessage.data(using: .utf8) {
-            fileHandle?.write(data)
+        queue.async {
+            if let data = fileMessage.data(using: .utf8) {
+                self.fileHandle?.write(data)
+            }
         }
     }
 
     deinit {
-        try? fileHandle?.close()
+        let handle = fileHandle
+        queue.sync {
+            try? handle?.close()
+        }
     }
 }

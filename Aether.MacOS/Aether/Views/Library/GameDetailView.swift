@@ -297,7 +297,7 @@ struct HeroHeaderView: View {
             let minY = geo.frame(in: .global).minY
 
             ZStack(alignment: .bottomLeading) {
-                if let bgURL = game.backgroundImageURL {
+                if let bgURL = game.backgroundImageURL ?? game.coverImageURL {
                     CachedAsyncImage(url: bgURL) { image in
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
@@ -319,17 +319,26 @@ struct HeroHeaderView: View {
                     }
                 }
 
+                // Bottom Gradient for text readability
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.6), .black.opacity(0.85)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
                 // Logo or Title Overlay
                 VStack(alignment: .leading, spacing: 10) {
                     if let logoURL = game.logoImageURL {
                         CachedAsyncImage(url: logoURL) { image in
                             image.resizable()
                                 .aspectRatio(contentMode: .fit)
+                            
+                            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                            .minimumScaleFactor(0.8)
                         } placeholder: {
                             Color.clear
                         }
                         .frame(height: 140)
-                        .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+                        .shadow(color: .black.opacity(0.5), radius: 60, x: 0, y: 10)
                     } else {
                         Text(game.title)
                             .font(.system(size: 56, weight: .black, design: .rounded))
@@ -393,7 +402,7 @@ struct InfoGridView: View {
         ) {
             InfoItem(label: "Released", value: game.formattedReleaseDate)
             InfoItem(label: "Playtime", value: game.formattedPlaytime)
-            InfoItem(label: "Last Played", value: game.lastPlayed != nil ? "Recently" : "Never")
+            InfoItem(label: "Last Played", value: game.formattedLastPlayed)
         }
         .padding(20)
         .background(Color.black.opacity(0.2))

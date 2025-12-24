@@ -159,6 +159,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
                         var metadata = new GameMetadata
                         {
+                            ExternalId = gameId,
                             Description = GetString(data, "detailed_description"),
                             ShortDescription = GetString(data, "short_description"),
                             Developer = GetFirstString(data, "developers"),
@@ -453,6 +454,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
             string? name = null;
             string? installDir = null;
 
+            DateTime? lastPlayed = null;
+
             foreach (var line in lines)
             {
                 if (line.Contains("\"appid\""))
@@ -461,6 +464,13 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
                     name = ExtractValue(line);
                 else if (line.Contains("\"installdir\""))
                     installDir = ExtractValue(line);
+                else if (line.Contains("\"LastPlayed\"")) // Note: Case sensitive check on key
+                {
+                    if (long.TryParse(ExtractValue(line), out long unixTime) && unixTime > 0)
+                    {
+                        lastPlayed = DateTimeOffset.FromUnixTimeSeconds(unixTime).UtcDateTime;
+                    }
+                }
             }
 
             if (string.IsNullOrEmpty(appId) || string.IsNullOrEmpty(name))
@@ -475,7 +485,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
                 "Steam",
                 appId,
                 fullInstallPath,
-                null // We'll detect executable later
+                null, // We'll detect executable later
+                lastPlayed
             );
         }
         catch

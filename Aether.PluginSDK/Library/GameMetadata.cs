@@ -5,6 +5,10 @@ namespace Aether.PluginSDK.Library;
 /// </summary>
 public record GameMetadata
 {
+    // Identifier (from the metadata provider, e.g., Steam App ID)
+    public string? ExternalId { get; init; }
+    public string? Title { get; init; }
+
     // Basic Info
     public string? CoverImageUrl { get; init; }
     public string? BackgroundImageUrl { get; init; }
