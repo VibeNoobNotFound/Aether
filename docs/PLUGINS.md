@@ -1,6 +1,6 @@
 # 🧩 Building Plugins for Aether
 
-Aether's power comes from its modular plugin system. This guide will walk you through creating your own Importer or Metadata Provider using .NET 10.
+Aether's power comes from its modular plugin system. This guide will walk you through creating your own Importer or Metadata Provider using .NET.
 
 ## 🚀 Getting Started
 
@@ -16,7 +16,7 @@ cd Aether.Plugins.MyLauncher
 ```
 
 ### 2. Add Reference to SDK
-You need to reference the `Aether.PluginSDK`. If you are building inside the main repo, reference the project directly. If you are external, you would reference the `Aether.PluginSDK.dll`.
+You need to reference the `Aether.PluginSDK`.
 
 ```xml
 <ItemGroup>
@@ -28,48 +28,29 @@ You need to reference the `Aether.PluginSDK`. If you are building inside the mai
 
 ## 🏗 Core Interfaces
 
-Every plugin must implement `IPlugin`. Optionally, you can implement `ILibraryImporter` or `IMetadataProvider`.
+Every plugin implements `IPlugin`. Depending on your goal, you might also implement `ILibraryImporter` or `IGameLauncher`.
 
-### `IPlugin` (Required)
-The base contract for lifecycle management.
-```csharp
-public interface IPlugin
-{
-    string Name { get; }
-    
-    // Lifecycle Hooks
-    Task OnLibraryScan(LibraryContext context);
-    Task OnGameLaunched(Game game);
-    Task OnGameStopped(Game game, TimeSpan sessionDuration);
-    
-    // UI Hooks
-    List<Widget> GetSetupWidgets(); // Configuration UI
-    Task OnWidgetAction(string actionId, string payload);
-}
-```
+### 1. The Five Lifecycle Hooks (`IPlugin`)
+The `IPlugin` interface is the heart of your extension. It defines **5 Key Hooks**:
 
-### `ILibraryImporter` (Optional)
-Implement this if your plugin finds installed games (e.g., from a launcher or folder).
+1.  **`OnLibraryScan(LibraryContext)`**: Called when the user clicks "Scan Library". Use this to find games on the disk.
+2.  **`GetWidgets(Game)`**: Called when viewing a Game Detail page. Return `Widget` objects to render custom UI (e.g., "Install DLC" button).
+3.  **`OnWidgetAction(ActionID, Payload)`**: Called when a user clicks a button in your widget.
+4.  **`OnGameLaunched(Game)`**: Key lifecycle event for tracking playtime.
+5.  **`OnGameStopped(Game, Duration)`**: Called when the game process exits. Use this to sync playtime with external services.
+6.  **`GetSetupWidgets()`**: Returns UI for the Settings > Plugins page (e.g., Login forms).
+
+### 2. Launching Games (`IGameLauncher`)
+If your plugin handles a specific platform (like Steam or Epic), implement `IGameLauncher`.
 
 ```csharp
-public interface ILibraryImporter : IPlugin
+public interface IGameLauncher
 {
-    Task<bool> CanImportAsync();
-    
-    // Yields games one by one as they are found
-    IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null);
-}
-```
+    // Check if this plugin handles this specific game
+    bool CanLaunch(LaunchContext context);
 
-### `IMetadataProvider` (Optional)
-Implement this if your plugin fetches game details/covers from an API.
-
-```csharp
-public interface IMetadataProvider
-{
-    Task<GameMetadata?> SearchAsync(string gameName, string? platform = null);
-    Task<GameMetadata?> GetByIdAsync(string gameId);
-    Task<List<string>> GetScreenshotsAsync(string gameId);
+    // Execute the launch logic (Protocol URI, Executable, or Custom)
+    Task<LaunchResult> LaunchAsync(LaunchContext context);
 }
 ```
 
@@ -77,11 +58,10 @@ public interface IMetadataProvider
 
 ## 💻 Example: Simple File Importer
 
-Here is a complete example of a plugin that imports `.nes` ROMs from a specific folder.
+Here is a complete example of a plugin that imports `.nes` ROMs.
 
 ```csharp
 using Aether.PluginSDK;
-using Aether.PluginSDK.Library;
 
 public class NesRomImporter : ILibraryImporter
 {
@@ -95,42 +75,30 @@ public class NesRomImporter : ILibraryImporter
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
         var roms = Directory.GetFiles("/Users/Shared/ROMs/NES", "*.nes");
-        int count = 0;
-
         foreach (var romPath in roms)
         {
-            count++;
-            var title = Path.GetFileNameWithoutExtension(romPath);
-            
-            // Report progress back to UI
-            progress?.Report(new ScanProgress("NES", roms.Length, count, title, (double)count / roms.Length * 100));
-
             yield return new ImportedGame(
-                Title: title,
+                Title: Path.GetFileNameWithoutExtension(romPath),
                 Platform: "Nintendo Entertainment System",
-                Id: romPath, // Unique ID
+                Id: romPath,
                 InstallPath: Path.GetDirectoryName(romPath),
-                ExecutablePath: romPath // Launcher handles opening this
+                ExecutablePath: romPath
             );
         }
     }
-
-    // Required IPlugin stubs
-    public List<Widget> GetSetupWidgets() => new List<Widget>();
-    public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
-    public Task OnWidgetAction(string actionId, string payload) => Task.CompletedTask;
-    public Task OnGameLaunched(Game game) => Task.CompletedTask;
-    public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
+    
+    // ... Implement other IPlugin stubs ...
 }
 ```
 
 ---
 
-## 🎨 Server-Driven UI
+## 🎨 Server-Driven UI (Widgets)
 
-Plugins can expose configuration settings without writing any frontend code. The backend defines the UI layout in JSON, and the macOS frontend renders it natively.
+Plugins can expose configuration settings without writing any SwiftUI code. The backend defines the UI layout in JSON, and the macOS frontend renders it natively.
 
-Implement `GetSetupWidgets()` to return a `Form`:
+### Example: Login Form
+Implement `GetSetupWidgets()` to return a `Widget` of type `Form`:
 
 ```csharp
 public List<Widget> GetSetupWidgets()
@@ -140,8 +108,7 @@ public List<Widget> GetSetupWidgets()
         new Widget
         {
             Title = "Login to Service",
-            LayoutJson = @"
-            {
+            LayoutJson = @"{
                 ""type"": ""Form"",
                 ""fields"": [
                     { ""id"": ""username"", ""type"": ""Text"", ""label"": ""Username"" },
@@ -159,14 +126,14 @@ public List<Widget> GetSetupWidgets()
 Handle the action in `OnWidgetAction`:
 
 ```csharp
-public async Task OnWidgetAction(string actionId, string payload)
+public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
 {
     if (actionId == "login_btn")
     {
-        var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
-        var username = data["username"];
-        // Authenticate...
+        // ... authenticate ...
+        return WidgetActionResult.Success("Logged in!");
     }
+    return WidgetActionResult.Failure("Unknown action");
 }
 ```
 
@@ -176,4 +143,4 @@ public async Task OnWidgetAction(string actionId, string payload)
 
 1.  Build your plugin (`dotnet build -c Release`).
 2.  Drop the compiled `.dll` into the `plugins/` directory next to the `Aether.Backend` executable.
-3.  Restart Aether.
+3.  Restart Aether (Frontend connects to Backend on port **55551**).

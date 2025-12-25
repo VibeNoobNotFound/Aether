@@ -11,6 +11,7 @@
 *   **Protobuf Compiler (`protoc`)**:
     *   Install via Homebrew: `brew install protobuf`
     *   **Swift Plugins**: `brew install swift-protobuf grpc-swift` (Required for generating Swift gRPC code).
+    *   **App Sandbox**: Must be **DISABLED** in Xcode "Signing & Capabilities" to allow Admin Launch via AppleScript.
 
 ---
 
@@ -33,6 +34,10 @@ Use the master build script to compile the backend and all official plugins:
 ```bash
 ./build_all.sh
 ```
+
+**Optional Arguments:**
+*   `--version <v>`: Embeds a specific version number into `version.json` for the backend bundle.
+
 *   Compiles `Aether.PluginSDK`
 *   Compiles `Aether.Backend`
 *   Compiles all plugins (`Steam`, `Epic`, `IGDB`, etc.)

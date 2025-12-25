@@ -33,6 +33,10 @@ We believe game launchers shouldn't look like spreadsheets.
 *   **IGDB Integration**: Uses the industry-standard database for accurate covers, metadata, and developer info.
 *   **Customizable**: Don't like a cover? Drag and drop your own. Edit titles, descriptions, and video links manually.
 
+### 🛡 System-Level Access
+*   **Deep Scanning**: Runs as Root (optional) to bypass macOS TCC restrictions, ensuring it finds *every* game on your drive.
+*   **Sandbox-Free**: Built to escape the walled garden and manage your entire system's library.
+
 ---
 
 ## 📚 Documentation
@@ -51,7 +55,8 @@ We believe in transparency. Dive into our detailed documentation:
 ### For Users
 1.  Download the latest release (Coming Soon).
 2.  Drag to Applications.
-3.  Launch and let Aether scan your drives.
+3.  Launch Aether.
+    > **Note**: Aether asks for **Administrator privileges** by default to scan your system without restriction (bypassing macOS Sandbox/TCC issues). You can configure this behavior in the source code if building yourself.
 
 ### For Developers
 Aether is a hybrid application. You need both an Xcode environment and a .NET environment.

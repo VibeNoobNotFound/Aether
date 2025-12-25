@@ -21,7 +21,7 @@ Unlike Electron apps that bundle an entire web browser, or pure cross-platform f
 *   **Role**: The face of the application.
 *   **Responsibilities**:
     *   **Rendering**: Native macOS views, blurs, animations, and window management.
-    *   **Process Management**: Spawns and manages the Backend process directly.
+    *   **Process Management**: Spawns and manages the Backend process (as Root by default).
     *   **User Input**: Handles mouse, keyboard, and controller navigation.
 *   **Integration**: Uses `grpc-swift` to generate a typed client that talks to the local backend server.
 
@@ -29,8 +29,11 @@ Unlike Electron apps that bundle an entire web browser, or pure cross-platform f
 
 1.  **Startup**:
     *   The macOS App launches.
-    *   It immediately finds the `Aether.Backend` executable inside its bundle and launches it as a subprocess.
-    *   The Frontend waits for the gRPC server to start listening on `localhost:50051`.
+    *   It checks `BackendManager.launchAsAdmin`.
+        *   **If True (Default)**: Spawns `Aether.Backend` as **ROOT** via `NSAppleScript`.
+        *   **If False**: Spawns as standard user (restricted access).
+        *   **External Mode**: If `useExternalBackend` is flag set, skips spawn (for debugging).
+    *   The Frontend *pauses* (`waitForBackend`) until the gRPC server is ready on `localhost:55551`.
 
 2.  **User Action**:
     *   *Example*: User clicks "Scan Library".
