@@ -9,6 +9,10 @@ Aether is an open-source, next-generation game library manager. It exists to sol
 
 ---
 
+<img width="1348" height="1133" alt="Screenshot 2025-12-25 at 7 48 43 PM" src="https://github.com/user-attachments/assets/e3cd02da-5e2d-4129-8920-f9f6e92ddd3e" />
+<img width="1569" height="1211" alt="Screenshot 2025-12-25 at 7 45 15 PM" src="https://github.com/user-attachments/assets/37822f2f-a5e6-4fff-ba31-f9318c52bff0" />
+<img width="1122" height="1211" alt="Screenshot 2025-12-25 at 7 43 31 PM" src="https://github.com/user-attachments/assets/2ca5e2ab-506e-4c55-a004-b3e8c7f4b0b8" />
+
 ## 🌟 Features
 
 ### 🎮 Universal Library
