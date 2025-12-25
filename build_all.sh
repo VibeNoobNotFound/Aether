@@ -67,7 +67,83 @@ copy_plugin "Aether.Importers.AppStore" "Aether.Importers.AppStore"
 copy_plugin "Aether.Importers.Custom" "Aether.Importers.Custom"
 copy_plugin "Aether.Importers.IGDB" "Aether.Importers.IGDB"
 
+# Check for arguments
+should_bundle=false
+VERSION="1.0.0"
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --bundle) should_bundle=true ;;
+        --version) VERSION="$2"; shift ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+if [ "$should_bundle" = true ]; then
+    echo "═══════════════════════════════════════════════════════════════════════════"
+    echo "📦 Bundling Backend for macOS App Distribution (Version: $VERSION)"
+    echo "═══════════════════════════════════════════════════════════════════════════"
+    
+    PUBLISH_DIR="./publish/macos-arm64"
+    echo "------------- Publishing Backend -------------"
+    rm -rf "$PUBLISH_DIR"
+    
+    # Publish as self-contained executable
+    dotnet publish Aether.Backend -c Release -r osx-arm64 \
+        --self-contained true \
+        -p:PublishSingleFile=true \
+        -p:IncludeNativeLibrariesForSelfExtract=true \
+        -o "$PUBLISH_DIR"
+        
+    # Standardize executable name (remove .Backend suffix to avoid confusion)
+    mv "$PUBLISH_DIR/Aether.Backend" "$PUBLISH_DIR/AetherBackend"
+
+    # Copy plugins to publish folder
+    echo "📦 Copying plugins to publish folder..."
+    cp -r "$PLUGIN_DIR" "$PUBLISH_DIR/plugins"
+
+    # The PROPER way to embed executables on macOS:
+    # Copy to a staging area that Xcode will pick up via a "Copy Files" build phase
+    # Target: Contents/MacOS/ (same as main app executable)
+    # This ensures the backend is code-signed with the app and avoids quarantine issues.
+    
+    XCODE_HELPER_DIR="./Aether.MacOS/Aether/HelperTools"
+    echo "📦 Copying backend to Xcode helper tools directory..."
+    mkdir -p "$XCODE_HELPER_DIR"
+    
+    # Clean and copy
+    rm -rf "$XCODE_HELPER_DIR/AetherBackend"
+    rm -f "$XCODE_HELPER_DIR"/*.dll
+    
+    cp "$PUBLISH_DIR/AetherBackend" "$XCODE_HELPER_DIR/AetherBackend"
+    
+    # Copy plugin DLLs directly (not in a subfolder) so they can be added individually to Xcode
+    cp "$PUBLISH_DIR/plugins/"*.dll "$XCODE_HELPER_DIR/"
+    
+    echo "✅ Backend and plugins copied to $XCODE_HELPER_DIR"
+    echo ""
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo "⚠️  IMPORTANT: Xcode Configuration Required"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo "1. In Xcode, go to your app target > Build Phases"
+    echo "2. Add a 'Copy Files' build phase"
+    echo "3. Set Destination to 'Executables' (Contents/MacOS)"
+    echo "4. Add ALL files from $XCODE_HELPER_DIR:"
+    echo "   - AetherBackend (the executable)"
+    echo "   - All .dll files (Aether.Importers.*.dll)"
+    echo "5. Check 'Code Sign On Copy'"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+else
+    echo "ℹ️  Skipping bundling (use --bundle to enable)"
+fi
+
 echo "----------------------------------------------"
 echo "🎉 Build Complete!"
-echo "👉 You can now run the backend:"
-echo "   cd Aether.Backend && dotnet run"
+if [ "$should_bundle" = true ]; then
+    echo "👉 See instructions above to configure Xcode."
+else
+    echo "👉 You can now run the backend:"
+    echo "   cd Aether.Backend && dotnet run"
+fi
+

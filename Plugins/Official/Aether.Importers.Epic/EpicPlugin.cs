@@ -56,8 +56,17 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
 
         if (OperatingSystem.IsMacOS())
         {
+            // UserProfile may be empty when running in a sandboxed context
+            // Use HOME environment variable as fallback
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            paths.Add(Path.Combine(home, "Library", "Application Support", "Epic", "EpicGamesLauncher", "Data", "Manifests"));
+            if (string.IsNullOrEmpty(home))
+            {
+                home = Environment.GetEnvironmentVariable("HOME") ?? "";
+            }
+            if (!string.IsNullOrEmpty(home))
+            {
+                paths.Add(Path.Combine(home, "Library", "Application Support", "Epic", "EpicGamesLauncher", "Data", "Manifests"));
+            }
         }
         else if (OperatingSystem.IsWindows())
         {
@@ -66,7 +75,14 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
         else if (OperatingSystem.IsLinux())
         {
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            paths.Add(Path.Combine(home, ".config", "Epic", "EpicGamesLauncher", "Data", "Manifests"));
+            if (string.IsNullOrEmpty(home))
+            {
+                home = Environment.GetEnvironmentVariable("HOME") ?? "";
+            }
+            if (!string.IsNullOrEmpty(home))
+            {
+                paths.Add(Path.Combine(home, ".config", "Epic", "EpicGamesLauncher", "Data", "Manifests"));
+            }
         }
 
         return paths;

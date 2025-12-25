@@ -166,6 +166,103 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         }
     }
 
+    public override async Task<OperationStatus> InstallPlugin(PluginFile request, ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.Filename) || request.Data.IsEmpty)
+            {
+                return new OperationStatus { Success = false, Message = "Invalid plugin file." };
+            }
+
+            // Ensure filename is safe and has .dll extension
+            var filename = Path.GetFileName(request.Filename);
+            if (!filename.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            {
+                return new OperationStatus { Success = false, Message = "Only .dll files are allowed." };
+            }
+
+            // Use the configured plugins directory
+            var pluginsDir = AppDomain.CurrentDomain.BaseDirectory + "plugins";
+            // Check for processing environment variable override (from bundling)
+            var envPluginsPath = Environment.GetEnvironmentVariable("PLUGINS_PATH");
+            if (!string.IsNullOrEmpty(envPluginsPath))
+            {
+                pluginsDir = envPluginsPath;
+            }
+
+            Directory.CreateDirectory(pluginsDir);
+            var filePath = Path.Combine(pluginsDir, filename);
+
+            await File.WriteAllBytesAsync(filePath, request.Data.ToByteArray());
+            _logger.LogInformation("Installed plugin: {Filename}", filename);
+
+            // Reload plugins
+            _pluginManager.LoadPlugins();
+
+            return new OperationStatus { Success = true, Message = "Plugin installed successfully." };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error installing plugin");
+            return new OperationStatus { Success = false, Message = ex.Message };
+        }
+    }
+
+    public override Task<OperationStatus> UninstallPlugin(PluginName request, ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.Name))
+            {
+                return Task.FromResult(new OperationStatus { Success = false, Message = "Invalid plugin name." });
+            }
+
+            // Ideally we'd map Plugin Name -> Filename, but for now we assume simple convention or search
+            // Since we can't easily map back without metadata, let's look for a DLL that contains this plugin name?
+            // Or, simpler for this iteration: Just delete [Name].dll if it exists, or search loaded plugins for assembly path.
+
+            var plugin = _pluginManager.GetPlugins().FirstOrDefault(p => p.Name == request.Name);
+            if (plugin != null)
+            {
+                // This is tricky because we loaded valid assembly types, but we need the file path.
+                // For now, let's assume the filename is likely [Name].dll or try to find it.
+                // A robust system would track the file path during loading.
+
+                // Fallback implementation: Try to delete [Name].dll
+                var pluginsDir = AppDomain.CurrentDomain.BaseDirectory + "plugins";
+                var envPluginsPath = Environment.GetEnvironmentVariable("PLUGINS_PATH");
+                if (!string.IsNullOrEmpty(envPluginsPath))
+                {
+                    pluginsDir = envPluginsPath;
+                }
+
+                var predictedPath = Path.Combine(pluginsDir, $"{request.Name}.dll");
+                // Also check if file exists with Aether.Importers.[Name].dll if custom naming used
+
+                if (File.Exists(predictedPath))
+                {
+                    File.Delete(predictedPath);
+                    _logger.LogInformation("Uninstalled plugin file: {Path}", predictedPath);
+
+                    // Reload plugins to reflect removal
+                    _pluginManager.LoadPlugins();
+
+                    return Task.FromResult(new OperationStatus { Success = true, Message = "Plugin uninstalled." });
+                }
+
+                return Task.FromResult(new OperationStatus { Success = false, Message = "Plugin file not found (naming mismatch perhaps?)" });
+            }
+
+            return Task.FromResult(new OperationStatus { Success = false, Message = "Plugin not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uninstalling plugin");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
     public override Task<OperationStatus> RemoveGame(GameId request, ServerCallContext context)
     {
         try

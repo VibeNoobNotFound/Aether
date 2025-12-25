@@ -282,9 +282,19 @@ class AppState: ObservableObject {
                 for try await progress in response.messages {
                     // Log progress
                     if !progress.currentStatus.isEmpty {
-                        Logger.shared.log("Scan Status: \(progress.currentStatus)")
+                        await Logger.shared.log("Scan Status: \(progress.currentStatus)")
+
+                        // Check for backend permission errors
+                        if progress.currentStatus.contains("Access")
+                            && (progress.currentStatus.contains("denied")
+                                || progress.currentStatus.contains("Unauthorized"))
+                        {
+                            await MainActor.run {
+                                PermissionManager.shared.promptForPermissions()
+                            }
+                        }
                     } else {
-                        Logger.shared.log(
+                        await Logger.shared.log(
                             "Scan: \(progress.currentPlatform) - \(progress.currentGame) (\(Int(progress.progressPercentage))%)"
                         )
                     }
@@ -547,5 +557,48 @@ class AppState: ObservableObject {
             Logger.shared.log("Failed to fetch general news: \(error)", type: .error)
             return []
         }
+    }
+
+    // MARK: - Plugin Management
+
+    func installPlugin(fileURL: URL) async throws {
+        // Read file data
+        let content = try Data(contentsOf: fileURL)
+        let filename = fileURL.lastPathComponent
+
+        var request = Aether_PluginFile()
+        request.filename = filename
+        request.data = content
+
+        let response = try await grpcClient.client.installPlugin(request)
+
+        if !response.success {
+            throw NSError(
+                domain: "PluginError", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: response.message])
+        }
+
+        Logger.shared.log("Plugin installed: \(filename)")
+        // Allow some time for backend reload
+        try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
+        await fetchPlugins()
+    }
+
+    func uninstallPlugin(name: String) async throws {
+        var request = Aether_PluginName()
+        request.name = name
+
+        let response = try await grpcClient.client.uninstallPlugin(request)
+
+        if !response.success {
+            throw NSError(
+                domain: "PluginError", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: response.message])
+        }
+
+        Logger.shared.log("Plugin uninstalled: \(name)")
+        // Allow some time for backend reload
+        try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
+        await fetchPlugins()
     }
 }

@@ -493,6 +493,7 @@ Aether.MacOS/DerivedData/
 Aether.MacOS/**/*.xcuserdata
 Aether.MacOS/**/*.xcodeproj/xcuserdata/
 Aether.MacOS/**/*.xcodeproj/project.xcworkspace/xcuserdata/
+Aether.MacOS/Aether/HelperTools/
 
 # Swift Package Manager (Frontend)
 Aether.MacOS/.swiftpm/

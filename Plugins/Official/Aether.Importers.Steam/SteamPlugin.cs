@@ -394,8 +394,17 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
         if (OperatingSystem.IsMacOS())
         {
+            // UserProfile may be empty when running in a sandboxed context
+            // Use HOME environment variable as fallback
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            paths.Add(Path.Combine(home, "Library", "Application Support", "Steam"));
+            if (string.IsNullOrEmpty(home))
+            {
+                home = Environment.GetEnvironmentVariable("HOME") ?? "";
+            }
+            if (!string.IsNullOrEmpty(home))
+            {
+                paths.Add(Path.Combine(home, "Library", "Application Support", "Steam"));
+            }
         }
         else if (OperatingSystem.IsWindows())
         {
@@ -405,8 +414,15 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         else if (OperatingSystem.IsLinux())
         {
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            paths.Add(Path.Combine(home, ".local", "share", "Steam"));
-            paths.Add(Path.Combine(home, ".steam", "steam"));
+            if (string.IsNullOrEmpty(home))
+            {
+                home = Environment.GetEnvironmentVariable("HOME") ?? "";
+            }
+            if (!string.IsNullOrEmpty(home))
+            {
+                paths.Add(Path.Combine(home, ".local", "share", "Steam"));
+                paths.Add(Path.Combine(home, ".steam", "steam"));
+            }
         }
 
         return paths;

@@ -10,13 +10,80 @@
 		5D249FB52EEAA90B00FC2755 /* AetherIPC in Frameworks */ = {isa = PBXBuildFile; productRef = 5D249FB42EEAA90B00FC2755 /* AetherIPC */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		5DB705FF2EFC4FB500DED327 /* Copy Backend Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+			);
+			name = "Copy Backend Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5DB706172EFC531C00DED327 /* Copy Plugin Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = plugins;
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			name = "Copy Plugin Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		5D4BAE992EEA14430013C288 /* Aether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5DB706022EFC505700DED327 /* Exceptions for "Aether" folder in "Aether" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				HelperTools/Aether.Importers.AppStore.dll,
+				HelperTools/Aether.Importers.Custom.dll,
+				HelperTools/Aether.Importers.Epic.dll,
+				HelperTools/Aether.Importers.IGDB.dll,
+				HelperTools/Aether.Importers.Steam.dll,
+				HelperTools/AetherBackend,
+			);
+			target = 5D4BAE982EEA14430013C288 /* Aether */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				HelperTools/AetherBackend = (CodeSignOnCopy, );
+			};
+			buildPhase = 5DB705FF2EFC4FB500DED327 /* Copy Backend Files */;
+			membershipExceptions = (
+				HelperTools/AetherBackend,
+			);
+		};
+		5DB7061D2EFC53DE00DED327 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 5DB706172EFC531C00DED327 /* Copy Plugin Files */;
+			membershipExceptions = (
+				HelperTools/Aether.Importers.AppStore.dll,
+				HelperTools/Aether.Importers.Custom.dll,
+				HelperTools/Aether.Importers.Epic.dll,
+				HelperTools/Aether.Importers.IGDB.dll,
+				HelperTools/Aether.Importers.Steam.dll,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5D4BAE9B2EEA14430013C288 /* Aether */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5DB706022EFC505700DED327 /* Exceptions for "Aether" folder in "Aether" target */,
+				5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */,
+				5DB7061D2EFC53DE00DED327 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */,
+			);
 			path = Aether;
 			sourceTree = "<group>";
 		};
@@ -68,6 +135,8 @@
 				5D4BAE952EEA14430013C288 /* Sources */,
 				5D4BAE962EEA14430013C288 /* Frameworks */,
 				5D4BAE972EEA14430013C288 /* Resources */,
+				5DB705FF2EFC4FB500DED327 /* Copy Backend Files */,
+				5DB706172EFC531C00DED327 /* Copy Plugin Files */,
 			);
 			buildRules = (
 			);
@@ -273,19 +342,8 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -314,19 +372,8 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-				ENABLE_RESOURCE_ACCESS_USB = NO;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

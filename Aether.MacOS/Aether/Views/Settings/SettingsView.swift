@@ -1,7 +1,9 @@
 import SwiftUI
+internal import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @State private var isImportingPlugin = false
 
     var body: some View {
         ZStack {
@@ -95,11 +97,25 @@ struct SettingsView: View {
 
                     // Plugins Section
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("INSTALLED PLUGINS")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
+                        HStack {
+                            Text("INSTALLED PLUGINS")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+
+                            Spacer()
+
+                            Button {
+                                isImportingPlugin = true
+                            } label: {
+                                Label("Add Plugin", systemImage: "plus.circle")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.blue)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal)
 
                         LazyVGrid(
                             columns: [GridItem(.adaptive(minimum: 300), spacing: 16)], spacing: 16
@@ -109,6 +125,15 @@ struct SettingsView: View {
                                     PluginCard(plugin: plugin)
                                 }
                                 .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        Task {
+                                            try? await appState.uninstallPlugin(name: plugin.name)
+                                        }
+                                    } label: {
+                                        Label("Uninstall Plugin", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -152,6 +177,28 @@ struct SettingsView: View {
         }
         .task {
             await appState.fetchPlugins()
+        }
+        .fileImporter(
+            isPresented: $isImportingPlugin,
+            allowedContentTypes: [.item],  // Ideally .dll or generic data
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                guard url.startAccessingSecurityScopedResource() else { return }
+                defer { url.stopAccessingSecurityScopedResource() }
+
+                Task {
+                    do {
+                        try await appState.installPlugin(fileURL: url)
+                    } catch {
+                        print("Failed to install plugin: \(error)")
+                    }
+                }
+            case .failure(let error):
+                print("Import failed: \(error)")
+            }
         }
     }
 }

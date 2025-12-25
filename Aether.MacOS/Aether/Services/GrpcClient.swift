@@ -13,12 +13,12 @@ class GrpcClient {
     private var transport: HTTP2ClientTransport.Posix
 
     init() {
-        Logger.shared.log("Initializing gRPC Client for 127.0.0.1:50051")
+        Logger.shared.log("Initializing gRPC Client for 127.0.0.1:55551")
 
         // Setup Transport for Localhost TCP
         // Using try! is acceptable here as failure means the app is fundamentally broken
         let transport = try! HTTP2ClientTransport.Posix(
-            target: .ipv4(address: "127.0.0.1", port: 50051),
+            target: .ipv4(address: "127.0.0.1", port: 55551),
             transportSecurity: .plaintext
         )
 

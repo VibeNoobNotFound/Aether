@@ -247,12 +247,10 @@ struct FormFieldView: View {
                 HStack {
                     TextField(field.label, text: $value)
                     Button("Browse") {
-                        let panel = NSOpenPanel()
-                        panel.canChooseDirectories = true
-                        panel.canChooseFiles = false
-                        panel.allowsMultipleSelection = false
-                        if panel.runModal() == .OK {
-                            value = panel.url?.path ?? ""
+                        PermissionManager.shared.requestCustomFolderAccess { url in
+                            if let url = url {
+                                value = url.path
+                            }
                         }
                     }
                 }

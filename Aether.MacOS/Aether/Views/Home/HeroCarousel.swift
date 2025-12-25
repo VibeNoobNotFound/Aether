@@ -137,7 +137,7 @@ struct HeroCarousel: View {
                     gradientPlaceholder(width: width - 40)
                 }
             }
-            .frame(width: width - 40, height: 380)
+            .frame(width: max(0, width - 40), height: 380)
             .clipped()
 
             // Bottom Gradient for text readability
@@ -186,7 +186,7 @@ struct HeroCarousel: View {
                     }
                 }
             }
-            .frame(maxWidth: width - 100, alignment: .leading)
+            .frame(maxWidth: max(0, width - 100), alignment: .leading)
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }

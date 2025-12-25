@@ -44,6 +44,10 @@ service AetherOrchestrator {
   // NEWS
   rpc GetGameNews (GameId) returns (NewsList);
   rpc GetGeneralNews (Empty) returns (NewsList);
+
+  // PLUGIN MANAGEMENT
+  rpc InstallPlugin (PluginFile) returns (OperationStatus);
+  rpc UninstallPlugin (PluginName) returns (OperationStatus);
 }
 
 
@@ -261,4 +265,9 @@ message NewsItem {
 
 message NewsList {
   repeated NewsItem news = 1;
+}
+
+message PluginFile {
+  string filename = 1;
+  bytes data = 2;
 }

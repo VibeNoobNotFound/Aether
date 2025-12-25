@@ -18,109 +18,130 @@ public partial class AetherGrpcService
 
         foreach (var importer in importers)
         {
-            if (!await importer.CanImportAsync())
+            try
             {
-                _logger.LogInformation("Skipping {ImporterName} - not available", importer.Name);
-                continue;
-            }
-
-            _logger.LogInformation("Scanning {ImporterName}...", importer.Name);
-
-            var progress = new Progress<PluginSDK.Library.ScanProgress>(p =>
-            {
-                // This callback is for generic progress (scanning stages)
-                // Actual game discovery is handled in the loop below
-                var protoProgress = new ScanProgress
+                if (!await importer.CanImportAsync())
                 {
-                    CurrentPlatform = p.CurrentPlatform,
-                    GamesFound = p.GamesFound,
-                    GamesProcessed = p.GamesProcessed,
-                    CurrentGame = p.CurrentGame ?? "",
-                    ProgressPercentage = (float)p.ProgressPercentage
-                };
+                    _logger.LogInformation("Skipping {ImporterName} - not available", importer.Name);
+                    continue;
+                }
 
-                responseStream.WriteAsync(protoProgress).Wait();
-            });
+                _logger.LogInformation("Scanning {ImporterName}...", importer.Name);
 
-            await foreach (var importedGame in importer.ScanLibraryAsync(progress))
-            {
-                // Try to get metadata
-                PluginSDK.Library.GameMetadata? metadata = null;
-                string? metadataSourceProvider = null;  // Track which provider gave us metadata
-                string? metadataExternalId = null;      // Track the external ID from that provider
+                var progress = new Progress<PluginSDK.Library.ScanProgress>(p =>
+                {
+                    // This callback is for generic progress (scanning stages)
+                    // Actual game discovery is handled in the loop below
+                    var protoProgress = new ScanProgress
+                    {
+                        CurrentPlatform = p.CurrentPlatform,
+                        GamesFound = p.GamesFound,
+                        GamesProcessed = p.GamesProcessed,
+                        CurrentGame = p.CurrentGame ?? "",
+                        ProgressPercentage = (float)p.ProgressPercentage
+                    };
 
-                var metadataProvider = metadataProviders.FirstOrDefault(p => p.Name == importer.Name);
-                if (metadataProvider != null && !string.IsNullOrEmpty(importedGame.ExternalId))
+                    try { responseStream.WriteAsync(protoProgress).Wait(); } catch { /* Ignore write errors during scan */ }
+                });
+
+                await foreach (var importedGame in importer.ScanLibraryAsync(progress))
                 {
                     try
                     {
-                        metadata = await metadataProvider.GetByIdAsync(importedGame.ExternalId);
-                        if (metadata != null)
+                        // Try to get metadata
+                        PluginSDK.Library.GameMetadata? metadata = null;
+                        string? metadataSourceProvider = null;  // Track which provider gave us metadata
+                        string? metadataExternalId = null;      // Track the external ID from that provider
+
+                        var metadataProvider = metadataProviders.FirstOrDefault(p => p.Name == importer.Name);
+                        if (metadataProvider != null && !string.IsNullOrEmpty(importedGame.ExternalId))
                         {
-                            metadataSourceProvider = metadataProvider.Name;
-                            metadataExternalId = importedGame.ExternalId;
+                            try
+                            {
+                                metadata = await metadataProvider.GetByIdAsync(importedGame.ExternalId);
+                                if (metadata != null)
+                                {
+                                    metadataSourceProvider = metadataProvider.Name;
+                                    metadataExternalId = importedGame.ExternalId;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to fetch metadata for {GameTitle} from {Provider}", importedGame.Title, importer.Name);
+                            }
                         }
+
+                        // Fallback: If metadata is missing/incomplete, try searching other providers
+                        if (metadata == null)
+                        {
+                            foreach (var provider in metadataProviders)
+                            {
+                                if (provider == metadataProvider) continue; // Already tried by ID
+
+                                try
+                                {
+                                    var searchResult = await provider.SearchAsync(importedGame.Title);
+                                    if (searchResult != null)
+                                    {
+                                        metadata = searchResult;
+                                        metadataSourceProvider = provider.Name;
+                                        // ExternalId from search result (if metadata has it)
+                                        metadataExternalId = searchResult.ExternalId;
+                                        _logger.LogInformation("Found metadata for {GameTitle} via {Provider} search",
+                                            importedGame.Title, provider.Name);
+                                        break;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning("Fallback search failed on {Provider}: {Message}", provider.Name, ex.Message);
+                                }
+                            }
+                        }
+
+                        // Create entity and update database
+                        var entity = GameEntity.FromImportedGame(importedGame, metadata);
+
+                        // Set SteamId based on source: if Steam was the provider (either direct or fallback), use that ID
+                        if (metadataSourceProvider == "Steam" && !string.IsNullOrEmpty(metadataExternalId))
+                        {
+                            entity.SteamId = metadataExternalId;
+                            _logger.LogInformation("Set SteamId={SteamId} for {GameTitle} from {Provider}",
+                                metadataExternalId, entity.Title, metadataSourceProvider);
+                        }
+
+                        _database.UpsertGame(entity);
+
+                        // Stream the found game to the client immediately
+                        var foundGameProto = MapToProto(entity);
+                        await responseStream.WriteAsync(new ScanProgress
+                        {
+                            CurrentPlatform = importer.Name,
+                            GamesFound = totalGamesFound + 1,
+                            GamesProcessed = totalGamesFound + 1,
+                            CurrentGame = entity.Title,
+                            ProgressPercentage = (float)((double)totalGamesFound / 100 * 100),
+                            FoundGame = foundGameProto
+                        });
+
+                        totalGamesFound++;
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to fetch metadata for {GameTitle} from {Provider}", importedGame.Title, importer.Name);
+                        _logger.LogError(ex, "Error processing game {Title} from {Importer}", importedGame.Title, importer.Name);
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CRITICAL: Importer {ImporterName} failed to scan", importer.Name);
 
-                // Fallback: If metadata is missing/incomplete, try searching other providers
-                if (metadata == null)
-                {
-                    foreach (var provider in metadataProviders)
-                    {
-                        if (provider == metadataProvider) continue; // Already tried by ID
-
-                        try
-                        {
-                            var searchResult = await provider.SearchAsync(importedGame.Title);
-                            if (searchResult != null)
-                            {
-                                metadata = searchResult;
-                                metadataSourceProvider = provider.Name;
-                                // ExternalId from search result (if metadata has it)
-                                metadataExternalId = searchResult.ExternalId;
-                                _logger.LogInformation("Found metadata for {GameTitle} via {Provider} search",
-                                    importedGame.Title, provider.Name);
-                                break;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning("Fallback search failed on {Provider}: {Message}", provider.Name, ex.Message);
-                        }
-                    }
-                }
-
-                // Create entity and update database
-                var entity = GameEntity.FromImportedGame(importedGame, metadata);
-
-                // Set SteamId based on source: if Steam was the provider (either direct or fallback), use that ID
-                if (metadataSourceProvider == "Steam" && !string.IsNullOrEmpty(metadataExternalId))
-                {
-                    entity.SteamId = metadataExternalId;
-                    _logger.LogInformation("Set SteamId={SteamId} for {GameTitle} from {Provider}",
-                        metadataExternalId, entity.Title, metadataSourceProvider);
-                }
-
-                _database.UpsertGame(entity);
-
-                // Stream the found game to the client immediately
-                var foundGameProto = MapToProto(entity);
+                // Inform client of error but don't crash
                 await responseStream.WriteAsync(new ScanProgress
                 {
                     CurrentPlatform = importer.Name,
-                    GamesFound = totalGamesFound + 1,
-                    GamesProcessed = totalGamesFound + 1,
-                    CurrentGame = entity.Title,
-                    ProgressPercentage = (float)((double)totalGamesFound / 100 * 100),
-                    FoundGame = foundGameProto
+                    CurrentStatus = $"Error: {ex.Message}"
                 });
-
-                totalGamesFound++;
             }
         }
 
