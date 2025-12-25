@@ -36,6 +36,7 @@ Use the master build script to compile the backend and all official plugins:
 ```
 
 **Optional Arguments:**
+*   `--bundle`: **Required for App Distribution**. Publishes a self-contained single-file executable and bundles it into the macOS App Resources. Use this if you want the app to run standalone without an external backend process.
 *   `--version <v>`: Embeds a specific version number into `version.json` for the backend bundle.
 
 *   Compiles `Aether.PluginSDK`
