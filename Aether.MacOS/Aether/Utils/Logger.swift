@@ -19,7 +19,7 @@ final class Logger: @unchecked Sendable {
             ).first
         else { return }
         let logDir = appSupport.appendingPathComponent("Aether/logs")
-        let logFile = logDir.appendingPathComponent("frontend.log")
+        let logFile = logDir.appendingPathComponent("client.log")
 
         do {
             try FileManager.default.createDirectory(at: logDir, withIntermediateDirectories: true)

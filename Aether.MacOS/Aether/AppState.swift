@@ -240,7 +240,23 @@ class AppState: ObservableObject {
         }
     }
 
+    private func waitForBackend() async {
+        // Wait for process to start
+        var attempts = 0
+        while !BackendManager.shared.isRunning {
+            if attempts > 60 { break }  // 30s timeout
+            try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
+            attempts += 1
+        }
+
+        // Grace period for gRPC server (Kestrel) to bind port
+        if BackendManager.shared.isRunning {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1s
+        }
+    }
+
     func refreshLibrary() async {
+        await waitForBackend()
         Logger.shared.log("Refreshing library...")
 
         do {
@@ -550,6 +566,7 @@ class AppState: ObservableObject {
     }
 
     func fetchGeneralNews() async -> [NewsItem] {
+        await waitForBackend()
         do {
             let response = try await grpcClient.client.getGeneralNews(Aether_Empty())
             return response.news.map { NewsItem(from: $0) }

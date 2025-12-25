@@ -12,7 +12,7 @@ using System.IO;
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.Console()
-    .WriteTo.File("logs/backend.log", rollingInterval: RollingInterval.Day)
+    .WriteTo.File("logs/server.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 // Debug: Log important paths for troubleshooting sandbox issues

@@ -63,7 +63,7 @@ class BackendManager: ObservableObject {
             realHome = "/Users/\(NSUserName())"
         }
 
-        let logFile = dataDir.appendingPathComponent("backend_launch.log").path
+        let logFile = dataDir.appendingPathComponent("server_stdout.log").path
 
         // Construct Command (Single line with semicolons)
         let shellCommand =
