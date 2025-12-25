@@ -7,7 +7,7 @@
 *   **Command Line Tools**: `xcode-select --install`
 
 ### 💻 Backend Tools (Required for All)
-*   **.NET 10 SDK**: The backend targets the bleeding edge .NET 10 preview. Download it from the [Microsoft .NET site](https://dotnet.microsoft.com/download/dotnet/10.0).
+*   **.NET 10 SDK**: The backend targets the bleeding edge .NET 10. Download it from the [Microsoft .NET site](https://dotnet.microsoft.com/download/dotnet/10.0).
 *   **Protobuf Compiler (`protoc`)**:
     *   Install via Homebrew: `brew install protobuf`
     *   **Swift Plugins**: `brew install swift-protobuf grpc-swift` (Required for generating Swift gRPC code).
