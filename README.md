@@ -45,6 +45,7 @@ We believe in transparency. Dive into our detailed documentation:
 
 *   **[🏗 Architecture](docs/ARCHITECTURE.md)**: How we mix C# and Swift without losing our minds.
 *   **[🧩 Plugin Guide](docs/PLUGINS.md)**: Learn how to write your own Importers and Metadata Providers.
+*   **[🚀 Distribution](docs/DISTRIBUTION.md)**: How to share the app without paying Apple $99.
 *   **[🛣 Roadmap](docs/ROADMAP.md)**: Our plans for Windows, Linux, and Retro Emulation.
 *   **[🛠 Build Guide](docs/BUILD.md)**: How to compile Aether and its plugins from source.
 
