@@ -198,7 +198,7 @@ struct GameDetailView: View {
                 .foregroundStyle(.white.opacity(0.9))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                LazyHStack(spacing: 16) {
                     ForEach(mediaItems) { item in
                         MediaThumbnailView(item: item)
                             .onTapGesture {
@@ -331,9 +331,9 @@ struct HeroHeaderView: View {
                         CachedAsyncImage(url: logoURL) { image in
                             image.resizable()
                                 .aspectRatio(contentMode: .fit)
-                            
-                            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
-                            .minimumScaleFactor(0.8)
+
+                                .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                                .minimumScaleFactor(0.8)
                         } placeholder: {
                             Color.clear
                         }
@@ -372,8 +372,18 @@ struct MediaThumbnailView: View {
     var body: some View {
         ZStack {
             if item.type == .video {
-                // Autoplay Video!
-                AutoplayVideoPlayer(url: item.url)
+                // Video Placeholder (AVKit causes crashes in distributed builds)
+                ZStack {
+                    Color.black
+                    VStack(spacing: 8) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.white)
+                        Text("Video Preview")
+                            .font(.caption)
+                            .foregroundStyle(.gray)
+                    }
+                }
             } else {
                 CachedAsyncImage(url: item.url) { image in
                     image.resizable().aspectRatio(contentMode: .fill)

@@ -14,33 +14,18 @@ struct HTMLText: View {
     }
 
     private func parseHTML(_ html: String) -> AttributedString {
-        // First, try to convert HTML to AttributedString
-        guard let data = html.data(using: .utf8) else {
-            return AttributedString(html)
-        }
+        // NSAttributedString HTML parsing can cause crashes in Release/Sandboxed environments
+        // due to WebKit dependencies or main thread requirements.
+        // We use a safer, pure Swift regex approach for stability.
 
-        do {
-            let nsAttributedString = try NSAttributedString(
-                data: data,
-                options: [
-                    .documentType: NSAttributedString.DocumentType.html,
-                    .characterEncoding: String.Encoding.utf8.rawValue,
-                ],
-                documentAttributes: nil
-            )
+        let stripped = stripHTMLTags(html)
+        var result = AttributedString(stripped)
 
-            // Convert to AttributedString and apply our styling
-            var result = AttributedString(nsAttributedString)
+        // Apply consistent font
+        result.font = .body
+        result.foregroundColor = .secondary.opacity(0.8)
 
-            // Apply consistent font
-            result.font = .body
-            result.foregroundColor = .secondary
-
-            return result
-        } catch {
-            // Fallback: strip HTML tags manually
-            return AttributedString(stripHTMLTags(html))
-        }
+        return result
     }
 
     private func stripHTMLTags(_ html: String) -> String {

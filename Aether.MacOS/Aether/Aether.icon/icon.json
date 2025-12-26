@@ -1,0 +1,97 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.68906,0.71149,0.75713,1.00000",
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "blend-mode" : "normal",
+      "blur-material" : 0.72,
+      "layers" : [
+        {
+          "image-name" : "Picture3.svg",
+          "name" : "Picture3",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              163.87976682260796,
+              -17.252287740673637
+            ]
+          }
+        },
+        {
+          "image-name" : "Picture2.svg",
+          "name" : "Picture2",
+          "position" : {
+            "scale" : 0.38,
+            "translation-in-points" : [
+              -215.22995022299574,
+              -24.119777004243815
+            ]
+          }
+        },
+        {
+          "hidden" : false,
+          "image-name" : "Picture1.svg",
+          "name" : "Picture1",
+          "position" : {
+            "scale" : 0.56,
+            "translation-in-points" : [
+              -4.176203850741558,
+              -14.555430784293094
+            ]
+          }
+        },
+        {
+          "image-name" : "Picture4.png",
+          "name" : "Picture4",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -217,
+              -395.27566522356665
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 1
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.51
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
