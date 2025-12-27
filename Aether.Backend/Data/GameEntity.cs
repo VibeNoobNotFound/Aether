@@ -12,8 +12,11 @@ public class GameEntity
     public int Id { get; set; }
 
     public string Title { get; set; } = string.Empty;
-    public string Platform { get; set; } = string.Empty;
-    public string? ExternalId { get; set; }
+    public string Platform { get; set; } = "";
+    public string ExternalId { get; set; } = "";
+    public string LaunchArguments { get; set; } = "";
+
+    // Paths
     public string InstallPath { get; set; } = string.Empty;
     public string? ExecutablePath { get; set; }
 

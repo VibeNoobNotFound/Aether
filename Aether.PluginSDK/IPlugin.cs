@@ -8,6 +8,9 @@ public interface IPlugin
     string Author { get; }
     string Version { get; }
 
+    // Platform restrictions (e.g., "MacOS", "Windows", "Linux", or empty for all)
+    IEnumerable<string> SupportedPlatforms { get; }
+
     // Hook 1: Library
     Task OnLibraryScan(LibraryContext context);
 
@@ -55,5 +58,6 @@ public class Game
     public string Title { get; set; } = "";
     public string ExecutablePath { get; set; } = "";
     public string Platform { get; set; } = "";
+    public string LaunchArguments { get; set; } = "";
     // Add other fields as needed
 }

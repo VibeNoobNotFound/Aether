@@ -14,6 +14,8 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
+    public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
+
     private readonly HttpClient _httpClient = new HttpClient();
     private string? _clientId;
     private string? _clientSecret;

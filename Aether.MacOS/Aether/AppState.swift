@@ -168,12 +168,16 @@ struct PluginViewModel: Identifiable {
     let version: String
     let author: String
     let isImporter: Bool
+    let supportsManualAddition: Bool
+    let supportedPlatforms: [String]
 
     init(from proto: Aether_PluginInfo) {
         self.name = proto.name
         self.version = proto.version
         self.author = proto.author
         self.isImporter = proto.isImporter
+        self.supportsManualAddition = proto.supportsManualAddition
+        self.supportedPlatforms = Array(proto.supportedPlatforms)
     }
 }
 
@@ -484,33 +488,34 @@ class AppState: ObservableObject {
 
     func updateGameMetadata(
         gameId: String,
-        title: String,
-        developer: String,
-        publisher: String,
-        description: String,
-        coverImageUrl: String,
-        backgroundImageUrl: String,
-        logoImageUrl: String,
-        genres: [String],
-        videos: [String],
-        screenshots: [String],
-        steamId: String
+        title: String? = nil,
+        developer: String? = nil,
+        publisher: String? = nil,
+        description: String? = nil,
+        coverImageUrl: String? = nil,
+        backgroundImageUrl: String? = nil,
+        logoImageUrl: String? = nil,
+        genres: [String]? = nil,
+        videos: [String]? = nil,
+        screenshots: [String]? = nil,
+        steamId: String? = nil,
+        launchArguments: String? = nil
     ) async throws {
         var request = Aether_GameMetadataUpdate()
         request.gameID = gameId
-        request.title = title
-        request.developer = developer
-        request.publisher = publisher
-        request.description_p = description
-        request.coverImageURL = coverImageUrl
-        request.backgroundImageURL = backgroundImageUrl
-        request.logoImageURL = logoImageUrl
-        request.genres = genres
-        request.videos = videos
-        request.screenshots = screenshots
-        if !steamId.isEmpty {
-            request.steamID = steamId
-        }
+
+        if let t = title { request.title = t }
+        if let d = developer { request.developer = d }
+        if let p = publisher { request.publisher = p }
+        if let desc = description { request.description_p = desc }
+        if let c = coverImageUrl { request.coverImageURL = c }
+        if let b = backgroundImageUrl { request.backgroundImageURL = b }
+        if let l = logoImageUrl { request.logoImageURL = l }
+        if let g = genres { request.genres = g }
+        if let v = videos { request.videos = v }
+        if let s = screenshots { request.screenshots = s }
+        if let sid = steamId { request.steamID = sid }
+        if let la = launchArguments { request.launchArguments = la }
 
         let response = try await grpcClient.client.updateGameMetadata(request)
 

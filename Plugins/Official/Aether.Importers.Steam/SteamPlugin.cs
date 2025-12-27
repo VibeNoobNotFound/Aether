@@ -1,6 +1,7 @@
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
+using System.Diagnostics;
 namespace Aether.Importers.Steam;
 
 /// <summary>
@@ -11,6 +12,9 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
+
+    public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
+    public bool SupportsManualAddition => false;
 
     // ILibraryImporter Implementation
     public async Task<bool> CanImportAsync()
@@ -304,7 +308,36 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         if (string.IsNullOrEmpty(uri))
             return Task.FromResult(LaunchResult.Failed("Invalid Steam App ID"));
 
-        return Task.FromResult(LaunchHelper.LaunchUri(uri));
+        if (!string.IsNullOrEmpty(context.LaunchArguments))
+        {
+            // Steam protocol: steam://run/<id>//<args>
+            uri += $"//{context.LaunchArguments}";
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = uri,
+                UseShellExecute = true
+            };
+
+            if (OperatingSystem.IsMacOS())
+            {
+                startInfo = new ProcessStartInfo("open", uri) { UseShellExecute = true };
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                startInfo = new ProcessStartInfo("xdg-open", uri) { UseShellExecute = true };
+            }
+
+            Process.Start(startInfo);
+            return Task.FromResult(LaunchResult.Succeeded(processId: 0, method: "steam_protocol"));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(LaunchResult.Failed(ex.Message));
+        }
     }
 
     public string? GetLaunchUri(string externalId)

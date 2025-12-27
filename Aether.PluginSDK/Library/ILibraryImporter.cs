@@ -7,6 +7,11 @@ public interface ILibraryImporter : IPlugin
 {
     // Name is inherited from IPlugin
     string Version { get; }
+    
+    /// <summary>
+    /// Whether this importer supports manually adding games via UI (e.g. "Add Game" button)
+    /// </summary>
+    bool SupportsManualAddition { get; }
 
     
     /// <summary>
@@ -27,7 +32,8 @@ public record ImportedGame(
     string InstallPath,
     string? ExecutablePath,
     DateTime? LastPlayed = null,
-    long? SecondsPlayed = null
+    long? SecondsPlayed = null,
+    string? LaunchArguments = null
 );
 
 public record ScanProgress(

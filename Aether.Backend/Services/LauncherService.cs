@@ -37,7 +37,8 @@ public partial class AetherGrpcService
                 ExternalId = game.ExternalId ?? "",
                 InstallPath = game.InstallPath,
                 ExecutablePath = game.ExecutablePath,
-                RunAsAdmin = request.RunAsAdmin
+                RunAsAdmin = request.RunAsAdmin,
+                LaunchArguments = game.LaunchArguments
             };
 
             // Find appropriate launcher from plugins

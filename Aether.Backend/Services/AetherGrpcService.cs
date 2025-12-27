@@ -375,6 +375,7 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             if (request.Videos.Count > 0) game.Videos = request.Videos.ToList();
             if (request.HasReleaseDateUnix) game.ReleaseDate = DateTimeOffset.FromUnixTimeSeconds(request.ReleaseDateUnix).DateTime;
             if (request.HasSteamId) game.SteamId = request.SteamId;
+            if (request.HasLaunchArguments) game.LaunchArguments = request.LaunchArguments;
 
             game.UpdatedAt = DateTime.UtcNow;
             _database.UpsertGame(game);
