@@ -19,7 +19,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
 {
     public string Name => "Custom";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.4";
 
     // Custom importer works on all platforms
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>();

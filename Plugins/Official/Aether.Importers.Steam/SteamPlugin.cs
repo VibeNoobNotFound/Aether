@@ -11,7 +11,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.2";
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
     public bool SupportsManualAddition => false;
@@ -74,7 +74,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         {
             var term = System.Web.HttpUtility.UrlEncode(gameName);
             var url = $"https://store.steampowered.com/api/storesearch/?term={term}&l=english&cc=US";
-            var response = await _httpClient.GetStringAsync(url);
+            var response = await GetStringWithRetryAsync(url);
+            if (string.IsNullOrEmpty(response)) return null;
 
             using var doc = System.Text.Json.JsonDocument.Parse(response);
             if (doc.RootElement.TryGetProperty("items", out var items) && items.ValueKind == System.Text.Json.JsonValueKind.Array)
@@ -102,7 +103,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         try
         {
             var url = $"https://store.steampowered.com/api/appdetails?appids={gameId}";
-            var response = await _httpClient.GetStringAsync(url);
+            var response = await GetStringWithRetryAsync(url);
+            if (string.IsNullOrEmpty(response)) return GetFallbackMetadata(gameId);
 
             // Parse JSON using System.Text.Json
             using var doc = System.Text.Json.JsonDocument.Parse(response);
@@ -353,7 +355,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         try
         {
             var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid={gameId}&count=5&format=json";
-            var response = await _httpClient.GetStringAsync(url);
+            var response = await GetStringWithRetryAsync(url);
+            if (string.IsNullOrEmpty(response)) return new List<NewsItem>();
 
             using var doc = System.Text.Json.JsonDocument.Parse(response);
             if (doc.RootElement.TryGetProperty("appnews", out var appNews) &&
@@ -397,6 +400,45 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
     {
         // Fetch news for Steam Client (753) as "General" news
         return await GetNewsAsync("753");
+    }
+
+    private async Task<string?> GetStringWithRetryAsync(string url, int maxRetries = 3)
+    {
+        for (int i = 0; i <= maxRetries; i++)
+        {
+            try
+            {
+                return await _httpClient.GetStringAsync(url);
+            }
+            catch (HttpRequestException ex)
+            {
+                if (i == maxRetries)
+                {
+                    Console.WriteLine($"[Steam] Request failed after {maxRetries} retries: {url} - {ex.Message}");
+                    throw; // Rethrow final exception to be caught by caller
+                }
+
+                var delay = Math.Pow(2, i) * 1000; // 1s, 2s, 4s
+                Console.WriteLine($"[Steam] Request failed (attempt {i + 1}/{maxRetries}). Retrying in {delay}ms... ({ex.Message})");
+                await Task.Delay((int)delay);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Steam] Unexpected error: {ex.Message}");
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private GameMetadata GetFallbackMetadata(string gameId)
+    {
+        return new GameMetadata
+        {
+            CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_600x900_2x.jpg",
+            BackgroundImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_hero.jpg",
+            LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/logo.png"
+        };
     }
 
     private string ExtractImageFromHtml(string html)
