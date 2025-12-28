@@ -31,7 +31,6 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         // Add Library Importers
         foreach (var importer in _pluginManager.GetLibraryImporters())
         {
-            response.Plugins.Add(new PluginInfo
             var info = new PluginInfo
             {
                 Name = importer.Name,
