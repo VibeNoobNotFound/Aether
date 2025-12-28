@@ -114,6 +114,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
                 FileName = "/usr/libexec/PlistBuddy",
                 Arguments = $"-c \"Print :{key}\" \"{plistPath}\"",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true, // Suppress "Entry Does Not Exist" errors
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
