@@ -110,6 +110,9 @@ message Game {
   
   // Cross-Platform News: If set, use this ID to fetch Steam News regardless of platform
   optional string steam_id = 35;
+
+  // Launch Configuration
+  string launch_arguments = 36;
 }
 
 
@@ -209,6 +212,8 @@ message PluginInfo {
   bool is_enabled = 4;
   bool is_importer = 5;
   bool is_metadata_provider = 6;
+  bool supports_manual_addition = 7;
+  repeated string supported_platforms = 8;
 }
 
 // Metadata Management
@@ -226,6 +231,7 @@ message GameMetadataUpdate {
   repeated string videos = 11;
   optional string logo_image_url = 12;
   optional string steam_id = 13;  // For cross-platform news
+  optional string launch_arguments = 14; 
 }
 
 message MetadataSearchRequest {

@@ -88,12 +88,15 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 HStack {
-                    Button(action: {
-                        if let customPlugin = appState.plugins.first(where: { $0.name == "Custom" })
-                        {
-                            selectedPlugin = customPlugin
+                    Menu {
+                        ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
+                            Button(action: {
+                                selectedPlugin = plugin
+                            }) {
+                                Label(plugin.name, systemImage: "plus")
+                            }
                         }
-                    }) {
+                    } label: {
                         Label("Add Game", systemImage: "plus")
                     }
 

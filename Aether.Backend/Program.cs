@@ -11,8 +11,8 @@ using System.IO;
 // Initialize Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
-    .WriteTo.Console()
-    .WriteTo.File("logs/server.log", rollingInterval: RollingInterval.Day)
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/server.log", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 // Debug: Log important paths for troubleshooting sandbox issues

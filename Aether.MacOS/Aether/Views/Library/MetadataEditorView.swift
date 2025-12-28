@@ -18,9 +18,11 @@ struct MetadataEditorView: View {
     @State private var screenshots: [String] = []
     @State private var steamId: String = ""
     @State private var newVideoUrl: String = ""
+    @State private var launchArguments: String = ""
 
     @State private var isSaving = false
     @State private var errorMessage: String?
+
     @State private var showingSearchSheet = false
 
     var body: some View {
@@ -30,6 +32,7 @@ struct MetadataEditorView: View {
                     TextField("Title", text: $title)
                     TextField("Developer", text: $developer)
                     TextField("Publisher", text: $publisher)
+                    TextField("Launch Arguments", text: $launchArguments)
                     TextField("Genres (comma separated)", text: $genres)
                 }
 
@@ -171,6 +174,7 @@ struct MetadataEditorView: View {
             videos = game.videos.map { $0.absoluteString }
             screenshots = game.screenshots.map { $0.absoluteString }
             steamId = game.steamId ?? ""
+            launchArguments = game.launchArguments ?? ""
         }
     }
 
@@ -196,7 +200,8 @@ struct MetadataEditorView: View {
                     genres: genresList,
                     videos: videos,
                     screenshots: screenshots,
-                    steamId: steamId
+                    steamId: steamId,
+                    launchArguments: launchArguments
                 )
 
                 await MainActor.run {

@@ -64,6 +64,27 @@ public class PluginManager : IDisposable
             if (typeof(IPlugin).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
             {
                 var plugin = (IPlugin)Activator.CreateInstance(type)!;
+                
+                // Check Platform Support
+                if (plugin.SupportedPlatforms != null && plugin.SupportedPlatforms.Any())
+                {
+                    bool isSupported = false;
+                    foreach (var platform in plugin.SupportedPlatforms)
+                    {
+                        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Create(platform.ToUpper())))
+                        {
+                            isSupported = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!isSupported)
+                    {
+                        _logger.Information("Skipping plugin {Name}: Not supported on current platform", plugin.Name);
+                        continue;
+                    }
+                }
+
                 _loadedPlugins.Add(new LoadedPlugin(loadContext, plugin, null, null));
                 _logger.Information("Loaded Plugin: {Name}", plugin.Name);
             }

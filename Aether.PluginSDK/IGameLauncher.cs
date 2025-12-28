@@ -28,14 +28,14 @@ public interface IGameLauncher
 /// </summary>
 public class LaunchContext
 {
-    public string GameId { get; set; } = "";
-    public string Title { get; set; } = "";
-    public string Platform { get; set; } = "";
-    public string ExternalId { get; set; } = "";
-    public string InstallPath { get; set; } = "";
-    public string? ExecutablePath { get; set; }
-    public bool RunAsAdmin { get; set; }
-    public Dictionary<string, string> LaunchArguments { get; set; } = new();
+    public string GameId { get; init; } = "";
+    public string Title { get; init; } = "";
+    public string Platform { get; init; } = "";
+    public string ExternalId { get; init; } = "";
+    public string InstallPath { get; init; } = "";
+    public string ExecutablePath { get; init; } = "";
+    public bool RunAsAdmin { get; init; }
+    public string LaunchArguments { get; init; } = "";
 }
 
 /// <summary>

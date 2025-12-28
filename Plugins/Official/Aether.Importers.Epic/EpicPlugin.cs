@@ -15,6 +15,9 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.0";
 
+    public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
+    public bool SupportsManualAddition => false;
+
     public async Task<bool> CanImportAsync()
     {
         var manifestPaths = GetManifestPaths();

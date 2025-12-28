@@ -13,7 +13,11 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.1";
+
+    // App Store is only supported on MacOS
+    public IEnumerable<string> SupportedPlatforms => new[] { "MacOS" };
+    public bool SupportsManualAddition => false;
 
     public async Task<bool> CanImportAsync()
     {
@@ -110,6 +114,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
                 FileName = "/usr/libexec/PlistBuddy",
                 Arguments = $"-c \"Print :{key}\" \"{plistPath}\"",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true, // Suppress "Entry Does Not Exist" errors
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
@@ -141,14 +146,37 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
 
     public Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
-        // Use the install path which points to the .app bundle
         var appPath = context.InstallPath;
         if (string.IsNullOrEmpty(appPath) || !Directory.Exists(appPath))
         {
             return Task.FromResult(LaunchResult.Failed($"App bundle not found: {appPath}"));
         }
 
-        return Task.FromResult(LaunchHelper.LaunchMacOSApp(appPath));
+        try
+        {
+            var startInfo = new ProcessStartInfo("open");
+            startInfo.ArgumentList.Add("-a");
+            startInfo.ArgumentList.Add(appPath);
+
+            if (!string.IsNullOrEmpty(context.LaunchArguments))
+            {
+                startInfo.ArgumentList.Add("--args");
+                // Split arguments to pass them correctly to open --args
+                foreach (var arg in context.LaunchArguments.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    startInfo.ArgumentList.Add(arg);
+                }
+            }
+
+            startInfo.UseShellExecute = false;
+
+            var process = Process.Start(startInfo);
+            return Task.FromResult(LaunchResult.Succeeded(processId: process?.Id ?? 0, method: "macos_open"));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(LaunchResult.Failed(ex.Message));
+        }
     }
 
     public string? GetLaunchUri(string externalId)

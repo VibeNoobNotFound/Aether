@@ -76,6 +76,8 @@ struct GameGridCard: View {
         case "steam": return .blue
         case "epic games", "epic": return .purple
         case "app store": return .cyan
+        case "crossover": return .yellow
+        case "gog": return .red
         default: return .gray
         }
     }

@@ -19,7 +19,13 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
 {
     public string Name => "Custom";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.4";
+
+    // Custom importer works on all platforms
+    public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>();
+
+    // Shows up in "Add Game" menu
+    public bool SupportsManualAddition => true;
 
     // In-memory storage for custom games
     // In production, this would be persisted separately or use a service
@@ -51,7 +57,8 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                 "Custom",
                 customGame.SteamAppId ?? customGame.Title, // Use Steam ID if available
                 customGame.InstallPath,
-                customGame.ExecutablePath
+                customGame.ExecutablePath,
+                LaunchArguments: customGame.LaunchArguments
             );
         }
     }
@@ -108,14 +115,15 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
     /// <summary>
     /// Add a custom game to the library
     /// </summary>
-    public static void AddCustomGame(string title, string installPath, string? executablePath = null, string? steamAppId = null)
+    public static void AddCustomGame(string title, string installPath, string? executablePath = null, string? steamAppId = null, string? launchArguments = null)
     {
         _customGames.Add(new CustomGameEntry
         {
             Title = title,
             InstallPath = installPath,
             ExecutablePath = executablePath,
-            SteamAppId = steamAppId
+            SteamAppId = steamAppId,
+            LaunchArguments = launchArguments
         });
     }
 
@@ -167,6 +175,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                         { ""id"": ""title"", ""type"": ""Text"", ""label"": ""Game Title"", ""required"": true },
                         { ""id"": ""installPath"", ""type"": ""FolderPicker"", ""label"": ""Install Path"", ""required"": true },
                         { ""id"": ""executablePath"", ""type"": ""FilePicker"", ""label"": ""Executable Path"", ""required"": false },
+                        { ""id"": ""launchArguments"", ""type"": ""Text"", ""label"": ""Launch Arguments"", ""required"": false },
                         { ""id"": ""steamId"", ""type"": ""Text"", ""label"": ""Steam App ID (Optional)"", ""required"": false, ""placeholder"": ""For metadata fetch"" }
                     ],
                     ""actions"": [
@@ -203,6 +212,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                 data.TryGetValue("installPath", out var installPath);
                 data.TryGetValue("executablePath", out var executablePath);
                 data.TryGetValue("steamId", out var steamId);
+                data.TryGetValue("launchArguments", out var launchArguments);
 
                 if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(installPath))
                 {
@@ -215,7 +225,8 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                     Platform: "Custom",
                     ExternalId: steamId ?? title, // Use Steam ID if provided, else title
                     InstallPath: installPath,
-                    ExecutablePath: executablePath
+                    ExecutablePath: executablePath,
+                    LaunchArguments: launchArguments
                 );
 
                 // Optionally fetch metadata if Steam ID is provided
@@ -262,4 +273,5 @@ public class CustomGameEntry
     public string InstallPath { get; set; } = string.Empty;
     public string? ExecutablePath { get; set; }
     public string? SteamAppId { get; set; } // Optional: Link to Steam for metadata
+    public string? LaunchArguments { get; set; }
 }
