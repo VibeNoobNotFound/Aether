@@ -179,7 +179,7 @@ public partial class AetherGrpcService
             Title = entity.Title,
             Platform = entity.Platform,
             ExternalId = entity.ExternalId ?? "",
-            InstallPath = entity.InstallPath,
+            InstallPath = entity.InstallPath ?? "",
             ExecutablePath = entity.ExecutablePath ?? "",
 
             // Images
@@ -199,6 +199,9 @@ public partial class AetherGrpcService
             HasMultiplayer = entity.HasMultiplayer,
             HasSinglePlayer = entity.HasSinglePlayer,
             HasCloudSaves = entity.HasCloudSaves,
+
+            // Launch Args
+            LaunchArguments = entity.LaunchArguments ?? "",
 
             // User stats
             IsFavorite = entity.IsFavorite,

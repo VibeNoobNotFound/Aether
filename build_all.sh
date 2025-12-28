@@ -32,6 +32,7 @@ echo "📂 Plugins directory: $PLUGINS_OUT"
 
 # 4. Build and# Build Importers
 build_project "Plugins/Official/Aether.Importers.Steam/Aether.Importers.Steam.csproj"
+build_project "Plugins/Official/Aether.Importers.Gog/Aether.Importers.Gog.csproj"
 build_project "Plugins/Official/Aether.Importers.Epic/Aether.Importers.Epic.csproj"
 build_project "Plugins/Official/Aether.Importers.AppStore/Aether.Importers.AppStore.csproj"
 build_project "Plugins/Official/Aether.Importers.Custom/Aether.Importers.Custom.csproj"
@@ -64,6 +65,7 @@ copy_plugin() {
 }
 
 copy_plugin "Aether.Importers.Steam" "Aether.Importers.Steam"
+copy_plugin "Aether.Importers.Gog" "Aether.Importers.Gog"
 copy_plugin "Aether.Importers.Epic" "Aether.Importers.Epic"
 copy_plugin "Aether.Importers.AppStore" "Aether.Importers.AppStore"
 copy_plugin "Aether.Importers.Custom" "Aether.Importers.Custom"
