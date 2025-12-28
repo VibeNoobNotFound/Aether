@@ -42,10 +42,12 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				HelperTools/Aether.Importers.AppStore.dll,
+				HelperTools/Aether.Importers.Crossover.dll,
 				HelperTools/Aether.Importers.Custom.dll,
 				HelperTools/Aether.Importers.Epic.dll,
 				HelperTools/Aether.Importers.IGDB.dll,
 				HelperTools/Aether.Importers.Steam.dll,
+				HelperTools/Aether.Importers.Web.dll,
 				HelperTools/AetherBackend,
 			);
 			target = 5D4BAE982EEA14430013C288 /* Aether */;
@@ -68,10 +70,12 @@
 			buildPhase = 5DB706172EFC531C00DED327 /* Copy Plugin Files */;
 			membershipExceptions = (
 				HelperTools/Aether.Importers.AppStore.dll,
+				HelperTools/Aether.Importers.Crossover.dll,
 				HelperTools/Aether.Importers.Custom.dll,
 				HelperTools/Aether.Importers.Epic.dll,
 				HelperTools/Aether.Importers.IGDB.dll,
 				HelperTools/Aether.Importers.Steam.dll,
+				HelperTools/Aether.Importers.Web.dll,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */

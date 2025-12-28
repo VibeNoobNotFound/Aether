@@ -14,6 +14,7 @@ struct GameViewModel: Identifiable, Hashable {
     // Paths
     let installPath: String
     let executablePath: String
+    let launchArguments: String?
 
     // Images
     let coverImageURL: URL?
@@ -144,6 +145,7 @@ struct GameViewModel: Identifiable, Hashable {
         self.hasMultiplayer = proto.hasMultiplayer_p
         self.hasSinglePlayer = proto.hasSinglePlayer_p
         self.hasCloudSaves = proto.hasCloudSaves_p
+        self.launchArguments = proto.launchArguments.isEmpty ? nil : proto.launchArguments
 
         // System Requirements
         self.minimumRequirements =
@@ -255,7 +257,7 @@ class AppState: ObservableObject {
 
         // Grace period for gRPC server (Kestrel) to bind port
         if BackendManager.shared.isRunning {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1s
+            try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2s
         }
     }
 

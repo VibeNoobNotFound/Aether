@@ -52,7 +52,8 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
                     ""type"": ""Form"",
                     ""fields"": [
                         { ""id"": ""name"", ""type"": ""Text"", ""label"": ""Name"", ""required"": true },
-                        { ""id"": ""url"", ""type"": ""Text"", ""label"": ""URL or Steam ID"", ""required"": true, ""placeholder"": ""https://... or 440"" },
+                        { ""id"": ""url"", ""type"": ""Text"", ""label"": ""URL"", ""required"": true, ""placeholder"": ""https://..."" },
+                        { ""id"": ""steam_id"", ""type"": ""Text"", ""label"": ""Steam ID (Optional - for News/Data)"", ""required"": false, ""placeholder"": ""440"" },
                         { ""id"": ""imageUrl"", ""type"": ""Text"", ""label"": ""Image URL (Optional)"", ""required"": false }
                     ],
                     ""actions"": [
@@ -74,35 +75,32 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
 
                 data.TryGetValue("name", out var name);
                 data.TryGetValue("url", out var inputUrl);
+                data.TryGetValue("steam_id", out var steamId);
                 data.TryGetValue("imageUrl", out var imageUrl);
 
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(inputUrl))
                     return Task.FromResult(WidgetActionResult.Fail("Name and URL are required"));
 
-                // Convert Steam ID to Protocol URL
-                string finalUrl = inputUrl;
-                string platform = "Web";
-                string externalId = inputUrl;
+                // Logic:
+                // Url is always the executable path for launching.
+                // SteamId (if present) becomes the ExternalId for metadata/news lookups.
+                // Platform is "Web" so we handle launching via URL, but we need to ensure news fetching works.
 
-                if (int.TryParse(inputUrl, out _))
+                string finalUrl = inputUrl;
+                if (!inputUrl.Contains("://") && !inputUrl.StartsWith("http"))
                 {
-                    // It's a Steam ID
-                    finalUrl = $"steam://run/{inputUrl}";
-                    platform = "Steam"; // Launch via Steam
-                    externalId = inputUrl;
-                }
-                else if (!inputUrl.Contains("://"))
-                {
-                    // Default to https if no protocol
                     finalUrl = "https://" + inputUrl;
                 }
 
+                string externalId = !string.IsNullOrEmpty(steamId) ? steamId : finalUrl;
+
                 var game = new ImportedGame(
                     Title: name,
-                    Platform: platform,
+                    Platform: "Web",
                     ExternalId: externalId,
                     InstallPath: "",
-                    ExecutablePath: finalUrl
+                    ExecutablePath: finalUrl,
+                    LaunchArguments: steamId // Store SteamID in args as backup or for context
                 );
 
                 _webGames.Add(game);

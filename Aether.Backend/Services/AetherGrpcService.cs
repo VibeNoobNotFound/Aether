@@ -32,13 +32,25 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         foreach (var importer in _pluginManager.GetLibraryImporters())
         {
             response.Plugins.Add(new PluginInfo
+            var info = new PluginInfo
             {
                 Name = importer.Name,
                 Version = importer.Version,
-                Author = "Unknown",
+                Author = importer.Author,
                 IsImporter = true,
-                IsMetadataProvider = false
-            });
+                IsMetadataProvider = false,
+                SupportsManualAddition = importer.SupportsManualAddition
+            };
+
+            if (importer.SupportedPlatforms != null)
+            {
+                foreach (var p in importer.SupportedPlatforms)
+                {
+                    info.SupportedPlatforms.Add(p);
+                }
+            }
+
+            response.Plugins.Add(info);
         }
 
         // Add pure plugins if any (that aren't importers)
@@ -48,14 +60,25 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             var exists = response.Plugins.Any(p => p.Name == plugin.Name);
             if (!exists)
             {
-                response.Plugins.Add(new PluginInfo
+                var info = new PluginInfo
                 {
                     Name = plugin.Name,
-                    Version = "1.0.0",
-                    Author = "Unknown",
-                    IsImporter = false, // defaults
-                    IsMetadataProvider = false
-                });
+                    Version = plugin.Version,
+                    Author = plugin.Author,
+                    IsImporter = false,
+                    IsMetadataProvider = false,
+                    SupportsManualAddition = false // Pure plugins (like metadata providers) generally don't support this
+                };
+
+                if (plugin.SupportedPlatforms != null)
+                {
+                    foreach (var p in plugin.SupportedPlatforms)
+                    {
+                        info.SupportedPlatforms.Add(p);
+                    }
+                }
+
+                response.Plugins.Add(info);
             }
         }
 
