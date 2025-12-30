@@ -27,103 +27,154 @@ struct MetadataEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Basic Info") {
-                    TextField("Title", text: $title)
-                    TextField("Developer", text: $developer)
-                    TextField("Publisher", text: $publisher)
-                    TextField("Launch Arguments", text: $launchArguments)
-                    TextField("Genres (comma separated)", text: $genres)
+            ZStack {
+                // Background
+                Color.black.ignoresSafeArea()
+
+                GeometryReader { proxy in
+                    Circle()
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 400, height: 400)
+                        .blur(radius: 100)
+                        .position(x: 0, y: 0)
+
+                    Circle()
+                        .fill(Color.purple.opacity(0.1))
+                        .frame(width: 300, height: 300)
+                        .blur(radius: 80)
+                        .position(x: proxy.size.width, y: proxy.size.height)
                 }
+                .ignoresSafeArea()
 
-                Section("Images") {
-                    TextField("Cover Image URL", text: $coverImageUrl)
-
-                    if let url = URL(string: coverImageUrl), !coverImageUrl.isEmpty {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(height: 150)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Error Banner
+                        if let error = errorMessage {
+                            Text(error)
+                                .foregroundStyle(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.red.opacity(0.8))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                        } placeholder: {
-                            ProgressView()
                         }
-                    }
 
-                    TextField("Background Image URL", text: $backgroundImageUrl)
-                    TextField("Logo Image URL", text: $logoImageUrl)
-                }
-
-                Section("Cross-Platform News (Steam ID)") {
-                    TextField("Steam App ID", text: $steamId)
-                        .help("Enter a Steam App ID to fetch news for non-Steam games")
-                }
-
-                Section("Videos") {
-                    ForEach(videos, id: \.self) { video in
-                        HStack {
-                            Text(video)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer()
+                        // Auto-Fill Section
+                        GlassSection(title: "Auto-Fill") {
                             Button {
-                                if let index = videos.firstIndex(of: video) {
-                                    videos.remove(at: index)
-                                }
+                                showingSearchSheet = true
                             } label: {
-                                Image(systemName: "trash")
-                                    .foregroundStyle(.red)
+                                HStack {
+                                    Image(systemName: "magnifyingglass")
+                                    Text("Search Metadata Providers")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding()
+                                .background(Color.blue.opacity(0.2))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                             .buttonStyle(.plain)
-                        }
-                    }
 
-                    HStack {
-                        TextField("Add Video URL", text: $newVideoUrl)
-                        Button("Add") {
-                            if !newVideoUrl.isEmpty {
-                                videos.append(newVideoUrl)
-                                newVideoUrl = ""
+                            Text(
+                                "Search Steam, IGDB and other providers to automatically fill metadata"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 4)
+                        }
+
+                        // Basic Info
+                        GlassSection(title: "Basic Info") {
+                            GlassTextField(title: "Title", text: $title)
+                            GlassTextField(title: "Developer", text: $developer)
+                            GlassTextField(title: "Publisher", text: $publisher)
+                            GlassTextField(title: "Launch Arguments", text: $launchArguments)
+                            GlassTextField(title: "Genres (comma separated)", text: $genres)
+                        }
+
+                        // Images
+                        GlassSection(title: "Images") {
+                            GlassTextField(title: "Cover Image URL", text: $coverImageUrl)
+
+                            if let url = URL(string: coverImageUrl), !coverImageUrl.isEmpty {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(height: 150)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                } placeholder: {
+                                    ProgressView()
+                                        .frame(height: 150)
+                                }
                             }
+
+                            GlassTextField(title: "Background Image URL", text: $backgroundImageUrl)
+                            GlassTextField(title: "Logo Image URL", text: $logoImageUrl)
                         }
-                        .disabled(newVideoUrl.isEmpty)
-                    }
-                }
 
-                Section("Description") {
-                    TextEditor(text: $description)
-                        .frame(minHeight: 100)
-                }
-
-                // Search Providers - prominent button in form
-                Section {
-                    Button {
-                        showingSearchSheet = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                            Text("Search Metadata Providers")
-                            Spacer()
-                            Image(systemName: "chevron.right")
+                        // Cross-Platform News
+                        GlassSection(title: "Cross-Platform News (Steam ID)") {
+                            GlassTextField(title: "Steam App ID", text: $steamId)
+                            Text("Enter a Steam App ID to fetch news for non-Steam games")
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                    }
-                    .buttonStyle(.plain)
-                } header: {
-                    Text("Auto-Fill")
-                } footer: {
-                    Text("Search Steam, IGDB and other providers to automatically fill metadata")
-                }
 
-                if let error = errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundStyle(.red)
+                        // Videos
+                        GlassSection(title: "Videos") {
+                            ForEach(videos, id: \.self) { video in
+                                HStack {
+                                    Text(video)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Button {
+                                        if let index = videos.firstIndex(of: video) {
+                                            videos.remove(at: index)
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding()
+                                .background(.black.opacity(0.2))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+
+                            HStack {
+                                GlassTextField(title: "Add Video URL", text: $newVideoUrl)
+                                GlassButton("Add", systemImage: "plus") {
+                                    if !newVideoUrl.isEmpty {
+                                        videos.append(newVideoUrl)
+                                        newVideoUrl = ""
+                                    }
+                                }
+                                .opacity(newVideoUrl.isEmpty ? 0.5 : 1.0)
+                                .disabled(newVideoUrl.isEmpty)
+                            }
+                        }
+
+                        // Description
+                        GlassSection(title: "Description") {
+                            TextEditor(text: $description)
+                                .scrollContentBackground(.hidden)
+                                .background(Color.white.opacity(0.05))
+                                .frame(minHeight: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                )
+                        }
                     }
+                    .padding()
                 }
             }
-            .formStyle(.grouped)
             .navigationTitle("Edit Metadata")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -137,6 +188,7 @@ struct MetadataEditorView: View {
                     .disabled(isSaving)
                 }
             }
+            .toolbarBackground(.automatic, for: .windowToolbar)
             .sheet(isPresented: $showingSearchSheet) {
                 MetadataSearchSheet(
                     initialQuery: title,
@@ -160,7 +212,7 @@ struct MetadataEditorView: View {
                 )
             }
         }
-        .frame(minWidth: 500, minHeight: 600)
+        .frame(minWidth: 600, minHeight: 700)
         .onAppear {
             // Initialize with current values
             title = game.title
@@ -217,6 +269,67 @@ struct MetadataEditorView: View {
     }
 }
 
+// MARK: - Components
+// GlassSection and GlassTextField are now in Views/Components/GlassComponents.swift
+
+struct SearchResultCard: View {
+    let result: MetadataSearchResult
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                AsyncImage(url: URL(string: result.coverImageUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                }
+                .frame(width: 60, height: 90)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(result.title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(result.developer)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    if result.releaseYear > 0 {
+                        Text(String(result.releaseYear))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Text(result.provider)
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.2))
+                    .foregroundStyle(.blue)
+                    .clipShape(Capsule())
+            }
+            .padding(12)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(isHovered ? 0.3 : 0.1), lineWidth: 1)
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
 struct MetadataSearchSheet: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
@@ -231,81 +344,95 @@ struct MetadataSearchSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Search bar
-                HStack {
-                    TextField("Search for game...", text: $searchQuery)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { search() }
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-                    Picker("Provider", selection: $selectedProvider) {
-                        Text("All Providers").tag("")
-                        Text("Steam").tag("Steam")
-                        Text("IGDB").tag("IGDB")
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 150)
-
-                    Button("Search") { search() }
-                        .disabled(isSearching || searchQuery.isEmpty)
-                }
-                .padding()
-
-                Divider()
-
-                // Results
-                if isSearching {
-                    Spacer()
-                    ProgressView("Searching...")
-                    Spacer()
-                } else if results.isEmpty {
-                    Spacer()
-                    Text("No results")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                } else {
-                    List(results, id: \.externalId) { result in
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Search Bar
                         HStack(spacing: 12) {
-                            AsyncImage(url: URL(string: result.coverImageUrl)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                            } placeholder: {
-                                Rectangle()
-                                    .fill(.gray.opacity(0.3))
-                            }
-                            .frame(width: 60, height: 90)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            GlassTextField(title: "Search Term", text: $searchQuery)
+                                .onSubmit { search() }
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(result.title)
-                                    .font(.headline)
-                                Text(result.developer)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                if result.releaseYear > 0 {
-                                    Text(String(result.releaseYear))
+                            Picker("Provider", selection: $selectedProvider) {
+                                Text("All Providers").tag("")
+                                Text("Steam").tag("Steam")
+                                Text("IGDB").tag("IGDB")
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 120)
+
+                            Button {
+                                search()
+                            } label: {
+                                Image(systemName: "magnifyingglass")
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSearching || searchQuery.isEmpty)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Results
+                        if isSearching {
+                            ProgressView("Searching...")
+                                .padding(.top, 40)
+                        } else if results.isEmpty {
+                            Text("No results found")
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 40)
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(results, id: \.externalId) { result in
+                                    SearchResultCard(result: result) {
+                                        onSelect(result)
+                                        dismiss()
+                                    }
+                                    AsyncImage(url: URL(string: result.coverImageUrl)) {
+                                        image in
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                    } placeholder: {
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.3))
+                                    }
+                                    .frame(width: 60, height: 90)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(result.title)
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                        Text(result.developer)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        if result.releaseYear > 0 {
+                                            Text(String(result.releaseYear))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Text(result.provider)
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.blue.opacity(0.2))
+                                        .foregroundStyle(.blue)
+                                        .clipShape(Capsule())
                                 }
                             }
-
-                            Spacer()
-
-                            Text(result.provider)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.blue.opacity(0.2))
-                                .foregroundStyle(.blue)
-                                .clipShape(Capsule())
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            onSelect(result)
-                            dismiss()
                         }
                     }
+                    .padding()
                 }
             }
             .navigationTitle("Search Metadata")
@@ -314,8 +441,9 @@ struct MetadataSearchSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .toolbarBackground(.automatic, for: .windowToolbar)
         }
-        .frame(minWidth: 500, minHeight: 400)
+        .frame(minWidth: 600, minHeight: 500)
         .onAppear {
             searchQuery = initialQuery
             if !initialQuery.isEmpty {
