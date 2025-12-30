@@ -73,17 +73,60 @@ struct UpdateView: View {
                 // Release notes
                 if let info = updateManager.updateInfo, !info.releaseNotes.isEmpty {
                     ScrollView {
-                        Text(info.releaseNotes)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        // Attempt to render markdown via AttributedString first
+                        if let attributed = try? AttributedString(markdown: info.releaseNotes) {
+                            Text(attributed)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            // Fallback to basic text
+                            Text(info.releaseNotes)
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
-                    .frame(maxHeight: 200)
+                    .frame(maxHeight: 300)
                     .padding()
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+
+                // Auto-update toggle
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Check automatically")
+                            .font(.body)
+                            .foregroundStyle(.white)
+
+                        Text("Check for updates on launch")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Toggle(
+                        "",
+                        isOn: Binding(
+                            get: {
+                                UserDefaults.standard.object(forKey: "automaticallyCheckForUpdates")
+                                    as? Bool ?? true
+                            },
+                            set: {
+                                UserDefaults.standard.set(
+                                    $0, forKey: "automaticallyCheckForUpdates")
+                            }
+                        )
+                    )
+                    .toggleStyle(.switch)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Progress indicator
                 if updateManager.downloadStatus != .idle && updateManager.downloadStatus != .failed
@@ -151,9 +194,9 @@ struct UpdateView: View {
                 }
             }
             .padding(40)
-            .frame(width: 450)
+            .frame(width: 600)
         }
-        .frame(width: 450, height: 500)
+        .frame(width: 600, height: 700)
     }
 
     private var statusText: String {

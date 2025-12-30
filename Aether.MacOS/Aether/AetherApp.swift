@@ -34,9 +34,16 @@ struct AetherApp: App {
                         BackendManager.shared.start()
                     }
 
-                    // Check for updates after backend starts
+                    // Check for updates after backend starts (if enabled)
                     try? await Task.sleep(for: .seconds(3))
-                    await updateManager.checkForUpdates()
+
+                    // Default to true if not set
+                    let autoCheck =
+                        UserDefaults.standard.object(forKey: "automaticallyCheckForUpdates")
+                        as? Bool ?? true
+                    if autoCheck {
+                        await updateManager.checkForUpdates()
+                    }
                 }
         }
         .windowToolbarStyle(.unified(showsTitle: false))
