@@ -649,7 +649,11 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
 
     public override Task<OperationStatus> InstallAppUpdate(InstallUpdateRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("Installing update from: {Path}", request.ExtractPath);
-        return Task.FromResult(_updateService.InstallUpdate(request.ExtractPath));
+        _logger.LogWarning("InstallAppUpdate RPC is deprecated. Frontend should handle installation locally.");
+        return Task.FromResult(new OperationStatus 
+        { 
+            Success = false, 
+            Message = "This RPC is deprecated. Client must handle installation locally." 
+        });
     }
 }
