@@ -44,6 +44,15 @@ service AetherOrchestrator {
   // NEWS
   rpc GetGameNews (GameId) returns (NewsList);
   rpc GetGeneralNews (Empty) returns (NewsList);
+
+  // PLUGIN MANAGEMENT
+  rpc InstallPlugin (PluginFile) returns (OperationStatus);
+  rpc UninstallPlugin (PluginName) returns (OperationStatus);
+
+  // APP UPDATES
+  rpc CheckForUpdates (CheckUpdateRequest) returns (UpdateInfo);
+  rpc DownloadUpdate (DownloadUpdateRequest) returns (stream DownloadProgress);
+  rpc InstallAppUpdate (InstallUpdateRequest) returns (OperationStatus);
 }
 
 
@@ -106,6 +115,9 @@ message Game {
   
   // Cross-Platform News: If set, use this ID to fetch Steam News regardless of platform
   optional string steam_id = 35;
+
+  // Launch Configuration
+  string launch_arguments = 36;
 }
 
 
@@ -205,6 +217,8 @@ message PluginInfo {
   bool is_enabled = 4;
   bool is_importer = 5;
   bool is_metadata_provider = 6;
+  bool supports_manual_addition = 7;
+  repeated string supported_platforms = 8;
 }
 
 // Metadata Management
@@ -222,6 +236,7 @@ message GameMetadataUpdate {
   repeated string videos = 11;
   optional string logo_image_url = 12;
   optional string steam_id = 13;  // For cross-platform news
+  optional string launch_arguments = 14; 
 }
 
 message MetadataSearchRequest {
@@ -261,4 +276,51 @@ message NewsItem {
 
 message NewsList {
   repeated NewsItem news = 1;
+}
+
+message PluginFile {
+  string filename = 1;
+  bytes data = 2;
+}
+
+// -----------------------------------------------------------
+// APP UPDATE MESSAGES
+// -----------------------------------------------------------
+
+message CheckUpdateRequest {
+  string current_version = 1;
+  bool include_prerelease = 2;
+}
+
+message UpdateInfo {
+  bool update_available = 1;
+  string version = 2;
+  string release_notes = 3;
+  string download_url = 4;
+  string html_url = 5;
+  bool is_prerelease = 6;
+  int64 size_bytes = 7;
+}
+
+message DownloadUpdateRequest {
+  string version = 1;
+}
+
+message DownloadProgress {
+  enum Status {
+    DOWNLOADING = 0;
+    EXTRACTING = 1;
+    COMPLETE = 2;
+    FAILED = 3;
+  }
+  Status status = 1;
+  int32 percent = 2;
+  int64 bytes_downloaded = 3;
+  int64 total_bytes = 4;
+  string error_message = 5;
+  string extract_path = 6;
+}
+
+message InstallUpdateRequest {
+  string extract_path = 1;
 }

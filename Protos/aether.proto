@@ -48,6 +48,11 @@ service AetherOrchestrator {
   // PLUGIN MANAGEMENT
   rpc InstallPlugin (PluginFile) returns (OperationStatus);
   rpc UninstallPlugin (PluginName) returns (OperationStatus);
+
+  // APP UPDATES
+  rpc CheckForUpdates (CheckUpdateRequest) returns (UpdateInfo);
+  rpc DownloadUpdate (DownloadUpdateRequest) returns (stream DownloadProgress);
+  rpc InstallAppUpdate (InstallUpdateRequest) returns (OperationStatus);
 }
 
 
@@ -276,4 +281,46 @@ message NewsList {
 message PluginFile {
   string filename = 1;
   bytes data = 2;
+}
+
+// -----------------------------------------------------------
+// APP UPDATE MESSAGES
+// -----------------------------------------------------------
+
+message CheckUpdateRequest {
+  string current_version = 1;
+  bool include_prerelease = 2;
+}
+
+message UpdateInfo {
+  bool update_available = 1;
+  string version = 2;
+  string release_notes = 3;
+  string download_url = 4;
+  string html_url = 5;
+  bool is_prerelease = 6;
+  int64 size_bytes = 7;
+}
+
+message DownloadUpdateRequest {
+  string version = 1;
+}
+
+message DownloadProgress {
+  enum Status {
+    DOWNLOADING = 0;
+    EXTRACTING = 1;
+    COMPLETE = 2;
+    FAILED = 3;
+  }
+  Status status = 1;
+  int32 percent = 2;
+  int64 bytes_downloaded = 3;
+  int64 total_bytes = 4;
+  string error_message = 5;
+  string extract_path = 6;
+}
+
+message InstallUpdateRequest {
+  string extract_path = 1;
 }

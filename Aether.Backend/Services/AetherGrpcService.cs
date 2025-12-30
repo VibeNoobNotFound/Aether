@@ -13,15 +13,18 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
     private readonly ILogger<AetherGrpcService> _logger;
     private readonly PluginManager _pluginManager;
     private readonly LibraryDatabase _database;
+    private readonly UpdateService _updateService;
 
     public AetherGrpcService(
         ILogger<AetherGrpcService> logger,
         PluginManager pluginManager,
-        LibraryDatabase database)
+        LibraryDatabase database,
+        UpdateService updateService)
     {
         _logger = logger;
         _pluginManager = pluginManager;
         _database = database;
+        _updateService = updateService;
     }
 
     public override Task<PluginList> GetPlugins(Empty request, ServerCallContext context)
@@ -621,5 +624,36 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
             _logger.LogError(ex, "Error fetching general news");
         }
         return response;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // APP UPDATES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public override async Task<UpdateInfo> CheckForUpdates(CheckUpdateRequest request, ServerCallContext context)
+    {
+        _logger.LogInformation("Checking for updates. Current version: {Version}, Include prerelease: {Prerelease}",
+            request.CurrentVersion, request.IncludePrerelease);
+        return await _updateService.CheckForUpdates(request.CurrentVersion, request.IncludePrerelease);
+    }
+
+    public override async Task DownloadUpdate(DownloadUpdateRequest request, IServerStreamWriter<DownloadProgress> responseStream, ServerCallContext context)
+    {
+        _logger.LogInformation("Starting download for version: {Version}", request.Version);
+
+        await foreach (var progress in _updateService.DownloadUpdate(request.Version))
+        {
+            await responseStream.WriteAsync(progress);
+        }
+    }
+
+    public override Task<OperationStatus> InstallAppUpdate(InstallUpdateRequest request, ServerCallContext context)
+    {
+        _logger.LogWarning("InstallAppUpdate RPC is deprecated. Frontend should handle installation locally.");
+        return Task.FromResult(new OperationStatus 
+        { 
+            Success = false, 
+            Message = "This RPC is deprecated. Client must handle installation locally." 
+        });
     }
 }
