@@ -16,8 +16,8 @@ class UpdateManager: ObservableObject {
     @Published var downloadStatus: DownloadStatus = .idle
     @Published var errorMessage: String?
 
-    // Explicitly use os.Logger
-    private let logger = os.Logger(subsystem: "Aether", category: "UpdateManager")
+    // Use shared file logger
+    // private let logger = os.Logger(subsystem: "Aether", category: "UpdateManager")
 
     enum DownloadStatus: Equatable {
         case idle
@@ -69,16 +69,16 @@ class UpdateManager: ObservableObject {
                         sizeBytes: response.sizeBytes,
                         isPrerelease: response.isPrerelease
                     )
-                    logger.info("Update available: \(response.version)")
+                    Logger.shared.log("Update available: \(response.version)")
                 } else {
                     updateAvailable = false
                     updateInfo = nil
-                    logger.info("No updates available")
+                    Logger.shared.log("No updates available")
                 }
                 downloadStatus = .idle
             }
         } catch {
-            logger.error("Failed to check for updates: \(error)")
+            Logger.shared.log("Failed to check for updates: \(error)", type: .error)
             await MainActor.run { downloadStatus = .idle }
         }
     }
@@ -110,7 +110,7 @@ class UpdateManager: ObservableObject {
             await MainActor.run {
                 downloadStatus = .failed
                 errorMessage = error.localizedDescription
-                logger.error("Download error: \(error)")
+                Logger.shared.log("Download error: \(error)", type: .error)
             }
         }
     }
@@ -128,11 +128,11 @@ class UpdateManager: ObservableObject {
         case .complete:
             downloadStatus = .readyToInstall(extractPath: progress.extractPath)
             downloadProgress = 1.0
-            logger.info("Download complete, ready to install")
+            Logger.shared.log("Download complete, ready to install")
         case .failed:
             downloadStatus = .failed
             errorMessage = progress.errorMessage
-            logger.error("Download failed: \(progress.errorMessage)")
+            Logger.shared.log("Download failed: \(progress.errorMessage)", type: .error)
         case .UNRECOGNIZED:
             break
         }
@@ -141,7 +141,7 @@ class UpdateManager: ObservableObject {
     /// Install the update (will quit the app)
     /// Install the update (will quit the app)
     func installUpdate(extractPath: String) async {
-        logger.info("Requesting install update with path: \(extractPath)")
+        Logger.shared.log("Requesting install update with path: \(extractPath)")
         let client = GrpcClient.shared.client
 
         let request = Aether_InstallUpdateRequest.with {
@@ -149,32 +149,40 @@ class UpdateManager: ObservableObject {
         }
 
         do {
-            logger.info("Sending installAppUpdate RPC...")
+            Logger.shared.log("Sending installAppUpdate RPC...")
             let response = try await client.installAppUpdate(request)
-            logger.info(
+            Logger.shared.log(
                 "Received installAppUpdate response: Success=\(response.success), Message=\(response.message)"
             )
 
             if response.success {
-                logger.info("Update helper launched successfully. Preparing to quit...")
-                // Quit the app so the helper can replace files
+                Logger.shared.log(
+                    "Update helper launched successfully. Initiating force shutdown sequence...")
+
                 await MainActor.run {
-                    // Slight delay to allow UI to update if needed, but mostly just to get on main thread for termination
-                    logger.info("Scheduling app termination in 0.5s")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.logger.info("Calling NSApplication terminate")
-                        NSApplication.shared.terminate(nil)
+                    // 1. Dismiss UI immediately
+                    self.updateAvailable = false
+                    self.downloadStatus = .idle
+
+                    // 2. Stop the backend explicitly (crucial for update helper to proceed)
+                    Logger.shared.log("Stopping BackendManager...")
+                    BackendManager.shared.stop()
+
+                    // 3. Force exit after a bref delay to allow backend to receive signal
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        Logger.shared.log("Calling exit(0) to force quit...")
+                        exit(0)
                     }
                 }
             } else {
-                logger.error("Backend returned failure: \(response.message)")
+                Logger.shared.log("Backend returned failure: \(response.message)", type: .error)
                 await MainActor.run {
                     errorMessage = response.message
                     downloadStatus = .failed
                 }
             }
         } catch {
-            logger.error("Failed to install update: \(error)")
+            Logger.shared.log("Failed to install update: \(error)", type: .error)
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 downloadStatus = .failed

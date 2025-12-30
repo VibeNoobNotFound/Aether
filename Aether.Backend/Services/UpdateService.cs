@@ -362,17 +362,24 @@ public class UpdateService
         return Path.GetDirectoryName(exePath) ?? exePath;
     }
 
-    // Embedded Helper Scripts
     private const string MacOsHelperScript = """
 #!/bin/bash
 # macOS Update Helper Script
 # Arguments: PID NEW_PATH APP_PATH
 
+LOG_FILE="/tmp/aether_update.log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "--- Update Started: $(date) ---"
+
 PID=$1
 NEW_PATH=$2
 APP_PATH=$3
 
-echo "Aether Update Helper (macOS)"
+echo "Arguments:"
+echo "PID: $PID"
+echo "NEW_PATH: $NEW_PATH"
+echo "APP_PATH: $APP_PATH"
+
 echo "Waiting for process $PID to exit..."
 
 # Wait for the app to exit
@@ -380,27 +387,52 @@ while kill -0 "$PID" 2>/dev/null; do
     sleep 0.5
 done
 
-echo "Process exited. Updating application..."
+echo "Process exited. preparing update..."
 
-# Backup old app (optional safety measure)
+# Locate the .app inside the extraction directory
+# This handles cases where the zip contains a top-level folder
+FOUND_APP=$(find "$NEW_PATH" -maxdepth 2 -name "*.app" -type d | head -n 1)
+
+if [ -z "$FOUND_APP" ]; then
+echo "ERROR: Could not find any .app bundle in $NEW_PATH"
+    exit 1
+fi
+
+echo "Found new app at: $FOUND_APP"
+
+TARGET_DIR=$(dirname "$APP_PATH")
+
+# Backup old app
 if [ -d "$APP_PATH" ]; then
+echo "Backing up old app to ${APP_PATH}.old"
     rm -rf "${APP_PATH}.old"
     mv "$APP_PATH" "${APP_PATH}.old"
 fi
 
-# Copy new files
-cp -R "$NEW_PATH/"* "$(dirname "$APP_PATH")/"
+# Move new app to target location
+echo "Moving $FOUND_APP to $APP_PATH"
+# We act carefully: move the found app to the destination name
+mv "$FOUND_APP" "$APP_PATH"
+
+if [ $? -ne 0 ]; then
+echo "ERROR: Failed to move app. Attempting restore..."
+    mv "${APP_PATH}.old" "$APP_PATH"
+    exit 1
+fi
 
 # Clean up temp files
+echo "Cleaning up temp files..."
 rm -rf "$(dirname "$NEW_PATH")"
 
-# Clean up backup after successful copy
+# Clean up backup
+echo "Removing backup..."
 rm -rf "${APP_PATH}.old"
 
 echo "Update complete. Relaunching..."
 
 # Relaunch the app
-open -a "$APP_PATH"
+open -n "$APP_PATH"
+echo "--- Update Finished ---"
 """;
 
     private const string LinuxHelperScript = """
