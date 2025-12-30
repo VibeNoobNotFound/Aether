@@ -5,6 +5,8 @@ import GRPCNIOTransportHTTP2
 import os
 
 class GrpcClient {
+    static let shared = GrpcClient()
+
     // Exposed client for direct RPC calls
     // We forcedly unwrap connection in init for simplicity as we expect local server
     var client: Aether_AetherOrchestrator.Client<HTTP2ClientTransport.Posix>

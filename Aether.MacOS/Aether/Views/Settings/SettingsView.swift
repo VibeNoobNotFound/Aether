@@ -95,6 +95,93 @@ struct SettingsView: View {
                         .padding(.horizontal)
                     }
 
+                    // Updates Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("UPDATES")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+
+                        VStack(spacing: 0) {
+                            // Beta Updates Toggle
+                            HStack(spacing: 16) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.purple.opacity(0.2))
+                                        .frame(width: 40, height: 40)
+
+                                    Image(systemName: "testtube.2")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(.purple)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Include Beta Updates")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.white)
+
+                                    Text("Get pre-release versions")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Toggle(
+                                    "",
+                                    isOn: Binding(
+                                        get: {
+                                            UserDefaults.standard.bool(forKey: "includeBetaUpdates")
+                                        },
+                                        set: {
+                                            UserDefaults.standard.set(
+                                                $0, forKey: "includeBetaUpdates")
+                                        }
+                                    )
+                                )
+                                .toggleStyle(.switch)
+                            }
+                            .padding()
+
+                            Divider()
+                                .background(.white.opacity(0.1))
+
+                            // Check for Updates Button
+                            Button {
+                                Task { await UpdateManager.shared.checkForUpdates() }
+                            } label: {
+                                HStack(spacing: 16) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.blue.opacity(0.2))
+                                            .frame(width: 40, height: 40)
+
+                                        Image(systemName: "arrow.triangle.2.circlepath")
+                                            .font(.system(size: 20))
+                                            .foregroundStyle(.blue)
+                                    }
+
+                                    Text("Check for Updates")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.white)
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding()
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                    }
+
                     // Plugins Section
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {

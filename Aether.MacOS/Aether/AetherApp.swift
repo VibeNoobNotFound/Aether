@@ -12,6 +12,7 @@ import SwiftUI
 struct AetherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState()
+    @ObservedObject private var updateManager = UpdateManager.shared
 
     init() {
         // Check permissions state silently on launch
@@ -22,12 +23,20 @@ struct AetherApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .environmentObject(updateManager)
+                .sheet(isPresented: $updateManager.updateAvailable) {
+                    UpdateView()
+                }
                 .task {
                     // Start backend when UI appears
                     // Ensure we don't start multiple times if views re-appear
                     if !BackendManager.shared.isRunning {
                         BackendManager.shared.start()
                     }
+
+                    // Check for updates after backend starts
+                    try? await Task.sleep(for: .seconds(3))
+                    await updateManager.checkForUpdates()
                 }
         }
         .windowToolbarStyle(.unified(showsTitle: false))

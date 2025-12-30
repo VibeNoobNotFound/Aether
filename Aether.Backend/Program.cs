@@ -82,6 +82,10 @@ try
     });
     Log.Information("Plugin system initialized at {Path}", pluginPath);
 
+    // Initialize update service
+    builder.Services.AddSingleton<UpdateService>();
+    Log.Information("Update service initialized");
+
     var app = builder.Build();
 
     // Configure the HTTP request pipeline.
