@@ -188,28 +188,30 @@ public class UpdateService
             long downloaded = 0;
             int lastReportedPercent = -1;
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = File.Create(archivePath);
-
-            int bytesRead;
-            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
             {
-                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-                downloaded += bytesRead;
+                await using var stream = await response.Content.ReadAsStreamAsync();
+                await using var fileStream = File.Create(archivePath);
 
-                var percent = totalBytes > 0 ? (int)(downloaded * 100 / totalBytes) : 0;
-
-                // Report every 5% to avoid flooding
-                if (percent != lastReportedPercent && percent % 5 == 0)
+                int bytesRead;
+                while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
                 {
-                    lastReportedPercent = percent;
-                    await writer.WriteAsync(new Protos.DownloadProgress
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    downloaded += bytesRead;
+
+                    var percent = totalBytes > 0 ? (int)(downloaded * 100 / totalBytes) : 0;
+
+                    // Report every 5% to avoid flooding
+                    if (percent != lastReportedPercent && percent % 5 == 0)
                     {
-                        Status = Protos.DownloadProgress.Types.Status.Downloading,
-                        Percent = percent,
-                        BytesDownloaded = downloaded,
-                        TotalBytes = totalBytes
-                    });
+                        lastReportedPercent = percent;
+                        await writer.WriteAsync(new Protos.DownloadProgress
+                        {
+                            Status = Protos.DownloadProgress.Types.Status.Downloading,
+                            Percent = percent,
+                            BytesDownloaded = downloaded,
+                            TotalBytes = totalBytes
+                        });
+                    }
                 }
             }
 

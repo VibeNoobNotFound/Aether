@@ -139,7 +139,9 @@ class UpdateManager: ObservableObject {
     }
 
     /// Install the update (will quit the app)
+    /// Install the update (will quit the app)
     func installUpdate(extractPath: String) async {
+        logger.info("Requesting install update with path: \(extractPath)")
         let client = GrpcClient.shared.client
 
         let request = Aether_InstallUpdateRequest.with {
@@ -147,23 +149,32 @@ class UpdateManager: ObservableObject {
         }
 
         do {
+            logger.info("Sending installAppUpdate RPC...")
             let response = try await client.installAppUpdate(request)
+            logger.info(
+                "Received installAppUpdate response: Success=\(response.success), Message=\(response.message)"
+            )
+
             if response.success {
-                logger.info("Update helper launched, quitting app")
+                logger.info("Update helper launched successfully. Preparing to quit...")
                 // Quit the app so the helper can replace files
                 await MainActor.run {
                     // Slight delay to allow UI to update if needed, but mostly just to get on main thread for termination
+                    logger.info("Scheduling app termination in 0.5s")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.logger.info("Calling NSApplication terminate")
                         NSApplication.shared.terminate(nil)
                     }
                 }
             } else {
+                logger.error("Backend returned failure: \(response.message)")
                 await MainActor.run {
                     errorMessage = response.message
                     downloadStatus = .failed
                 }
             }
         } catch {
+            logger.error("Failed to install update: \(error)")
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 downloadStatus = .failed
