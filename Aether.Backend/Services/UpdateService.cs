@@ -92,12 +92,12 @@ public class UpdateService
         var platformtag = tag.Split(',').Where(x => x.Contains(GetPlatformTagSuffix())).FirstOrDefault();
         if (platformtag == null)
             return "0.0.0"; // Fallback to "0.0.0" if no platform suffix found
-        
+
         var withoutPrefix = platformtag.TrimStart('v');
         var dashIndex = withoutPrefix.LastIndexOf('-');
         if (dashIndex > 0)
             return withoutPrefix[..dashIndex];
-        
+
         return withoutPrefix;
     }
 
@@ -246,8 +246,10 @@ public class UpdateService
         try
         {
             var appPath = GetCurrentAppPath();
-            var helperPath = GetHelperScriptPath();
             var pid = Process.GetCurrentProcess().Id;
+
+            // Generate helper script in temp location
+            var helperPath = CreateHelperScript();
 
             _logger.LogInformation("Launching update helper: {Helper}", helperPath);
             _logger.LogInformation("Extract path: {Extract}, App path: {App}", extractPath, appPath);
@@ -283,6 +285,35 @@ public class UpdateService
                 Message = ex.Message
             };
         }
+    }
+
+    private string CreateHelperScript()
+    {
+        string content;
+        string extension;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            content = WindowsHelperScript;
+            extension = ".bat";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            content = MacOsHelperScript;
+            extension = ".sh";
+        }
+        else
+        {
+            content = LinuxHelperScript;
+            extension = ".sh";
+        }
+
+        var tempDir = Path.Combine(Path.GetTempPath(), "aether-update-helper");
+        Directory.CreateDirectory(tempDir);
+        var scriptPath = Path.Combine(tempDir, $"update_helper{extension}");
+
+        File.WriteAllText(scriptPath, content);
+        return scriptPath;
     }
 
     private ReleaseAsset? GetPlatformAsset(IReadOnlyList<ReleaseAsset> assets)
@@ -329,15 +360,112 @@ public class UpdateService
         return Path.GetDirectoryName(exePath) ?? exePath;
     }
 
-    private string GetHelperScriptPath()
-    {
-        var baseDir = AppContext.BaseDirectory;
+    // Embedded Helper Scripts
+    private const string MacOsHelperScript = """
+#!/bin/bash
+# macOS Update Helper Script
+# Arguments: PID NEW_PATH APP_PATH
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            return Path.Combine(baseDir, "Scripts", "update_helper_windows.bat");
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            return Path.Combine(baseDir, "Scripts", "update_helper_macos.sh");
-        else
-            return Path.Combine(baseDir, "Scripts", "update_helper_linux.sh");
-    }
+PID=$1
+NEW_PATH=$2
+APP_PATH=$3
+
+echo "Aether Update Helper (macOS)"
+echo "Waiting for process $PID to exit..."
+
+# Wait for the app to exit
+while kill -0 "$PID" 2>/dev/null; do
+    sleep 0.5
+done
+
+echo "Process exited. Updating application..."
+
+# Backup old app (optional safety measure)
+if [ -d "$APP_PATH" ]; then
+    rm -rf "${APP_PATH}.old"
+    mv "$APP_PATH" "${APP_PATH}.old"
+fi
+
+# Copy new files
+cp -R "$NEW_PATH/"* "$(dirname "$APP_PATH")/"
+
+# Clean up temp files
+rm -rf "$(dirname "$NEW_PATH")"
+
+# Clean up backup after successful copy
+rm -rf "${APP_PATH}.old"
+
+echo "Update complete. Relaunching..."
+
+# Relaunch the app
+open -a "$APP_PATH"
+""";
+
+    private const string LinuxHelperScript = """
+#!/bin/bash
+# Linux Update Helper Script
+# Arguments: PID NEW_PATH APP_PATH
+
+PID=$1
+NEW_PATH=$2
+APP_PATH=$3
+
+echo "Aether Update Helper (Linux)"
+echo "Waiting for process $PID to exit..."
+
+# Wait for the app to exit
+while kill -0 "$PID" 2>/dev/null; do
+    sleep 0.5
+done
+
+echo "Process exited. Updating application..."
+
+# Remove old files and copy new
+rm -rf "$APP_PATH"/*
+cp -R "$NEW_PATH/"* "$APP_PATH/"
+
+# Make main executable executable
+chmod +x "$APP_PATH/Aether" 2>/dev/null || chmod +x "$APP_PATH/AetherBackend" 2>/dev/null
+
+# Clean up temp files
+rm -rf "$(dirname "$NEW_PATH")"
+
+echo "Update complete. Relaunching..."
+
+# Relaunch
+"$APP_PATH/Aether" &
+""";
+
+    private const string WindowsHelperScript = """
+@echo off
+REM Windows Update Helper Script
+REM Arguments: PID NEW_PATH APP_PATH
+
+set PID=%1
+set NEW_PATH=%~2
+set APP_PATH=%~3
+
+echo Aether Update Helper (Windows)
+echo Waiting for process %PID% to exit...
+
+:wait
+tasklist /FI "PID eq %PID%" 2>NUL | find "%PID%" >NUL
+if not errorlevel 1 (
+    timeout /t 1 /nobreak >NUL
+    goto wait
+)
+
+echo Process exited. Updating application...
+
+REM Remove old files and copy new
+xcopy /E /Y /I "%NEW_PATH%\*" "%APP_PATH%\"
+
+REM Clean up temp folder
+rmdir /S /Q "%NEW_PATH%\.."
+
+echo Update complete. Relaunching...
+
+REM Relaunch
+start "" "%APP_PATH%\Aether.exe"
+""";
 }
