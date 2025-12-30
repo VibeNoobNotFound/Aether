@@ -10,7 +10,26 @@ struct LibraryView: View {
     ]
 
     var body: some View {
-        Group {
+        ZStack {
+            // Ambient Background
+            Color.black.ignoresSafeArea()
+
+            // Subtle gradient blobs (Matching SettingsView)
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 400, height: 400)
+                    .blur(radius: 100)
+                    .position(x: 0, y: 0)
+
+                Circle()
+                    .fill(Color.purple.opacity(0.1))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 80)
+                    .position(x: proxy.size.width, y: proxy.size.height)
+            }
+            .ignoresSafeArea()
+
             if appState.games.isEmpty {
                 VStack(spacing: 20) {
                     Image(systemName: "gamecontroller.fill")
@@ -84,7 +103,7 @@ struct LibraryView: View {
                 }
             }
         }
-        .background(Color.clear)
+        // Removed manual top padding
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 HStack {
@@ -123,5 +142,4 @@ struct LibraryView: View {
                 .frame(minWidth: 500, minHeight: 400)
         }
     }
-
 }

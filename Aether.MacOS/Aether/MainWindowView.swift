@@ -33,6 +33,9 @@ struct MainWindowView: View {
                     .navigationDestination(for: GameViewModel.self) { game in
                         GameDetailView(game: game)
                     }
+                    .toolbarBackground(
+                        appState.currentScreen == .settings ? .automatic : .hidden,
+                        for: .windowToolbar)
                 }
             } else {
                 // Sidebar Navigation Layout
@@ -60,6 +63,9 @@ struct MainWindowView: View {
                         .navigationDestination(for: GameViewModel.self) { game in
                             GameDetailView(game: game)
                         }
+                        .toolbarBackground(
+                            appState.currentScreen == .settings ? .automatic : .hidden,
+                            for: .windowToolbar)
                     }
                 }
             }

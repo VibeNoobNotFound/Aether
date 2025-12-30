@@ -78,9 +78,10 @@ struct HomeView: View {
                     }
                 }
                 .padding(.vertical)
+                .padding(16)  // Moved from outer ZStack
             }
         }
-        .padding(16)
+        // Removed .padding(16) from here
         .toolbar {
             ToolbarItem {
                 Button(action: {
