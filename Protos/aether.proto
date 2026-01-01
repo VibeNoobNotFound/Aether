@@ -8,6 +8,9 @@ package aether;
 // -----------------------------------------------------------
 
 service AetherOrchestrator {
+  // HEALTH CHECK
+  rpc Ping (Empty) returns (PingResponse);
+
   // LIBRARY: Getting games into the UI
   rpc ScanLibrary (ScanRequest) returns (stream ScanProgress);
   rpc GetLibrary (Empty) returns (stream Game);
@@ -62,6 +65,11 @@ service AetherOrchestrator {
 // -----------------------------------------------------------
 
 message Empty {}
+
+message PingResponse {
+  bool healthy = 1;
+  string version = 2;
+}
 
 message Game {
   string id = 1;

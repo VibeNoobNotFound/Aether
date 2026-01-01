@@ -247,17 +247,12 @@ class AppState: ObservableObject {
     }
 
     private func waitForBackend() async {
-        // Wait for process to start
+        // Wait for BackendManager to report connected state
         var attempts = 0
-        while !BackendManager.shared.isRunning {
-            if attempts > 60 { break }  // 30s timeout
+        while !BackendManager.shared.connectionState.isReady {
+            if attempts > 120 { break }  // 60s timeout (120 * 0.5s)
             try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
             attempts += 1
-        }
-
-        // Grace period for gRPC server (Kestrel) to bind port
-        if BackendManager.shared.isRunning {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2s
         }
     }
 

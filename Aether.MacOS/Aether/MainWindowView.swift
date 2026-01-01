@@ -35,6 +35,10 @@ struct MainWindowView: View {
                     }
                     .toolbarBackground(.automatic, for: .windowToolbar)
                 }
+                .overlay(alignment: .bottom) {
+                    ConnectionStatusBar()
+                        .padding(.bottom, 16)
+                }
             } else {
                 // Sidebar Navigation Layout
                 NavigationSplitView {
@@ -63,6 +67,10 @@ struct MainWindowView: View {
                         }
                         .toolbarBackground(.automatic, for: .windowToolbar)
                     }
+                }
+                .overlay(alignment: .bottom) {
+                    ConnectionStatusBar()
+                        .padding(.bottom, 16)
                 }
             }
         }

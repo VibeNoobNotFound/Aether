@@ -27,6 +27,16 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         _updateService = updateService;
     }
 
+    // HEALTH CHECK
+    public override Task<PingResponse> Ping(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(new PingResponse
+        {
+            Healthy = true,
+            Version = "1.0.0" // TODO: Read from assembly
+        });
+    }
+
     public override Task<PluginList> GetPlugins(Empty request, ServerCallContext context)
     {
         var response = new PluginList();
@@ -650,10 +660,10 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
     public override Task<OperationStatus> InstallAppUpdate(InstallUpdateRequest request, ServerCallContext context)
     {
         _logger.LogWarning("InstallAppUpdate RPC is deprecated. Frontend should handle installation locally.");
-        return Task.FromResult(new OperationStatus 
-        { 
-            Success = false, 
-            Message = "This RPC is deprecated. Client must handle installation locally." 
+        return Task.FromResult(new OperationStatus
+        {
+            Success = false,
+            Message = "This RPC is deprecated. Client must handle installation locally."
         });
     }
 }
