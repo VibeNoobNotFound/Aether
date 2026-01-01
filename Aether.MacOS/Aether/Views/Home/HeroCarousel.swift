@@ -165,8 +165,11 @@ struct HeroCarousel: View {
                                 .foregroundStyle(.white.opacity(0.9))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
+                                .background {
+                                    GlassCard(padding: 0, cornerRadius: 100) {
+                                        Color.clear
+                                    }
+                                }
                         }
 
                         if let score = game.metacriticScore {
@@ -180,8 +183,11 @@ struct HeroCarousel: View {
                             .fontWeight(.bold)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
+                            .background {
+                                GlassCard(padding: 0, cornerRadius: 100) {
+                                    Color.clear
+                                }
+                            }
                         }
                     }
                 }

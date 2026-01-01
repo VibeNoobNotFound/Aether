@@ -61,10 +61,19 @@ struct NewsFeedView: View {
     struct NewsCarouselCard: View {
         let item: NewsItem
         let cardWidth: CGFloat
+
+        @Environment(\.openURL) var openURL
         @State private var isHovered = false
 
         var body: some View {
-            Link(destination: item.url ?? URL(string: "https://store.steampowered.com")!) {
+            GlassCard(
+                padding: 0, cornerRadius: 16, isHoverable: true,
+                action: {
+                    if let url = item.url ?? URL(string: "https://store.steampowered.com") {
+                        openURL(url)
+                    }
+                }
+            ) {
                 ZStack(alignment: .bottomLeading) {
                     // Background Image
                     if let imageUrl = item.imageUrl {
@@ -108,8 +117,11 @@ struct NewsFeedView: View {
                             .fontWeight(.bold)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
+                            .background {
+                                GlassCard(padding: 0, cornerRadius: 100) {
+                                    Color.clear
+                                }
+                            }
 
                         // Title
                         Text(item.title)
@@ -140,20 +152,6 @@ struct NewsFeedView: View {
                     height: nil
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-            .buttonStyle(.plain)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(.white.opacity(isHovered ? 0.4 : 0.1), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))  // Clip after scale to maintain corner radius
-            .shadow(
-                color: .black.opacity(0.3), radius: isHovered ? 15 : 8, y: isHovered ? 8 : 4
-            )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.spring(response: 0.3), value: isHovered)
-            .onHover { hover in
-                isHovered = hover
             }
         }
     }

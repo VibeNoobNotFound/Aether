@@ -275,10 +275,9 @@ struct MetadataEditorView: View {
 struct SearchResultCard: View {
     let result: MetadataSearchResult
     let action: () -> Void
-    @State private var isHovered = false
 
     var body: some View {
-        Button(action: action) {
+        GlassCard(isHoverable: true, action: action) {
             HStack(spacing: 16) {
                 AsyncImage(url: URL(string: result.coverImageUrl)) { image in
                     image
@@ -311,22 +310,12 @@ struct SearchResultCard: View {
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.2))
+                    .background {
+                        GlassCard(padding: 0, cornerRadius: 100) { Color.clear }
+                    }
                     .foregroundStyle(.blue)
-                    .clipShape(Capsule())
             }
-            .padding(12)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(isHovered ? 0.3 : 0.1), lineWidth: 1)
-            )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
         }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
     }
 }
 
@@ -374,9 +363,9 @@ struct MetadataSearchSheet: View {
                             .buttonStyle(.plain)
                             .disabled(isSearching || searchQuery.isEmpty)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .background {
+                            GlassCard(padding: 0, cornerRadius: 12) { Color.clear }
+                        }
 
                         // Results
                         if isSearching {

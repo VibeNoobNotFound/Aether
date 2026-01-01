@@ -67,25 +67,11 @@ struct PluginSetupView: View {
                                     .padding(.vertical, 8)
 
                                 ForEach(layout.actions) { action in
-                                    Button {
+                                    GlassButton(action.label, tint: .blue) {
                                         Task { await performAction(action) }
-                                    } label: {
-                                        HStack {
-                                            Spacer()
-                                            if isSubmitting {
-                                                ProgressView().controlSize(.small)
-                                            } else {
-                                                Text(action.label)
-                                            }
-                                            Spacer()
-                                        }
-                                        .padding()
-                                        .background(Color.blue)
-                                        .foregroundStyle(.white)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
                                     }
-                                    .buttonStyle(.plain)
                                     .disabled(isSubmitting)
+                                    .opacity(isSubmitting ? 0.6 : 1.0)
                                 }
                             }
                         } else {

@@ -72,123 +72,116 @@ struct UpdateView: View {
 
                 // Release notes
                 if let info = updateManager.updateInfo, !info.releaseNotes.isEmpty {
-                    ScrollView {
-                        // Attempt to render markdown via AttributedString first
-                        if let attributed = try? AttributedString(markdown: info.releaseNotes) {
-                            Text(attributed)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        } else {
-                            // Fallback to basic text
-                            Text(info.releaseNotes)
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                    GlassCard(padding: 0) {
+                        ScrollView {
+                            // Attempt to render markdown via AttributedString first
+                            if let attributed = try? AttributedString(markdown: info.releaseNotes) {
+                                Text(attributed)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                // Fallback to basic text
+                                Text(info.releaseNotes)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
+                        .frame(maxHeight: 300)
+                        .padding()
                     }
-                    .frame(maxHeight: 300)
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 
                 // Auto-update toggle
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Check automatically")
-                            .font(.body)
-                            .foregroundStyle(.white)
+                GlassCard {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Check automatically")
+                                .font(.body)
+                                .foregroundStyle(.white)
 
-                        Text("Check for updates on launch")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                            Text("Check for updates on launch")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    Toggle(
-                        "",
-                        isOn: Binding(
-                            get: {
-                                UserDefaults.standard.object(forKey: "automaticallyCheckForUpdates")
-                                    as? Bool ?? true
-                            },
-                            set: {
-                                UserDefaults.standard.set(
-                                    $0, forKey: "automaticallyCheckForUpdates")
-                            }
+                        Toggle(
+                            "",
+                            isOn: Binding(
+                                get: {
+                                    UserDefaults.standard.object(
+                                        forKey: "automaticallyCheckForUpdates")
+                                        as? Bool ?? true
+                                },
+                                set: {
+                                    UserDefaults.standard.set(
+                                        $0, forKey: "automaticallyCheckForUpdates")
+                                }
+                            )
                         )
-                    )
-                    .toggleStyle(.switch)
+                        .toggleStyle(.switch)
+                    }
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 // Progress indicator
                 if updateManager.downloadStatus != .idle && updateManager.downloadStatus != .failed
                 {
-                    VStack(spacing: 12) {
-                        ProgressView(value: updateManager.downloadProgress)
-                            .progressViewStyle(.linear)
-                            .tint(.blue)
+                    GlassCard {
+                        VStack(spacing: 12) {
+                            ProgressView(value: updateManager.downloadProgress)
+                                .progressViewStyle(.linear)
+                                .tint(.blue)
 
-                        Text(statusText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            Text(statusText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
 
                 // Error message
                 if let error = updateManager.errorMessage {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                    GlassCard(tint: .red) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.red)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
-                    .padding()
-                    .background(.red.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
 
                 // Actions
                 HStack(spacing: 16) {
-                    Button("Later") {
+                    GlassButton("Later", tint: .gray) {
                         updateManager.dismissUpdate()
                         dismiss()
                     }
-                    .buttonStyle(GlassButtonStyle(color: .gray))
 
                     switch updateManager.downloadStatus {
                     case .idle:
-                        Button("Update Now") {
+                        GlassButton("Update Now", tint: .blue) {
                             Task { await updateManager.downloadUpdate() }
                         }
-                        .buttonStyle(GlassButtonStyle(color: .blue))
 
                     case .readyToInstall(let path):
-                        Button("Install & Restart") {
+                        GlassButton("Install & Restart", tint: .green) {
                             Task { await updateManager.installUpdate(extractPath: path) }
                         }
-                        .buttonStyle(GlassButtonStyle(color: .green))
 
                     case .failed:
-                        Button("Retry") {
+                        GlassButton("Retry", tint: .orange) {
                             Task { await updateManager.downloadUpdate() }
                         }
-                        .buttonStyle(GlassButtonStyle(color: .orange))
 
                     default:
-                        Button("Downloading...") {}
-                            .buttonStyle(GlassButtonStyle(color: .blue))
+                        GlassButton("Downloading...", tint: .blue) {}
                             .disabled(true)
                     }
                 }
@@ -214,29 +207,6 @@ struct UpdateView: View {
         case .idle:
             return ""
         }
-    }
-}
-
-/// Glass-style button for update UI
-struct GlassButtonStyle: ButtonStyle {
-    let color: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(color.opacity(configuration.isPressed ? 0.5 : 0.3))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(color.opacity(0.5), lineWidth: 1)
-                    )
-            )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 

@@ -13,7 +13,7 @@ struct ConnectionStatusBar: View {
                 EmptyView()
 
             case .connecting:
-                LiquidGlassContainer {
+                GlassCard(tint: .blue, isHoverable: false) {
                     HStack(spacing: 10) {
                         ProgressView()
                             .controlSize(.small)
@@ -32,7 +32,7 @@ struct ConnectionStatusBar: View {
 
             case .connected:
                 if showConnectedToast {
-                    LiquidGlassContainer(tint: .green) {
+                    GlassCard(tint: .green, isHoverable: false) {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
@@ -60,7 +60,7 @@ struct ConnectionStatusBar: View {
                 }
 
             case .error(let message):
-                LiquidGlassContainer(tint: .red, isError: true) {
+                GlassCard(tint: .red, isHoverable: true) {
                     HStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(.red)
@@ -101,76 +101,12 @@ struct ConnectionStatusBar: View {
         .animation(
             .spring(response: 0.5, dampingFraction: 0.75), value: backendManager.connectionState
         )
-        .onChange(of: backendManager.connectionState) { newValue in
+        .onChange(of: backendManager.connectionState) { _, newValue in
             if case .connected = newValue {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                     showConnectedToast = true
                 }
             }
         }
-    }
-}
-
-// MARK: - Liquid Glass Container (Apple's iOS 26+ Liquid Glass Style)
-
-/// A container that applies Apple's Liquid Glass design language
-/// Inspired by iOS 26/macOS Tahoe: translucent, dynamic, with subtle depth
-struct LiquidGlassContainer<Content: View>: View {
-    let tint: Color
-    let isError: Bool
-    @ViewBuilder let content: Content
-
-    @State private var isHovered = false
-
-    init(tint: Color = .blue, isError: Bool = false, @ViewBuilder content: () -> Content) {
-        self.tint = tint
-        self.isError = isError
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background {
-                ZStack {
-                    // Base glass layer - deep translucent
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial)
-
-                    // Tint overlay for color identity
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    tint.opacity(isError ? 0.25 : 0.15),
-                                    tint.opacity(isError ? 0.15 : 0.05),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    // Inner highlight (top edge glow - simulates light refraction)
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(isHovered ? 0.5 : 0.35),
-                                    .white.opacity(0.1),
-                                    .clear,
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 1
-                        )
-                }
-            }
-            .shadow(color: tint.opacity(0.3), radius: isHovered ? 20 : 12, x: 0, y: 4)
-            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 2)
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isHovered)
-            .onHover { isHovered = $0 }
     }
 }

@@ -73,9 +73,12 @@ struct GameDetailView: View {
                             // Tags
                             tagsSection
                         }
-                        .padding(32)
-                        .background(.ultraThinMaterial)  // The "Glass" Sheet
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .padding(20)  // Reduced padding as GlassCard adds its own
+                        .background {
+                            GlassCard(padding: 0, cornerRadius: 24) {
+                                Color.clear  // GlassCard expects content, but we are using it as background wrapper effectively
+                            }
+                        }
                         .padding(.horizontal, 20)
                         .offset(y: -50)  // Overlap the header slightly
                     }
