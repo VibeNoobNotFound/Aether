@@ -1,4 +1,5 @@
 import SwiftUI
+import Textual
 
 /// Update prompt view with liquid glass aesthetic
 struct UpdateView: View {
@@ -74,21 +75,11 @@ struct UpdateView: View {
                 if let info = updateManager.updateInfo, !info.releaseNotes.isEmpty {
                     GlassCard(padding: 0) {
                         ScrollView {
-                            // Attempt to render markdown via AttributedString first
-                            if let attributed = try? AttributedString(markdown: info.releaseNotes) {
-                                Text(attributed)
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            } else {
-                                // Fallback to basic text
-                                Text(info.releaseNotes)
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
+                            // Use Textual for robust Markdown rendering
+                            // StructuredText(markdown:) creates a document from a markdown string
+                            StructuredText(markdown: info.releaseNotes)
+                                .textSelection(.enabled)
+                                .padding(.horizontal, 4)
                         }
                         .frame(maxHeight: 300)
                         .padding()

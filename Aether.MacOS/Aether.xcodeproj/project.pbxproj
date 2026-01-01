@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5D249FB52EEAA90B00FC2755 /* AetherIPC in Frameworks */ = {isa = PBXBuildFile; productRef = 5D249FB42EEAA90B00FC2755 /* AetherIPC */; };
+		5D525F4F2F070D8F00C6F13C /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 5D525F4E2F070D8F00C6F13C /* Textual */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -100,6 +101,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5D525F4F2F070D8F00C6F13C /* Textual in Frameworks */,
 				5D249FB52EEAA90B00FC2755 /* AetherIPC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,6 +156,7 @@
 			name = Aether;
 			packageProductDependencies = (
 				5D249FB42EEAA90B00FC2755 /* AetherIPC */,
+				5D525F4E2F070D8F00C6F13C /* Textual */,
 			);
 			productName = Aether;
 			productReference = 5D4BAE992EEA14430013C288 /* Aether.app */;
@@ -185,6 +188,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				5D249FB32EEAA7CF00FC2755 /* XCLocalSwiftPackageReference "AetherIPC" */,
+				5D525F4D2F070D8F00C6F13C /* XCRemoteSwiftPackageReference "textual" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5D4BAE9A2EEA14430013C288 /* Products */;
@@ -358,7 +362,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.VibeNoobNotFound.Aether;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -390,7 +394,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.VibeNoobNotFound.Aether;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -433,10 +437,26 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		5D525F4D2F070D8F00C6F13C /* XCRemoteSwiftPackageReference "textual" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/textual";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		5D249FB42EEAA90B00FC2755 /* AetherIPC */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AetherIPC;
+		};
+		5D525F4E2F070D8F00C6F13C /* Textual */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5D525F4D2F070D8F00C6F13C /* XCRemoteSwiftPackageReference "textual" */;
+			productName = Textual;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -139,8 +139,6 @@ class UpdateManager: ObservableObject {
     }
 
     /// Install the update (will quit the app)
-    /// Install the update (will quit the app)
-    /// Install the update (will quit the app)
     func installUpdate(extractPath: String) async {
         Logger.shared.log("Starting local update installation...")
         Logger.shared.log("Extract path: \(extractPath)")
