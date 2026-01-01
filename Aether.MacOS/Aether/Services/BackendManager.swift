@@ -1,5 +1,19 @@
+import AetherIPC
 import Combine
 import Foundation
+
+/// Connection state for UI display
+enum ConnectionState: Equatable {
+    case disconnected
+    case connecting
+    case connected
+    case error(String)
+
+    var isReady: Bool {
+        if case .connected = self { return true }
+        return false
+    }
+}
 
 /// Manages the lifecycle of the .NET backend process
 class BackendManager: ObservableObject {
@@ -19,26 +33,132 @@ class BackendManager: ObservableObject {
 
     private var process: Process?
     @Published var isRunning = false
+    @Published var connectionState: ConnectionState = .disconnected
     @Published var statusMessage = ""
+
+    private var healthCheckTask: Task<Void, Never>?
+    private let grpcClient = GrpcClient()
 
     private init() {}
 
-    /// Start the backend process
+    /// Start the backend process and begin health probing
     func start() {
         if useExternalBackend {
             print("⚙️ Dev mode: Using external backend")
             statusMessage = "Dev mode: External backend"
             isRunning = true
+            startHealthProbing()
             return
         }
 
         guard process == nil else { return }
+
+        // Kill any stale backend process from previous crash
+        killStaleBackend()
+
+        // Update connection state
+        connectionState = .connecting
 
         if launchAsAdmin {
             startAsAdmin()
         } else {
             startAsUser()
         }
+
+        // Start health probing after launching
+        startHealthProbing()
+    }
+
+    /// Kill any orphaned AetherBackend process that may be holding the port
+    private func killStaleBackend() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        task.arguments = ["-f", "AetherBackend"]
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+            if task.terminationStatus == 0 {
+                print("🧹 Killed stale AetherBackend process")
+                // Brief pause to let port be released
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+        } catch {
+            // pkill returns 1 if no process matched, which is fine
+            print("ℹ️ No stale backend process found")
+        }
+    }
+
+    // MARK: - Health Probing with Exponential Backoff
+
+    private func startHealthProbing() {
+        healthCheckTask?.cancel()
+
+        healthCheckTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+
+            var delay: UInt64 = 100_000_000  // Start at 100ms
+            let maxDelay: UInt64 = 2_000_000_000  // Cap at 2s
+            var attempts = 0
+            let maxAttempts = 60  // 30s total timeout approx
+
+            while !Task.isCancelled && attempts < maxAttempts {
+                do {
+                    // Try to ping backend
+                    let response = try await self.grpcClient.client.ping(Aether_Empty())
+
+                    if response.healthy {
+                        self.connectionState = .connected
+                        print("✅ Backend health check passed")
+
+                        // Continue monitoring in background
+                        await self.monitorConnection()
+                        return
+                    }
+                } catch {
+                    // Still connecting...
+                    attempts += 1
+                    print("⏳ Health probe attempt \(attempts): \(error.localizedDescription)")
+                }
+
+                // Exponential backoff with jitter
+                let jitter = UInt64.random(in: 0..<(delay / 5))
+                try? await Task.sleep(nanoseconds: delay + jitter)
+                delay = min(delay * 2, maxDelay)
+            }
+
+            // Failed to connect after timeout
+            if !Task.isCancelled {
+                self.connectionState = .error("Failed to connect to backend")
+            }
+        }
+    }
+
+    /// Continuous monitoring after initial connection
+    private func monitorConnection() async {
+        while !Task.isCancelled && isRunning {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5s interval
+
+            do {
+                let response = try await grpcClient.client.ping(Aether_Empty())
+                if !response.healthy {
+                    await MainActor.run {
+                        connectionState = .error("Backend reported unhealthy")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    connectionState = .error("Connection lost")
+                }
+                break
+            }
+        }
+    }
+
+    /// Retry connection after error
+    func retryConnection() {
+        connectionState = .connecting
+        startHealthProbing()
     }
 
     // MARK: - Admin Launch (Root)
@@ -84,6 +204,7 @@ class BackendManager: ObservableObject {
             if let error = error {
                 statusMessage = "Failed to launch (Admin): \(error)"
                 print("❌ Admin Launch Error: \(error)")
+                connectionState = .error("Admin launch failed")
                 return
             }
 
@@ -103,6 +224,7 @@ class BackendManager: ObservableObject {
     private func startAsUser() {
         guard let bundleExecutableURL = Bundle.main.executableURL else {
             statusMessage = "Failed to locate bundle executable"
+            connectionState = .error("Bundle not found")
             return
         }
         let macOSDir = bundleExecutableURL.deletingLastPathComponent()
@@ -110,6 +232,7 @@ class BackendManager: ObservableObject {
 
         guard FileManager.default.fileExists(atPath: backendURL.path) else {
             statusMessage = "Backend not found in bundle"
+            connectionState = .error("Backend executable missing")
             return
         }
 
@@ -144,6 +267,7 @@ class BackendManager: ObservableObject {
         backendProcess.terminationHandler = { [weak self] process in
             DispatchQueue.main.async {
                 self?.isRunning = false
+                self?.connectionState = .error("Backend stopped unexpectedly")
                 self?.statusMessage = "Backend stopped (exit: \(process.terminationStatus))"
                 print("🔴 Backend terminated with status: \(process.terminationStatus)")
             }
@@ -163,6 +287,7 @@ class BackendManager: ObservableObject {
             }
         } catch {
             statusMessage = "Failed to launch: \(error.localizedDescription)"
+            connectionState = .error("Launch failed: \(error.localizedDescription)")
             print("❌ \(statusMessage)")
         }
     }
@@ -184,6 +309,8 @@ class BackendManager: ObservableObject {
 
     /// Stop the backend process
     func stop() {
+        healthCheckTask?.cancel()
+
         guard !useExternalBackend else { return }
 
         // Kill Root Process
@@ -201,6 +328,7 @@ class BackendManager: ObservableObject {
 
         self.process = nil
         isRunning = false
+        connectionState = .disconnected
         statusMessage = "Backend stopped"
     }
 
