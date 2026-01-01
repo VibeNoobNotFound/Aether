@@ -53,6 +53,9 @@ class BackendManager: ObservableObject {
 
         guard process == nil else { return }
 
+        // Kill any stale backend process from previous crash
+        killStaleBackend()
+
         // Update connection state
         connectionState = .connecting
 
@@ -64,6 +67,26 @@ class BackendManager: ObservableObject {
 
         // Start health probing after launching
         startHealthProbing()
+    }
+
+    /// Kill any orphaned AetherBackend process that may be holding the port
+    private func killStaleBackend() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        task.arguments = ["-f", "AetherBackend"]
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+            if task.terminationStatus == 0 {
+                print("🧹 Killed stale AetherBackend process")
+                // Brief pause to let port be released
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+        } catch {
+            // pkill returns 1 if no process matched, which is fine
+            print("ℹ️ No stale backend process found")
+        }
     }
 
     // MARK: - Health Probing with Exponential Backoff
