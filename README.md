@@ -54,7 +54,7 @@ We believe in transparency. Dive into our detailed documentation:
 ## 🚀 Quick Start
 
 ### For Users
-1.  Download the latest release (Coming Soon).
+1.  Download the latest release.
 2.  Drag to Applications.
 3.  Launch Aether.
     > **Note**: Aether asks for **Administrator privileges** by default to scan your system without restriction (bypassing macOS Sandbox/TCC issues). You can configure this behavior in the source code if building yourself.
