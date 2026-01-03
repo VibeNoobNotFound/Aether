@@ -42,14 +42,6 @@
 		5DB706022EFC505700DED327 /* Exceptions for "Aether" folder in "Aether" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				HelperTools/Aether.Importers.AppStore.dll,
-				HelperTools/Aether.Importers.Crossover.dll,
-				HelperTools/Aether.Importers.Custom.dll,
-				HelperTools/Aether.Importers.Epic.dll,
-				HelperTools/Aether.Importers.Gog.dll,
-				HelperTools/Aether.Importers.IGDB.dll,
-				HelperTools/Aether.Importers.Steam.dll,
-				HelperTools/Aether.Importers.Web.dll,
 				HelperTools/AetherBackend,
 			);
 			target = 5D4BAE982EEA14430013C288 /* Aether */;
@@ -57,17 +49,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				HelperTools/AetherBackend = (CodeSignOnCopy, );
-			};
-			buildPhase = 5DB705FF2EFC4FB500DED327 /* Copy Backend Files */;
-			membershipExceptions = (
-				HelperTools/AetherBackend,
-			);
-		};
-		5DB7061D2EFC53DE00DED327 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */ = {
+		5D6E5E4A2F09AF7A00A11497 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 5DB706172EFC531C00DED327 /* Copy Plugin Files */;
 			membershipExceptions = (
@@ -79,6 +61,25 @@
 				HelperTools/Aether.Importers.IGDB.dll,
 				HelperTools/Aether.Importers.Steam.dll,
 				HelperTools/Aether.Importers.Web.dll,
+				HelperTools/Google.Protobuf.dll,
+				HelperTools/IGDB.dll,
+				HelperTools/Newtonsoft.Json.dll,
+				"HelperTools/protobuf-net.Core.dll",
+				"HelperTools/protobuf-net.dll",
+				HelperTools/RestEase.dll,
+				HelperTools/SteamKit2.dll,
+				HelperTools/System.IO.Hashing.dll,
+				HelperTools/ZstdSharp.dll,
+			);
+		};
+		5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				HelperTools/AetherBackend = (CodeSignOnCopy, );
+			};
+			buildPhase = 5DB705FF2EFC4FB500DED327 /* Copy Backend Files */;
+			membershipExceptions = (
+				HelperTools/AetherBackend,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -89,7 +90,7 @@
 			exceptions = (
 				5DB706022EFC505700DED327 /* Exceptions for "Aether" folder in "Aether" target */,
 				5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */,
-				5DB7061D2EFC53DE00DED327 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */,
+				5D6E5E4A2F09AF7A00A11497 /* Exceptions for "Aether" folder in "Copy Plugin Files" phase from "Aether" target */,
 			);
 			path = Aether;
 			sourceTree = "<group>";

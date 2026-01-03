@@ -53,15 +53,22 @@ copy_plugin() {
     
     # Check if build output exists
     # Path logic: Plugins/Official/[Name]/bin/Debug/net10.0/[Name].dll
-    local src_dll="Plugins/Official/$src_project/bin/Debug/net10.0/$dll_name.dll"
+    # Match all DLLs in the output directory
+    local src_dir="Plugins/Official/$src_project/bin/Debug/net10.0"
     
-    if [ -f "$src_dll" ]; then
-        cp "$src_dll" "$PLUGIN_DIR/"
-        echo "✅ Deployed $dll_name.dll to plugins folder"
+    if [ -d "$src_dir" ]; then
+        # Copy all DLLs (dependencies included)
+        cp "$src_dir"/*.dll "$PLUGIN_DIR/"
+        
+        # Remove Aether.PluginSDK.dll to prevent type conflicts
+        rm -f "$PLUGIN_DIR/Aether.PluginSDK.dll"
+        
+        echo "✅ Deployed $dll_name and dependencies to plugins folder"
     else
-        echo "❌ Error: Could not find $src_dll"
+        echo "❌ Error: Could not find directory $src_dir"
         exit 1
     fi
+
 }
 
 copy_plugin "Aether.Importers.Steam" "Aether.Importers.Steam"
