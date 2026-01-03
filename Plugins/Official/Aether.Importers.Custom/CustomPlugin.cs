@@ -21,6 +21,18 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.4";
 
+    public static class Constants
+    {
+        public const string FormId = "add_custom_game_form";
+        public const string ActionAddGame = "add_game";
+
+        public const string Title = "title";
+        public const string InstallPath = "installPath";
+        public const string ExecutablePath = "executablePath";
+        public const string LaunchArguments = "launchArguments";
+        public const string SteamId = "steamId";
+    }
+
     // Custom importer works on all platforms
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>();
 
@@ -157,34 +169,23 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
         };
     }
 
-    public List<Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
-        // Define fields for adding a custom game
-        // Ideally this returns a list of widgets the frontend renders
-        var widgets = new List<Widget>
+        if (location == WidgetLocation.LibraryAddMenu)
         {
-            new Widget
+            return new List<Widget>
             {
-                PluginId = Name,
-                Title = "Add Custom Game",
-                SortOrder = 1,
-                LayoutJson = @"
-                {
-                    ""type"": ""Form"",
-                    ""fields"": [
-                        { ""id"": ""title"", ""type"": ""Text"", ""label"": ""Game Title"", ""required"": true },
-                        { ""id"": ""installPath"", ""type"": ""FolderPicker"", ""label"": ""Install Path"", ""required"": true },
-                        { ""id"": ""executablePath"", ""type"": ""FilePicker"", ""label"": ""Executable Path"", ""required"": false },
-                        { ""id"": ""launchArguments"", ""type"": ""Text"", ""label"": ""Launch Arguments"", ""required"": false },
-                        { ""id"": ""steamId"", ""type"": ""Text"", ""label"": ""Steam App ID (Optional)"", ""required"": false, ""placeholder"": ""For metadata fetch"" }
-                    ],
-                    ""actions"": [
-                        { ""id"": ""add_game"", ""label"": ""Add Game"", ""actionType"": ""submit"" }
-                    ]
-                }"
-            }
-        };
-        return widgets;
+                WidgetBuilder.Form(Constants.FormId, "Add Game", Constants.ActionAddGame,
+                    WidgetBuilder.TextInput(Constants.Title, "Game Title", required: true),
+                    WidgetBuilder.FolderPicker(Constants.InstallPath, "Install Path", required: true),
+                    WidgetBuilder.FilePicker(Constants.ExecutablePath, "Executable Path"),
+                    WidgetBuilder.TextInput(Constants.LaunchArguments, "Launch Arguments"),
+                    WidgetBuilder.TextInput(Constants.SteamId, "Steam App ID (Optional)", placeholder: "For metadata fetch")
+                )
+            };
+        }
+
+        return new List<Widget>(); // No settings for Custom plugin yet
     }
 
     // IPlugin Implementation stubs
@@ -192,7 +193,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
 
     public Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
-        if (actionId == "add_game")
+        if (actionId == Constants.ActionAddGame)
         {
             try
             {
@@ -208,11 +209,11 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                 }
 
                 // Extract fields safely
-                data.TryGetValue("title", out var title);
-                data.TryGetValue("installPath", out var installPath);
-                data.TryGetValue("executablePath", out var executablePath);
-                data.TryGetValue("steamId", out var steamId);
-                data.TryGetValue("launchArguments", out var launchArguments);
+                data.TryGetValue(Constants.Title, out var title);
+                data.TryGetValue(Constants.InstallPath, out var installPath);
+                data.TryGetValue(Constants.ExecutablePath, out var executablePath);
+                data.TryGetValue(Constants.SteamId, out var steamId);
+                data.TryGetValue(Constants.LaunchArguments, out var launchArguments);
 
                 if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(installPath))
                 {

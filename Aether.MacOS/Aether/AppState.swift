@@ -339,14 +339,17 @@ class AppState: ObservableObject {
         }
     }
 
-    func fetchSetupWidgets(for pluginName: String) async -> [Aether_PluginWidget] {
+    func fetchWidgets(for pluginName: String, location: Aether_WidgetLocation) async
+        -> [Aether_UIWidget]
+    {
         do {
-            var request = Aether_PluginName()
-            request.name = pluginName
-            let response = try await grpcClient.client.getSetupWidgets(request)
+            var request = Aether_WidgetRequest()
+            request.pluginName = pluginName
+            request.location = location
+            let response = try await grpcClient.client.getWidgets(request)
             return response.widgets
         } catch {
-            Logger.shared.log("Failed to fetch setup widgets: \(error)", type: .error)
+            Logger.shared.log("Failed to fetch widgets: \(error)", type: .error)
             return []
         }
     }

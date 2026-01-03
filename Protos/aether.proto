@@ -31,8 +31,8 @@ service AetherOrchestrator {
   // Get list of loaded plugins
   rpc GetPlugins (Empty) returns (PluginList);
 
-  // Server-Driven UI for Plugin Setup (e.g., "Add Game" for Custom Importer)
-  rpc GetSetupWidgets (PluginName) returns (WidgetList);
+  // Server-Driven UI: Request widgets for a specific context
+  rpc GetWidgets (WidgetRequest) returns (WidgetList);
 
   // DATA MANAGEMENT
   rpc ClearLibrary (Empty) returns (OperationStatus);
@@ -142,6 +142,17 @@ enum Platform {
   BATTLE_NET = 5;
 }
 
+message WidgetRequest {
+  string plugin_name = 1;
+  WidgetLocation location = 2;
+}
+
+enum WidgetLocation {
+  SETTINGS = 0; // Plugin configuration/setup
+  LIBRARY_ADD_MENU = 1; // "Add Game" menu context
+  // Future: GAME_DETAIL_SIDEBAR = 2;
+}
+
 // -----------------------------------------------------------
 
 message PluginName {
@@ -194,18 +205,121 @@ message GameStateUpdate {
 
 // Plugin UI Models
 message WidgetList {
-  repeated PluginWidget widgets = 1;
+  repeated UIWidget widgets = 1;
 }
 
-message PluginWidget {
-  string id = 1; // Unique ID for this instance
-  string plugin_id = 2; // ID of the plugin that created it
-  string title = 3;
-  string type = 4; // "Button", "Label", "Image", "Markdown"
-  string content = 5; // Text content or Image URL
-  string action_id = 6; // If it's a button, this ID is sent back on click
-  string layout_json = 7; // For complex layouts (Server-Driven UI)
-  int32 sort_order = 8;
+// New Unified Widget Model
+message UIWidget {
+  string id = 1;
+
+  // Layout & Style
+  WidgetStyle style = 2;
+  int32 sort_order = 3;
+
+  // The actual widget data
+  oneof content {
+    TextWidget text = 10;
+    ButtonWidget button = 11;
+    ImageWidget image = 12;
+    ContainerWidget container = 13; // For Row/Column/Form layouts
+    
+    // Form Inputs
+    TextInputWidget text_input = 20; 
+    FolderPickerWidget folder_picker = 21;
+    FilePickerWidget file_picker = 22;
+    ToggleWidget toggle = 23;
+  }
+}
+
+message WidgetStyle {
+  optional string background_color = 1; // Hex
+  optional double padding_vertical = 2; // Standardized spacing
+  optional double padding_horizontal = 3;
+}
+
+message TextWidget {
+  string text = 1;
+  enum Variant {
+    BODY = 0;
+    HEADLINE = 1;
+    CAPTION = 2; // For descriptions
+    SECTION_HEADER = 3;
+    ERROR = 4;
+  }
+  Variant variant = 2;
+  string color = 3;   // "Primary", "Secondary", "Accent"
+}
+
+message ButtonWidget {
+  string label = 1;
+  string icon = 2; // SF Symbol name
+  string action_id = 3; 
+  string payload_json = 4; // Optional data to send back
+  
+  enum Style {
+    DEFAULT = 0;
+    PRIMARY = 1; // Highlighted (e.g. Save)
+    DESTRUCTIVE = 2; // Red (e.g. Delete)
+    LINK = 3;
+  }
+  Style style = 5;
+}
+
+message ImageWidget {
+    string url = 1;
+    enum Size {
+        SMALL = 0;
+        MEDIUM = 1;
+        LARGE = 2;
+        FULL_WIDTH = 3;
+    }
+    Size size = 2;
+    string caption = 3;
+}
+
+message TextInputWidget {
+  string label = 1;
+  string placeholder = 2;
+  string initial_value = 3;
+  string bound_field_id = 4; // ID for form submission
+  bool is_required = 5;
+  bool is_secure = 6;
+}
+
+message FolderPickerWidget {
+   string label = 1;
+   string bound_field_id = 2;
+   bool is_required = 3;
+}
+
+message FilePickerWidget {
+   string label = 1;
+   string bound_field_id = 2;
+   bool is_required = 3;
+   string allowed_extensions = 4; // e.g., ".exe,.sh"
+}
+
+message ToggleWidget {
+    string label = 1;
+    string bound_field_id = 2;
+    bool initial_value = 3;
+}
+
+message ContainerWidget {
+  enum Orientation {
+    VERTICAL = 0;
+    HORIZONTAL = 1;
+    FORM = 2; // Renders children with Form styling (labels aligned, spacing)
+  }
+  Orientation orientation = 1;
+  repeated UIWidget children = 2;
+  repeated WidgetAction actions = 3; // Actions associated with this container (e.g. Form Submit)
+}
+
+message WidgetAction {
+    string id = 1;
+    string label = 2;
+    string type = 3; // "Submit", "Cancel", "Link"
 }
 
 message PluginAction {

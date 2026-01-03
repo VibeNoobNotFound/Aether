@@ -138,7 +138,7 @@ struct LibraryView: View {
             }
         }
         .sheet(item: $selectedPlugin) { plugin in
-            PluginSetupView(plugin: plugin)
+            LibraryAddMenuView(pluginName: plugin.name)
                 .frame(minWidth: 500, minHeight: 400)
         }
     }

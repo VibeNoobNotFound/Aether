@@ -95,43 +95,43 @@ public class NesRomImporter : ILibraryImporter
 
 ## 🎨 Server-Driven UI (Widgets)
 
-Plugins can expose configuration settings without writing any SwiftUI code. The backend defines the UI layout in JSON, and the macOS frontend renders it natively.
+Plugins can expose configuration settings without writing any SwiftUI code. The backend defines the UI layout using the `WidgetBuilder` helper, and the macOS frontend renders it natively.
 
 ### Example: Login Form
-Implement `GetSetupWidgets()` to return a `Widget` of type `Form`:
+Implement `GetPluginWidgets(WidgetLocation)` to return widgets based on context:
 
 ```csharp
-public List<Widget> GetSetupWidgets()
+public List<Widget> GetPluginWidgets(WidgetLocation location)
 {
-    return new List<Widget>
+    if (location == WidgetLocation.Settings)
     {
-        new Widget
+        return new List<Widget>
         {
-            Title = "Login to Service",
-            LayoutJson = @"{
-                ""type"": ""Form"",
-                ""fields"": [
-                    { ""id"": ""username"", ""type"": ""Text"", ""label"": ""Username"" },
-                    { ""id"": ""password"", ""type"": ""SecureText"", ""label"": ""Password"" }
-                ],
-                ""actions"": [
-                    { ""id"": ""login_btn"", ""label"": ""Log In"", ""actionType"": ""submit"" }
-                ]
-            }"
-        }
-    };
+            WidgetBuilder.Form("login_form", "Log In", "login_action",
+                WidgetBuilder.Header("Account Settings"),
+                WidgetBuilder.TextInput("username", "Username", required: true),
+                WidgetBuilder.TextInput("password", "Password", required: true, secure: true)
+            )
+        };
+    }
+    return new List<Widget>();
 }
 ```
 
 Handle the action in `OnWidgetAction`:
 
 ```csharp
-public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
+public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payloadJson)
 {
-    if (actionId == "login_btn")
+    if (actionId == "login_action")
     {
+        // Parse payload (contains field values)
+        var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payloadJson);
+        var username = data["username"];
+        var password = data["password"];
+
         // ... authenticate ...
-        return WidgetActionResult.Success("Logged in!");
+        return WidgetActionResult.Success("Logged in successfully!");
     }
     return WidgetActionResult.Failure("Unknown action");
 }

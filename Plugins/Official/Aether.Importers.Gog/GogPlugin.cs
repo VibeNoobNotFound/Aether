@@ -11,7 +11,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.1";
 
     // Supports all major platforms via scanning
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
@@ -296,5 +296,5 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
     public Task OnGameLaunched(Game game) => Task.CompletedTask;
     public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
-    public List<Widget> GetSetupWidgets() => new List<Widget>();
+    public List<Widget> GetPluginWidgets(WidgetLocation location) => new List<Widget>();
 }

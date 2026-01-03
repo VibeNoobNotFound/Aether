@@ -13,7 +13,7 @@ Unlike Electron apps that bundle an entire web browser, or pure cross-platform f
     *   **Database**: Uses [LiteDB](https://www.litedb.org/) (NoSQL) to store game libraries, play history, and metadata.
     *   **Plugin System**: Dynamically loads `.dll` importers and metadata providers.
     *   **Business Logic**: Scanning directories, parsing manifest files, fetching API data.
-    *   **gRPC Server**: Exposes all functionality via a Protocol Buffer interface.
+    *   **gRPC Server**: Exposes all functionality via a Protocol Buffer interface, internally split into modular partial services (Plugins, Library, Metadata, News, Updates).
 *   **Why .NET?**: Mature ecosystem, blazing fast performance, excellent cross-platform support (Windows/Linux/macOS), and strong typing.
 
 ### 2. The Native Frontend (`Aether.MacOS`)
