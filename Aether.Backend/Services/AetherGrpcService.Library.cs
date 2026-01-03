@@ -8,6 +8,138 @@ namespace Aether.Backend.Services;
 
 public partial class AetherGrpcService
 {
+    public override Task<OperationStatus> ClearLibrary(Empty request, ServerCallContext context)
+    {
+        try
+        {
+            var count = _database.ClearAllGames();
+            _logger.LogInformation("Library cleared. Removed {Count} games", count);
+            return Task.FromResult(new OperationStatus { Success = true, Message = $"Cleared {count} games." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing library");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> RemoveGame(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            // Note: DB needs DeleteGame method
+            var success = _database.DeleteGame(request.Id);
+            return Task.FromResult(new OperationStatus
+            {
+                Success = success,
+                Message = success ? "Game removed." : "Game not found."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing game");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> ToggleFavorite(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            if (int.TryParse(request.Id, out int dbId))
+            {
+                _database.ToggleFavorite(dbId);
+                return Task.FromResult(new OperationStatus { Success = true, Message = "Favorite toggled." });
+            }
+            return Task.FromResult(new OperationStatus { Success = false, Message = "Invalid ID format." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling favorite");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override Task<OperationStatus> OpenGameLocation(GameId request, ServerCallContext context)
+    {
+        try
+        {
+            if (int.TryParse(request.Id, out int dbId))
+            {
+                var game = _database.GetGameById(dbId);
+                if (game != null && !string.IsNullOrEmpty(game.InstallPath))
+                {
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        // Use -R to reveal in Finder instead of launching
+                        var startInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "open",
+                            Arguments = $"-R \"{game.InstallPath}\"",
+                            UseShellExecute = false
+                        };
+                        System.Diagnostics.Process.Start(startInfo);
+                    }
+                    else if (OperatingSystem.IsWindows())
+                    {
+                        // explorer /select,path
+                        System.Diagnostics.Process.Start("explorer", $"/select,\"{game.InstallPath}\"");
+                    }
+                    return Task.FromResult(new OperationStatus { Success = true, Message = "Location opened." });
+                }
+            }
+            return Task.FromResult(new OperationStatus { Success = false, Message = "Game or path not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error opening location");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
+    public override async Task<OperationStatus> UpdateGameMetadata(GameMetadataUpdate request, ServerCallContext context)
+    {
+        try
+        {
+            if (!int.TryParse(request.GameId, out int dbId))
+            {
+                return new OperationStatus { Success = false, Message = "Invalid game ID" };
+            }
+
+            var game = _database.GetGameById(dbId);
+            if (game == null)
+            {
+                return new OperationStatus { Success = false, Message = "Game not found" };
+            }
+
+            // Update fields if provided
+            if (request.HasTitle) game.Title = request.Title;
+            if (request.HasDeveloper) game.Developer = request.Developer;
+            if (request.HasPublisher) game.Publisher = request.Publisher;
+            if (request.HasDescription) game.Description = request.Description;
+            if (request.HasCoverImageUrl) game.CoverImageUrl = request.CoverImageUrl;
+            if (request.HasBackgroundImageUrl) game.BackgroundImageUrl = request.BackgroundImageUrl;
+            if (request.HasLogoImageUrl) game.LogoImageUrl = request.LogoImageUrl;
+            if (request.Genres.Count > 0) game.Genres = request.Genres.ToList();
+            if (request.Screenshots.Count > 0) game.Screenshots = request.Screenshots.ToList();
+            if (request.Videos.Count > 0) game.Videos = request.Videos.ToList();
+            if (request.HasReleaseDateUnix) game.ReleaseDate = DateTimeOffset.FromUnixTimeSeconds(request.ReleaseDateUnix).DateTime;
+            if (request.HasSteamId) game.SteamId = request.SteamId;
+            if (request.HasLaunchArguments) game.LaunchArguments = request.LaunchArguments;
+
+            game.UpdatedAt = DateTime.UtcNow;
+            _database.UpsertGame(game);
+
+            _logger.LogInformation("Updated metadata for game: {Title}", game.Title);
+            return new OperationStatus { Success = true, Message = "Metadata updated successfully" };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating metadata");
+            return new OperationStatus { Success = false, Message = ex.Message };
+        }
+    }
+
     public override async Task ScanLibrary(ScanRequest request, IServerStreamWriter<ScanProgress> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Starting library scan (force_refresh={ForceRefresh})", request.ForceRefresh);
