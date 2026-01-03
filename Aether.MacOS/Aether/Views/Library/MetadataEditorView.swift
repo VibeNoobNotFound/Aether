@@ -18,6 +18,7 @@ struct MetadataEditorView: View {
     @State private var screenshots: [String] = []
     @State private var steamId: String = ""
     @State private var newVideoUrl: String = ""
+    @State private var newScreenshotUrl: String = ""
     @State private var launchArguments: String = ""
 
     @State private var isSaving = false
@@ -156,6 +157,56 @@ struct MetadataEditorView: View {
                                 }
                                 .opacity(newVideoUrl.isEmpty ? 0.5 : 1.0)
                                 .disabled(newVideoUrl.isEmpty)
+                            }
+                        }
+
+                        // Screenshots
+                        GlassSection(title: "Screenshots") {
+                            ForEach(screenshots, id: \.self) { screenshot in
+                                HStack {
+                                    Text(screenshot)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Button {
+                                        if let index = screenshots.firstIndex(of: screenshot) {
+                                            screenshots.remove(at: index)
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding()
+                                .background(Color.black.opacity(0.2))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                // Image Preview if valid URL
+                                if let url = URL(string: screenshot), !screenshot.isEmpty {
+                                    AsyncImage(url: url) { image in
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(height: 100)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } placeholder: {
+                                        EmptyView()
+                                    }
+                                }
+                            }
+
+                            HStack {
+                                GlassTextField(title: "Add Screenshot URL", text: $newScreenshotUrl)
+                                GlassButton("Add", systemImage: "plus") {
+                                    if !newScreenshotUrl.isEmpty {
+                                        screenshots.append(newScreenshotUrl)
+                                        newScreenshotUrl = ""
+                                    }
+                                }
+                                .opacity(newScreenshotUrl.isEmpty ? 0.5 : 1.0)
+                                .disabled(newScreenshotUrl.isEmpty)
                             }
                         }
 

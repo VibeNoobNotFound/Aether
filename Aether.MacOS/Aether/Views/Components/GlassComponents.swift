@@ -114,6 +114,8 @@ struct GlassSection<Content: View>: View {
     let title: String
     let content: Content
 
+    @State private var isExpanded = true
+
     init(title: String, @ViewBuilder content: () -> Content) {
         self.title = title
         self.content = content()
@@ -122,16 +124,37 @@ struct GlassSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !title.isEmpty {
-                Text(title)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
+                Button {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .foregroundStyle(.secondary)
+
+                        Text(title)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+                    }
                     .padding(.leading, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
 
-            GlassCard {
-                VStack(spacing: 12) {
-                    content
+            if isExpanded {
+                GlassCard {
+                    VStack(spacing: 12) {
+                        content
+                    }
                 }
+                .transition(
+                    .opacity.combined(with: .move(edge: .top)))
             }
         }
     }
