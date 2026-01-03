@@ -97,71 +97,23 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
     public Task<string?> GetLogoImageAsync(string gameId) => Task.FromResult<string?>(null);
 
     // IPlugin Implementation
-    public List<Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
-        // Widget uses LayoutJson for the actual widget definition
-        return new List<Widget>
+        if (location == WidgetLocation.Settings)
         {
-            new Widget
+            return new List<Widget>
             {
-                PluginId = Name,
-                Title = "Twitch API Credentials",
-                LayoutJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "section",
-                    description = "Required for IGDB metadata. Get credentials at dev.twitch.tv"
-                })
-            },
-            new Widget
-            {
-                PluginId = Name,
-                Title = "Client ID",
-                LayoutJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "textfield",
-                    id = "twitch_client_id",
-                    placeholder = "Enter your Twitch Client ID"
-                }),
-                SortOrder = 1
-            },
-            new Widget
-            {
-                PluginId = Name,
-                Title = "Client Secret",
-                LayoutJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "textfield",
-                    id = "twitch_client_secret",
-                    placeholder = "Enter your Twitch Client Secret"
-                }),
-                SortOrder = 2
-            },
-            new Widget
-            {
-                PluginId = Name,
-                Title = "Test Connection",
-                LayoutJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "button",
-                    id = "test_connection",
-                    actionId = "test_twitch_auth"
-                }),
-                SortOrder = 3
-            },
-            new Widget
-            {
-                PluginId = Name,
-                Title = "Save Credentials",
-                LayoutJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    type = "button",
-                    id = "save_credentials",
-                    actionId = "save_twitch_credentials",
-                    style = "primary"
-                }),
-                SortOrder = 4
-            }
-        };
+                WidgetBuilder.Section("Twitch API Credentials", "Required for IGDB metadata. Get credentials at dev.twitch.tv",
+                    WidgetBuilder.TextInput("twitch_client_id", "Client ID", placeholder: "Enter your Twitch Client ID"),
+                    WidgetBuilder.TextInput("twitch_client_secret", "Client Secret", placeholder: "Enter your Twitch Client Secret"),
+                    WidgetBuilder.Row(
+                        WidgetBuilder.Button("Test Connection", "test_twitch_auth"),
+                        WidgetBuilder.PrimaryButton("Save Credentials", "save_twitch_credentials")
+                    )
+                )
+            };
+        }
+        return new List<Widget>();
     }
 
     public List<Widget> GetWidgets(Game game) => new List<Widget>();

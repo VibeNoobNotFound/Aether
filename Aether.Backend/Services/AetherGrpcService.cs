@@ -97,44 +97,152 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
         return Task.FromResult(response);
     }
 
-    public override Task<WidgetList> GetSetupWidgets(PluginName request, ServerCallContext context)
+    public override Task<WidgetList> GetWidgets(WidgetRequest request, ServerCallContext context)
     {
         var response = new WidgetList();
 
-        // Search importers
-        var importer = _pluginManager.GetLibraryImporters().FirstOrDefault(p => p.Name == request.Name);
+        // Helper local function to add mapped widgets
+        void AddWidgets(IEnumerable<Aether.PluginSDK.UI.Widget> sourceWidgets)
+        {
+            foreach (var w in sourceWidgets)
+            {
+                var mapped = MapWidget(w);
+                if (mapped != null)
+                {
+                    response.Widgets.Add(mapped);
+                }
+            }
+        }
+
+        var location = (Aether.PluginSDK.UI.WidgetLocation)request.Location;
+
+        var importer = _pluginManager.GetLibraryImporters().FirstOrDefault(p => p.Name == request.PluginName);
         if (importer != null)
         {
-            foreach (var widget in importer.GetSetupWidgets())
-            {
-                response.Widgets.Add(MapWidget(widget));
-            }
+            AddWidgets(importer.GetPluginWidgets(location));
             return Task.FromResult(response);
         }
 
-        // Search plugins
-        var plugin = _pluginManager.GetPlugins().FirstOrDefault(p => p.Name == request.Name);
+        var plugin = _pluginManager.GetPlugins().FirstOrDefault(p => p.Name == request.PluginName);
         if (plugin != null)
         {
-            foreach (var widget in plugin.GetSetupWidgets())
-            {
-                response.Widgets.Add(MapWidget(widget));
-            }
+            AddWidgets(plugin.GetPluginWidgets(location));
             return Task.FromResult(response);
         }
 
         return Task.FromResult(response);
     }
 
-    private static PluginWidget MapWidget(Aether.PluginSDK.UI.Widget widget)
+    private static UIWidget? MapWidget(Aether.PluginSDK.UI.Widget widget)
     {
-        return new PluginWidget
+        var protoWidget = new UIWidget
         {
-            PluginId = widget.PluginId,
-            Title = widget.Title,
-            LayoutJson = widget.LayoutJson,
-            SortOrder = widget.SortOrder
+            Id = widget.Id,
+            SortOrder = widget.SortOrder,
+            Style = new WidgetStyle
+            {
+                BackgroundColor = widget.Style.BackgroundColor ?? "",
+                PaddingHorizontal = widget.Style.PaddingHorizontal ?? 0,
+                PaddingVertical = widget.Style.PaddingVertical ?? 0
+            }
         };
+
+        switch (widget.Content)
+        {
+            case Aether.PluginSDK.UI.TextContent text:
+                protoWidget.Text = new TextWidget
+                {
+                    Text = text.Text,
+                    Color = text.Color ?? "",
+                    Variant = (TextWidget.Types.Variant)text.Variant
+                };
+                break;
+
+            case Aether.PluginSDK.UI.ButtonContent btn:
+                protoWidget.Button = new ButtonWidget
+                {
+                    Label = btn.Label,
+                    Icon = btn.Icon ?? "",
+                    ActionId = btn.ActionId,
+                    PayloadJson = btn.PayloadJson ?? "",
+                    Style = (ButtonWidget.Types.Style)btn.Style
+                };
+                break;
+
+            case Aether.PluginSDK.UI.TextInputContent input:
+                protoWidget.TextInput = new TextInputWidget
+                {
+                    Label = input.Label,
+                    Placeholder = input.Placeholder ?? "",
+                    InitialValue = input.InitialValue ?? "",
+                    BoundFieldId = input.BoundFieldId,
+                    IsRequired = input.IsRequired,
+                    IsSecure = input.IsSecure
+                };
+                break;
+
+            case Aether.PluginSDK.UI.FolderPickerContent folder:
+                protoWidget.FolderPicker = new FolderPickerWidget
+                {
+                    Label = folder.Label,
+                    BoundFieldId = folder.BoundFieldId,
+                    IsRequired = folder.IsRequired
+                };
+                break;
+
+            case Aether.PluginSDK.UI.FilePickerContent file:
+                protoWidget.FilePicker = new FilePickerWidget
+                {
+                    Label = file.Label,
+                    BoundFieldId = file.BoundFieldId,
+                    IsRequired = file.IsRequired,
+                    AllowedExtensions = file.AllowedExtensions
+                };
+                break;
+
+            case Aether.PluginSDK.UI.ToggleContent toggle:
+                protoWidget.Toggle = new ToggleWidget
+                {
+                    Label = toggle.Label,
+                    BoundFieldId = toggle.BoundFieldId,
+                    InitialValue = toggle.InitialValue
+                };
+                break;
+
+            case Aether.PluginSDK.UI.ContainerContent container:
+                var protoContainer = new ContainerWidget
+                {
+                    Orientation = (ContainerWidget.Types.Orientation)container.Orientation
+                };
+
+                foreach (var child in container.Children)
+                {
+                    var mappedChild = MapWidget(child);
+                    if (mappedChild != null)
+                    {
+                        protoContainer.Children.Add(mappedChild);
+                    }
+                }
+
+                foreach (var action in container.Actions)
+                {
+                    protoContainer.Actions.Add(new WidgetAction
+                    {
+                        Id = action.Id,
+                        Label = action.Label,
+                        Type = action.Type
+                    });
+                }
+
+                protoWidget.Container = protoContainer;
+                break;
+
+            default:
+                // Unknown content type
+                return null;
+        }
+
+        return protoWidget;
     }
 
 

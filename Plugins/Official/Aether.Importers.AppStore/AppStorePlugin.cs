@@ -185,7 +185,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
         return null;
     }
 
-    public List<Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
         return new List<Widget>();
     }

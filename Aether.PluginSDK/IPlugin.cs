@@ -24,8 +24,8 @@ public interface IPlugin
     Task OnGameLaunched(Game game);
     Task OnGameStopped(Game game, TimeSpan sessionDuration);
 
-    // Hook 5: Setup (Server-Driven UI for adding games)
-    List<Widget> GetSetupWidgets();
+    // Hook 5: Setup & Contextual UI (Settings, Add Game Menu, etc.)
+    List<Widget> GetPluginWidgets(WidgetLocation location);
 }
 
 

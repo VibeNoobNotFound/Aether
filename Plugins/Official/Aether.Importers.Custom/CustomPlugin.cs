@@ -157,34 +157,23 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
         };
     }
 
-    public List<Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
-        // Define fields for adding a custom game
-        // Ideally this returns a list of widgets the frontend renders
-        var widgets = new List<Widget>
+        if (location == WidgetLocation.LibraryAddMenu)
         {
-            new Widget
+            return new List<Widget>
             {
-                PluginId = Name,
-                Title = "Add Custom Game",
-                SortOrder = 1,
-                LayoutJson = @"
-                {
-                    ""type"": ""Form"",
-                    ""fields"": [
-                        { ""id"": ""title"", ""type"": ""Text"", ""label"": ""Game Title"", ""required"": true },
-                        { ""id"": ""installPath"", ""type"": ""FolderPicker"", ""label"": ""Install Path"", ""required"": true },
-                        { ""id"": ""executablePath"", ""type"": ""FilePicker"", ""label"": ""Executable Path"", ""required"": false },
-                        { ""id"": ""launchArguments"", ""type"": ""Text"", ""label"": ""Launch Arguments"", ""required"": false },
-                        { ""id"": ""steamId"", ""type"": ""Text"", ""label"": ""Steam App ID (Optional)"", ""required"": false, ""placeholder"": ""For metadata fetch"" }
-                    ],
-                    ""actions"": [
-                        { ""id"": ""add_game"", ""label"": ""Add Game"", ""actionType"": ""submit"" }
-                    ]
-                }"
-            }
-        };
-        return widgets;
+                WidgetBuilder.Form("add_custom_game_form", "Add Game", "add_game",
+                    WidgetBuilder.TextInput("title", "Game Title", required: true),
+                    WidgetBuilder.FolderPicker("installPath", "Install Path", required: true),
+                    WidgetBuilder.FilePicker("executablePath", "Executable Path"),
+                    WidgetBuilder.TextInput("launchArguments", "Launch Arguments"),
+                    WidgetBuilder.TextInput("steamId", "Steam App ID (Optional)", placeholder: "For metadata fetch")
+                )
+            };
+        }
+
+        return new List<Widget>(); // No settings for Custom plugin yet
     }
 
     // IPlugin Implementation stubs

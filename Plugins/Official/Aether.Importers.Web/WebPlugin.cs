@@ -38,30 +38,22 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
         }
     }
 
-    public List<Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
-        return new List<Widget>
+        if (location == WidgetLocation.LibraryAddMenu)
         {
-            new Widget
+            return new List<Widget>
             {
-                PluginId = Name,
-                Title = "Add Web Link / Steam ID",
-                SortOrder = 2,
-                LayoutJson = @"
-                {
-                    ""type"": ""Form"",
-                    ""fields"": [
-                        { ""id"": ""name"", ""type"": ""Text"", ""label"": ""Name"", ""required"": true },
-                        { ""id"": ""url"", ""type"": ""Text"", ""label"": ""URL"", ""required"": true, ""placeholder"": ""https://..."" },
-                        { ""id"": ""steam_id"", ""type"": ""Text"", ""label"": ""Steam ID (Optional - for News/Data)"", ""required"": false, ""placeholder"": ""440"" },
-                        { ""id"": ""imageUrl"", ""type"": ""Text"", ""label"": ""Image URL (Optional)"", ""required"": false }
-                    ],
-                    ""actions"": [
-                        { ""id"": ""add_web_game"", ""label"": ""Add Link"", ""actionType"": ""submit"" }
-                    ]
-                }"
-            }
-        };
+                WidgetBuilder.Form("add_web_game_form", "Add Link", "add_web_game",
+                    WidgetBuilder.TextInput("name", "Name", required: true),
+                    WidgetBuilder.TextInput("url", "URL", required: true, placeholder: "https://..."),
+                    WidgetBuilder.TextInput("steam_id", "Steam ID (Optional - for News/Data)", placeholder: "440"),
+                    WidgetBuilder.TextInput("imageUrl", "Image URL (Optional)")
+                )
+            };
+        }
+
+        return new List<Widget>();
     }
 
     public Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)

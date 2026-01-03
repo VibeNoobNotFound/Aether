@@ -291,9 +291,9 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         // Track playtime
     }
 
-    public List<Aether.PluginSDK.UI.Widget> GetSetupWidgets()
+    public List<Widget> GetPluginWidgets(WidgetLocation location)
     {
-        return new List<Aether.PluginSDK.UI.Widget>();
+        return new List<Widget>();
     }
 
     // IGameLauncher Implementation
