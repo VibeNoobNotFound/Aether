@@ -65,6 +65,14 @@ public class PluginManager : IDisposable
             {
                 var plugin = (IPlugin)Activator.CreateInstance(type)!;
                 
+                // Inject storage if plugin implements IStorageAware
+                if (plugin is Aether.PluginSDK.Storage.IStorageAware storageAware)
+                {
+                    var storage = new Aether.Backend.Services.PluginStorageService(plugin.Name);
+                    storageAware.SetStorage(storage);
+                    _logger.Debug("Injected storage for plugin: {Name}", plugin.Name);
+                }
+                
                 // Check Platform Support
                 if (plugin.SupportedPlatforms != null && plugin.SupportedPlatforms.Any())
                 {
