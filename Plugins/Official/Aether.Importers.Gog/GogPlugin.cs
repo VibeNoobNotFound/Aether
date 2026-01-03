@@ -11,7 +11,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.1";
 
     // Supports all major platforms via scanning
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };

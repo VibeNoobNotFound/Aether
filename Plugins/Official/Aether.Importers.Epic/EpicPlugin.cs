@@ -13,7 +13,7 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "Epic Games";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.1";
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
     public bool SupportsManualAddition => false;

@@ -11,7 +11,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.2";
+    public string Version => "1.0.3";
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
     public bool SupportsManualAddition => false;

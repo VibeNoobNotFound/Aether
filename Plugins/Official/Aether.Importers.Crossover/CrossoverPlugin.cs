@@ -13,7 +13,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "CrossOver";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.0.1";
 
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS", "Linux" };
     public bool SupportsManualAddition => false;

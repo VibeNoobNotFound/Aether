@@ -13,7 +13,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.1";
+    public string Version => "1.0.2";
 
     // App Store is only supported on MacOS
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS" };

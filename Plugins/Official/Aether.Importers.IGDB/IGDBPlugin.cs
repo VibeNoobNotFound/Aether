@@ -12,7 +12,15 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
 {
     public string Name => "IGDB";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.1.0";
+
+    public static class Constants
+    {
+        public const string ClientId = "twitch_client_id";
+        public const string ClientSecret = "twitch_client_secret";
+        public const string ActionTestAuth = "test_twitch_auth";
+        public const string ActionSaveCredentials = "save_twitch_credentials";
+    }
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
 
@@ -104,11 +112,11 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
             return new List<Widget>
             {
                 WidgetBuilder.Section("Twitch API Credentials", "Required for IGDB metadata. Get credentials at dev.twitch.tv",
-                    WidgetBuilder.TextInput("twitch_client_id", "Client ID", placeholder: "Enter your Twitch Client ID"),
-                    WidgetBuilder.TextInput("twitch_client_secret", "Client Secret", placeholder: "Enter your Twitch Client Secret"),
+                    WidgetBuilder.TextInput(Constants.ClientId, "Client ID", placeholder: "Enter your Twitch Client ID"),
+                    WidgetBuilder.TextInput(Constants.ClientSecret, "Client Secret", placeholder: "Enter your Twitch Client Secret"),
                     WidgetBuilder.Row(
-                        WidgetBuilder.Button("Test Connection", "test_twitch_auth"),
-                        WidgetBuilder.PrimaryButton("Save Credentials", "save_twitch_credentials")
+                        WidgetBuilder.Button("Test Connection", Constants.ActionTestAuth),
+                        WidgetBuilder.PrimaryButton("Save Credentials", Constants.ActionSaveCredentials)
                     )
                 )
             };
@@ -124,23 +132,23 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
 
-            if (actionId == "save_twitch_credentials")
+            if (actionId == Constants.ActionSaveCredentials)
             {
                 if (data != null)
                 {
-                    _clientId = data.GetValueOrDefault("twitch_client_id");
-                    _clientSecret = data.GetValueOrDefault("twitch_client_secret");
+                    _clientId = data.GetValueOrDefault(Constants.ClientId);
+                    _clientSecret = data.GetValueOrDefault(Constants.ClientSecret);
 
                     // TODO: Persist to secure storage
                     Console.WriteLine("IGDB credentials saved.");
                 }
             }
-            else if (actionId == "test_twitch_auth")
+            else if (actionId == Constants.ActionTestAuth)
             {
                 if (data != null)
                 {
-                    _clientId = data.GetValueOrDefault("twitch_client_id");
-                    _clientSecret = data.GetValueOrDefault("twitch_client_secret");
+                    _clientId = data.GetValueOrDefault(Constants.ClientId);
+                    _clientSecret = data.GetValueOrDefault(Constants.ClientSecret);
 
                     if (await GetAccessToken())
                     {

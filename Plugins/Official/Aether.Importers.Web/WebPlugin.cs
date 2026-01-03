@@ -14,7 +14,18 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
 {
     public string Name => "Web";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.0";
+    public string Version => "1.2.0";
+
+    public static class Constants
+    {
+        public const string FormId = "add_web_game_form";
+        public const string ActionAddGame = "add_web_game";
+
+        public const string Name = "name";
+        public const string Url = "url";
+        public const string SteamId = "steam_id";
+        public const string ImageUrl = "imageUrl";
+    }
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All
     public bool SupportsManualAddition => true;
@@ -44,11 +55,11 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
         {
             return new List<Widget>
             {
-                WidgetBuilder.Form("add_web_game_form", "Add Link", "add_web_game",
-                    WidgetBuilder.TextInput("name", "Name", required: true),
-                    WidgetBuilder.TextInput("url", "URL", required: true, placeholder: "https://..."),
-                    WidgetBuilder.TextInput("steam_id", "Steam ID (Optional - for News/Data)", placeholder: "440"),
-                    WidgetBuilder.TextInput("imageUrl", "Image URL (Optional)")
+                WidgetBuilder.Form(Constants.FormId, "Add Link", Constants.ActionAddGame,
+                    WidgetBuilder.TextInput(Constants.Name, "Name", required: true),
+                    WidgetBuilder.TextInput(Constants.Url, "URL", required: true, placeholder: "https://..."),
+                    WidgetBuilder.TextInput(Constants.SteamId, "Steam ID (Optional - for News/Data)", placeholder: "440"),
+                    WidgetBuilder.TextInput(Constants.ImageUrl, "Image URL (Optional)")
                 )
             };
         }
@@ -58,17 +69,17 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
 
     public Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
-        if (actionId == "add_web_game")
+        if (actionId == Constants.ActionAddGame)
         {
             try
             {
                 var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
                 if (data == null) return Task.FromResult(WidgetActionResult.Fail("Invalid data"));
 
-                data.TryGetValue("name", out var name);
-                data.TryGetValue("url", out var inputUrl);
-                data.TryGetValue("steam_id", out var steamId);
-                data.TryGetValue("imageUrl", out var imageUrl);
+                data.TryGetValue(Constants.Name, out var name);
+                data.TryGetValue(Constants.Url, out var inputUrl);
+                data.TryGetValue(Constants.SteamId, out var steamId);
+                data.TryGetValue(Constants.ImageUrl, out var imageUrl);
 
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(inputUrl))
                     return Task.FromResult(WidgetActionResult.Fail("Name and URL are required"));
