@@ -56,26 +56,33 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
     }
 
     // IMetadataProvider Implementation
-    public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
+    // IMetadataProvider Implementation
+    public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
+        var results = new List<GameMetadata>();
         if (_client == null)
-            return null;
+            return results;
 
         try
         {
             var games = await _client.QueryAsync<IGDBGame>(
                 IGDBClient.Endpoints.Games,
-                $"search \"{EscapeQuery(gameName)}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,genres.name,screenshots.*,videos.*; limit 1;"
+                $"search \"{EscapeQuery(gameName)}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*; limit 10;"
             );
 
-            var game = games.FirstOrDefault();
-            return game != null ? MapToMetadata(game) : null;
+            if (games != null)
+            {
+                foreach (var game in games)
+                {
+                    results.Add(MapToMetadata(game));
+                }
+            }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"IGDB search failed: {ex.Message}");
-            return null;
         }
+        return results;
     }
 
     public async Task<GameMetadata?> GetByIdAsync(string gameId)
@@ -244,12 +251,16 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
                 .ToArray();
         }
 
-        // Developer
+        // Developer & Publisher
         string? developer = null;
+        string? publisher = null;
         if (game.InvolvedCompanies?.Values != null)
         {
-            var firstCompany = game.InvolvedCompanies.Values.FirstOrDefault();
-            developer = firstCompany?.Company?.Value?.Name;
+            var devCompany = game.InvolvedCompanies.Values.FirstOrDefault(c => c.Developer == true);
+            var pubCompany = game.InvolvedCompanies.Values.FirstOrDefault(c => c.Publisher == true);
+
+            developer = devCompany?.Company?.Value?.Name;
+            publisher = pubCompany?.Company?.Value?.Name;
         }
 
         // Videos
@@ -267,14 +278,19 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
 
         return new GameMetadata
         {
+            ExternalId = game.Id.ToString(),
+            Title = game.Name ?? "Unknown",
             Description = game.Summary,
             ShortDescription = game.Storyline,
             CoverImageUrl = coverUrl,
+            BackgroundImageUrl = screenshots?.FirstOrDefault(), // Use first screenshot as background
             Genres = genres,
             Screenshots = screenshots,
             Videos = videos,
             Developer = developer,
+            Publisher = publisher,
             ReleaseDate = releaseDate
         };
     }
 }
+

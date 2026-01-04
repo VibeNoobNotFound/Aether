@@ -212,7 +212,9 @@ public partial class AetherGrpcService
 
                                 try
                                 {
-                                    var searchResult = await provider.SearchAsync(importedGame.Title);
+                                    var searchResults = await provider.SearchAsync(importedGame.Title);
+                                    var searchResult = searchResults.FirstOrDefault();
+
                                     if (searchResult != null)
                                     {
                                         metadata = searchResult;

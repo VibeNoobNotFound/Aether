@@ -68,26 +68,40 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
     private readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
 
-    public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
+    public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
+        var results = new List<GameMetadata>();
         try
         {
             var term = System.Web.HttpUtility.UrlEncode(gameName);
             var url = $"https://store.steampowered.com/api/storesearch/?term={term}&l=english&cc=US";
             var response = await GetStringWithRetryAsync(url);
-            if (string.IsNullOrEmpty(response)) return null;
+            if (string.IsNullOrEmpty(response)) return results;
 
             using var doc = System.Text.Json.JsonDocument.Parse(response);
             if (doc.RootElement.TryGetProperty("items", out var items) && items.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
+                var tasks = new List<Task<GameMetadata?>>();
+                int count = 0;
+
+                // Fetch full details for top 5 results to ensure we have description/dev/etc.
                 foreach (var item in items.EnumerateArray())
                 {
+                    if (count >= 5) break;
+
                     if (item.TryGetProperty("id", out var idElem))
                     {
                         var id = idElem.ToString();
-                        // Put "id" back into standard flow to get full richness
-                        return await GetByIdAsync(id);
+                        // Fire off parallel requests
+                        tasks.Add(GetByIdAsync(id));
+                        count++;
                     }
+                }
+
+                var detailedResults = await Task.WhenAll(tasks);
+                foreach (var res in detailedResults)
+                {
+                    if (res != null) results.Add(res);
                 }
             }
         }
@@ -95,7 +109,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         {
             Console.WriteLine($"Steam search failed for {gameName}: {ex.Message}");
         }
-        return null;
+        return results;
     }
 
     public async Task<GameMetadata?> GetByIdAsync(string gameId)
