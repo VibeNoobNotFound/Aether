@@ -13,24 +13,39 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.1";
 
-    // Supports all major platforms via scanning
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
     public bool SupportsManualAddition => false;
 
     public async Task<bool> CanImportAsync()
     {
-        // Always try to scan, as offline installers might be used without a client
-        return true;
+        var scanPaths = GetScanPaths();
+        return scanPaths.Any(Directory.Exists);
+    }
+
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("GogPlugin initialized");
     }
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
+        _logger?.Information("Starting GOG library scan");
         var scanPaths = GetScanPaths();
         int totalFiles = 0; // Estimation usually hard, we'll track processed count
 
         foreach (var path in scanPaths)
         {
-            if (!Directory.Exists(path)) continue;
+            if (!Directory.Exists(path))
+            {
+                _logger?.Debug("Scan path not found: {Path}", path);
+                continue;
+            }
+
+            _logger?.Debug("Scanning path: {Path}", path);
 
             // macOS: GOG games are often .app bundles. The metadata might be inside.
             // We need to look inside standard recursed paths, AND inside .app/Contents/Resources
@@ -38,25 +53,40 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
             var options = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, MaxRecursionDepth = 4 };
 
             // Standard scan
-            var infoFiles = Directory.EnumerateFiles(path, "goggame-*.info", options);
-            var jsonFiles = Directory.EnumerateFiles(path, "goggame-*.json", options);
-
-            var allFiles = infoFiles.Concat(jsonFiles).ToList();
+            IEnumerable<string> allFiles;
+            try
+            {
+                var infoFiles = Directory.EnumerateFiles(path, "goggame-*.info", options);
+                var jsonFiles = Directory.EnumerateFiles(path, "goggame-*.json", options);
+                allFiles = infoFiles.Concat(jsonFiles).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning(ex, "Error enumerating files in {Path}", path);
+                continue;
+            }
 
             // Special macOS check: Scan inside top-level .app bundles in the search directory
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                var appBundles = Directory.EnumerateDirectories(path, "*.app", SearchOption.TopDirectoryOnly);
-                foreach (var app in appBundles)
+                try
                 {
-                    var resourcesPath = Path.Combine(app, "Contents", "Resources");
-                    if (Directory.Exists(resourcesPath))
+                    var appBundles = Directory.EnumerateDirectories(path, "*.app", SearchOption.TopDirectoryOnly);
+                    foreach (var app in appBundles)
                     {
-                        var innerInfo = Directory.EnumerateFiles(resourcesPath, "goggame-*.info", SearchOption.TopDirectoryOnly);
-                        var innerJson = Directory.EnumerateFiles(resourcesPath, "goggame-*.json", SearchOption.TopDirectoryOnly);
-                        allFiles.AddRange(innerInfo);
-                        allFiles.AddRange(innerJson);
+                        var resourcesPath = Path.Combine(app, "Contents", "Resources");
+                        if (Directory.Exists(resourcesPath))
+                        {
+                            var innerInfo = Directory.EnumerateFiles(resourcesPath, "goggame-*.info", SearchOption.TopDirectoryOnly);
+                            var innerJson = Directory.EnumerateFiles(resourcesPath, "goggame-*.json", SearchOption.TopDirectoryOnly);
+                            ((List<string>)allFiles).AddRange(innerInfo);
+                            ((List<string>)allFiles).AddRange(innerJson);
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Warning(ex, "Error scanning app bundles in {Path}", path);
                 }
             }
 
@@ -65,11 +95,13 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
                 var game = await ParseGogInfo(file);
                 if (game != null)
                 {
-                    progress?.Report(new ScanProgress("GOG", 0, ++totalFiles, game.Title, 0));
+                    totalFiles++;
+                    progress?.Report(new ScanProgress("GOG", 0, totalFiles, game.Title, 0));
                     yield return game;
                 }
             }
         }
+        _logger?.Information("GOG scan complete. Found {Count} games.", totalFiles);
     }
 
     private IEnumerable<string> GetScanPaths()
@@ -136,8 +168,9 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
                 ExecutablePath: executablePath // Can be empty if detection failed, user can set manually later
             );
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.Warning(ex, "Error parsing GOG info file: {Path}", infoPath);
             return null;
         }
     }
@@ -217,6 +250,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
 
     public async Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
+        _logger?.Information("Launching GOG game: {Title} ({Id})", context.Title, context.ExternalId);
         string path = context.ExecutablePath;
         if (string.IsNullOrEmpty(path))
         {
@@ -278,6 +312,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher
         }
         catch (Exception ex)
         {
+            _logger?.Error(ex, "Failed to launch GOG game: {Title}", context.Title);
             return LaunchResult.Failed($"Failed to launch GOG game: {ex.Message}");
         }
     }

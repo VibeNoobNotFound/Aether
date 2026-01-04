@@ -510,3 +510,5 @@ Aether.MacOS/AetherIPC/Sources/AetherIPC/*.grpc.swift
 *.swo
 *~
 /Aether.MacOS/Aether.xcodeproj/project.xcworkspace/xcuserdata
+/Aether.MacOS/Aether.xcodeproj/project.xcworkspace/xcuserdata
+Aether.MacOS/Aether.xcodeproj/project.xcworkspace/xcuserdata/chanirurajapakse.xcuserdatad/UserInterfaceState.xcuserstate

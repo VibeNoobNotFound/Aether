@@ -19,6 +19,15 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS" };
     public bool SupportsManualAddition => false;
 
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("AppStorePlugin initialized");
+    }
+
     public async Task<bool> CanImportAsync()
     {
         return OperatingSystem.IsMacOS();
@@ -29,11 +38,17 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
         if (!OperatingSystem.IsMacOS())
             yield break;
 
+        _logger?.Information("Starting App Store scan");
         var applicationsFolder = "/Applications";
         if (!Directory.Exists(applicationsFolder))
+        {
+            _logger?.Warning("Applications folder not found at {Path}", applicationsFolder);
             yield break;
+        }
 
         var appBundles = Directory.GetDirectories(applicationsFolder, "*.app");
+        _logger?.Debug("Found {Count} app bundles in /Applications", appBundles.Length);
+
         int totalProcessed = 0;
 
         foreach (var appBundle in appBundles)
@@ -54,9 +69,10 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
                 yield return game;
             }
         }
+        _logger?.Information("App Store scan complete. Found {Count} games.", totalProcessed);
     }
 
-    private static async Task<ImportedGame?> ParseAppBundleAsync(string appBundlePath)
+    private async Task<ImportedGame?> ParseAppBundleAsync(string appBundlePath)
     {
         try
         {
@@ -99,13 +115,14 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
             );
 
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.Warning(ex, "Failed to parse info.plist for {Path}", appBundlePath);
             return null;
         }
     }
 
-    private static async Task<string?> RunPlistBuddyAsync(string plistPath, string key)
+    private async Task<string?> RunPlistBuddyAsync(string plistPath, string key)
     {
         try
         {
@@ -128,8 +145,9 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
 
             return process.ExitCode == 0 ? output.Trim() : null;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.Warning(ex, "Error running PlistBuddy for {Key} in {Path}", key, plistPath);
             return null;
         }
     }
@@ -146,6 +164,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
 
     public Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
+        _logger?.Information("Launching App Store game: {Name} ({InstallPath})", context.Title, context.InstallPath);
         var appPath = context.InstallPath;
         if (string.IsNullOrEmpty(appPath) || !Directory.Exists(appPath))
         {
@@ -175,6 +194,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher
         }
         catch (Exception ex)
         {
+            _logger?.Error(ex, "Failed to launch App Store game {Name}", context.Title);
             return Task.FromResult(LaunchResult.Failed(ex.Message));
         }
     }

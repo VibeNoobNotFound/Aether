@@ -18,6 +18,15 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
     public bool SupportsManualAddition => false;
 
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("EpicPlugin initialized");
+    }
+
     public async Task<bool> CanImportAsync()
     {
         var manifestPaths = GetManifestPaths();
@@ -26,12 +35,23 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
+        _logger?.Information("Starting Epic Games scanning");
         var manifestPaths = GetManifestPaths();
         int totalProcessed = 0;
 
         foreach (var manifestPath in manifestPaths.Where(Directory.Exists))
         {
-            var manifestFiles = Directory.GetFiles(manifestPath, "*.item");
+            _logger?.Debug("Scanning path: {Path}", manifestPath);
+            IList<string> manifestFiles;
+            try
+            {
+                manifestFiles = Directory.GetFiles(manifestPath, "*.item");
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warning(ex, "Error scanning manifest path: {Path}", manifestPath);
+                continue;
+            }
 
             foreach (var manifestFile in manifestFiles)
             {
@@ -51,6 +71,7 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
                 }
             }
         }
+        _logger?.Information("Epic Games scan complete. Found {Count} games.", totalProcessed);
     }
 
     private static List<string> GetManifestPaths()
@@ -91,7 +112,7 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
         return paths;
     }
 
-    private static async Task<ImportedGame?> ParseManifestAsync(string manifestFile)
+    private async Task<ImportedGame?> ParseManifestAsync(string manifestFile)
     {
         try
         {
@@ -124,8 +145,9 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
                 fullExePath
             );
         }
-        catch
+        catch (Exception ex)
         {
+            _logger?.Warning(ex, "Failed to parse manifest: {Path}", manifestFile);
             return null;
         }
     }
@@ -138,6 +160,8 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
 
     public Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
+        _logger?.Information("Launching Epic game: {Name} ({Id})", context.Title, context.ExternalId);
+
         // 1. Try Protocol Launch first (Preferred for reliability/DRM)
         var uri = GetLaunchUri(context.ExternalId);
         if (!string.IsNullOrEmpty(uri))
@@ -156,6 +180,10 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher
                     return Task.FromResult(LaunchHelper.LaunchMacOSApp(context.ExecutablePath));
 
                 return Task.FromResult(LaunchHelper.LaunchExecutable(context.ExecutablePath, context.RunAsAdmin));
+            }
+            else
+            {
+                _logger?.Warning("Executable not found: {Path}", context.ExecutablePath);
             }
         }
 

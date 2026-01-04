@@ -39,6 +39,15 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
     // Shows up in "Add Game" menu
     public bool SupportsManualAddition => true;
 
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("CustomPlugin initialized");
+    }
+
     // In-memory storage for custom games
     // In production, this would be persisted separately or use a service
     private static readonly List<CustomGameEntry> _customGames = new();
@@ -51,6 +60,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
+        _logger?.Information("Scanning Custom Games list ({Count} items)", _customGames.Count);
         int processed = 0;
 
         foreach (var customGame in _customGames)
@@ -64,6 +74,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
                 (double)processed / _customGames.Count * 100
             ));
 
+            _logger?.Debug("Yielding custom game: {Title}", customGame.Title);
             yield return new ImportedGame(
                 customGame.Title,
                 "Custom",
@@ -253,6 +264,7 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
             }
             catch (Exception ex)
             {
+                _logger?.Error(ex, "Error processing AddGame action");
                 return Task.FromResult(WidgetActionResult.Fail($"Error: {ex.Message}"));
             }
         }

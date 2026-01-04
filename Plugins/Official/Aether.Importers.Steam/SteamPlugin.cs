@@ -7,16 +7,24 @@ namespace Aether.Importers.Steam;
 /// <summary>
 /// Steam library importer and metadata provider
 /// </summary>
-public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider, IGameLauncher
+public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.3";
+    public string Version => "1.5.0";
 
-    public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("SteamPlugin initialized");
+    }
+
+    public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
     public bool SupportsManualAddition => false;
 
-    // ILibraryImporter Implementation
     public async Task<bool> CanImportAsync()
     {
         var steamPaths = GetPossibleSteamPaths();
@@ -25,17 +33,26 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
+        _logger?.Information("Starting Steam library scan");
         var steamPaths = GetPossibleSteamPaths();
         var foundPath = steamPaths.FirstOrDefault(Directory.Exists);
 
         if (foundPath == null)
+        {
+            _logger?.Warning("Steam installation not found");
             yield break;
+        }
 
         var libraryFoldersPath = Path.Combine(foundPath, "steamapps", "libraryfolders.vdf");
         if (!File.Exists(libraryFoldersPath))
+        {
+            _logger?.Warning("Library folders VDF not found at {Path}", libraryFoldersPath);
             yield break;
+        }
 
         var libraryFolders = ParseLibraryFolders(libraryFoldersPath);
+        _logger?.Information("Found {Count} library folders", libraryFolders.Count);
+
         int totalProcessed = 0;
 
         foreach (var folder in libraryFolders)
@@ -45,6 +62,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
                 continue;
 
             var manifestFiles = Directory.GetFiles(manifestsPath, "appmanifest_*.acf");
+            _logger?.Debug("Found {Count} manifests in {Path}", manifestFiles.Length, manifestsPath);
 
             foreach (var manifestFile in manifestFiles)
             {
@@ -62,14 +80,20 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
                     yield return game;
                 }
+                else
+                {
+                    _logger?.Warning("Failed to parse manifest: {Path}", manifestFile);
+                }
             }
         }
+        _logger?.Information("Steam scan complete. Found {Count} games.", totalProcessed);
     }
 
     private readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
 
     public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
+        _logger?.Debug("Searching Steam for: {Name}", gameName);
         var results = new List<GameMetadata>();
         try
         {
@@ -107,7 +131,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Steam search failed for {gameName}: {ex.Message}");
+            _logger?.Error(ex, "Steam search failed for {Name}", gameName);
         }
         return results;
     }
@@ -207,7 +231,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching Steam metadata for {gameId}: {ex.Message}");
+            _logger?.Error(ex, "Error fetching Steam metadata for {Id}", gameId);
         }
 
         // Fallback
@@ -320,6 +344,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
     public Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
+        _logger?.Information("Launching Steam game: {Id} args={Args}", context.ExternalId, context.LaunchArguments);
         var uri = GetLaunchUri(context.ExternalId);
         if (string.IsNullOrEmpty(uri))
             return Task.FromResult(LaunchResult.Failed("Invalid Steam App ID"));
@@ -352,6 +377,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         }
         catch (Exception ex)
         {
+            _logger?.Error(ex, "Failed to launch Steam game {Id}", context.ExternalId);
             return Task.FromResult(LaunchResult.Failed(ex.Message));
         }
     }
@@ -366,6 +392,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
     // INewsProvider Implementation
     public async Task<List<NewsItem>> GetNewsAsync(string gameId)
     {
+        _logger?.Debug("Fetching news for: {Id}", gameId);
         try
         {
             var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid={gameId}&count=5&format=json";
@@ -405,7 +432,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching news for {gameId}: {ex.Message}");
+            _logger?.Error(ex, "Error fetching news for {Id}", gameId);
         }
         return new List<NewsItem>();
     }
@@ -428,17 +455,17 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
             {
                 if (i == maxRetries)
                 {
-                    Console.WriteLine($"[Steam] Request failed after {maxRetries} retries: {url} - {ex.Message}");
+                    _logger?.Warning(ex, "Request failed after {Max} retries: {Url}", maxRetries, url);
                     throw; // Rethrow final exception to be caught by caller
                 }
 
                 var delay = Math.Pow(2, i) * 1000; // 1s, 2s, 4s
-                Console.WriteLine($"[Steam] Request failed (attempt {i + 1}/{maxRetries}). Retrying in {delay}ms... ({ex.Message})");
+                _logger?.Debug(ex, "Request failed (attempt {Attempt}/{Max}). Retrying in {Delay}ms", i + 1, maxRetries, delay);
                 await Task.Delay((int)delay);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Steam] Unexpected error: {ex.Message}");
+                _logger?.Error(ex, "Unexpected error in request: {Url}", url);
                 return null;
             }
         }

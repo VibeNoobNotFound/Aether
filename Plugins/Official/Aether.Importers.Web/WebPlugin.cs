@@ -10,11 +10,20 @@ namespace Aether.Importers.Web;
 /// <summary>
 /// Web Importer to add URL shortcuts or Steam Protocols
 /// </summary>
-public class WebPlugin : ILibraryImporter, IGameLauncher
+public class WebPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Web";
     public string Author => "VibeNoobNotFound";
     public string Version => "1.2.0";
+
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("WebPlugin initialized");
+    }
 
     public static class Constants
     {
@@ -40,11 +49,13 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
     {
+        _logger?.Information("Scanning Web Games ({Count} items)", _webGames.Count);
         int processed = 0;
         foreach (var game in _webGames)
         {
             processed++;
             progress?.Report(new ScanProgress("Web", _webGames.Count, processed, game.Title, 0));
+            _logger?.Debug("Yielding web game: {Title} ({Url})", game.Title, game.ExecutablePath);
             yield return game;
         }
     }
@@ -127,6 +138,7 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
             }
             catch (Exception ex)
             {
+                _logger?.Error(ex, "Error adding web game");
                 return Task.FromResult(WidgetActionResult.Fail(ex.Message));
             }
         }
@@ -170,6 +182,7 @@ public class WebPlugin : ILibraryImporter, IGameLauncher
         }
         catch (Exception ex)
         {
+            _logger?.Error(ex, "Error opening URL: {Url}", context.ExecutablePath);
             return LaunchResult.Failed($"Error opening URL: {ex.Message}");
         }
     }

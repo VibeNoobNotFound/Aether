@@ -64,7 +64,7 @@ public class PluginManager : IDisposable
             if (typeof(IPlugin).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
             {
                 var plugin = (IPlugin)Activator.CreateInstance(type)!;
-                
+
                 // Inject storage if plugin implements IStorageAware
                 if (plugin is Aether.PluginSDK.Storage.IStorageAware storageAware)
                 {
@@ -72,7 +72,15 @@ public class PluginManager : IDisposable
                     storageAware.SetStorage(storage);
                     _logger.Debug("Injected storage for plugin: {Name}", plugin.Name);
                 }
-                
+
+                // Inject logger if plugin implements ILoggingAware
+                if (plugin is Aether.PluginSDK.Logging.ILoggingAware loggingAware)
+                {
+                    var pluginLogger = _logger.ForContext(plugin.GetType());
+                    loggingAware.SetLogger(pluginLogger);
+                    _logger.Debug("Injected logger for plugin: {Name}", plugin.Name);
+                }
+
                 // Check Platform Support
                 if (plugin.SupportedPlatforms != null && plugin.SupportedPlatforms.Any())
                 {
@@ -85,7 +93,7 @@ public class PluginManager : IDisposable
                             break;
                         }
                     }
-                    
+
                     if (!isSupported)
                     {
                         _logger.Information("Skipping plugin {Name}: Not supported on current platform", plugin.Name);

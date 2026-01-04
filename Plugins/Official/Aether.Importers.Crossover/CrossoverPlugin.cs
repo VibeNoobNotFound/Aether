@@ -9,11 +9,20 @@ namespace Aether.Importers.Crossover;
 /// <summary>
 /// CrossOver Importer for macOS and Linux
 /// </summary>
-public class CrossoverPlugin : ILibraryImporter, IGameLauncher
+public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "CrossOver";
     public string Author => "VibeNoobNotFound";
     public string Version => "1.0.1";
+
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("CrossoverPlugin initialized");
+    }
 
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS", "Linux" };
     public bool SupportsManualAddition => false;
@@ -56,9 +65,14 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher
     private async IAsyncEnumerable<ImportedGame> ScanMacOsLibrary(IProgress<ScanProgress>? progress)
     {
         var userApps = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications", "CrossOver");
-        if (!Directory.Exists(userApps)) yield break;
+        if (!Directory.Exists(userApps))
+        {
+            _logger?.Warning("CrossOver applications folder not found at: {Path}", userApps);
+            yield break;
+        }
 
         var apps = Directory.GetDirectories(userApps, "*.app");
+        _logger?.Debug("Found {Count} CrossOver apps", apps.Length);
         int processed = 0;
 
         foreach (var app in apps)
@@ -88,9 +102,14 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher
     {
         // Robust method: Check .desktop files created by CrossOver
         var applicationsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "share", "applications");
-        if (!Directory.Exists(applicationsDir)) yield break;
+        if (!Directory.Exists(applicationsDir))
+        {
+            _logger?.Warning("CrossOver applications folder not found at: {Path}", applicationsDir);
+            yield break;
+        }
 
         var desktopFiles = Directory.GetFiles(applicationsDir, "*.desktop");
+        _logger?.Debug("Found {Count} desktop files to scan", desktopFiles.Length);
         int processed = 0;
 
         foreach (var file in desktopFiles)
@@ -140,6 +159,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher
 
     public async Task<LaunchResult> LaunchAsync(LaunchContext context)
     {
+        _logger?.Information("Launching CrossOver game: {Name}", context.Title);
         try
         {
             var startInfo = new ProcessStartInfo();
@@ -193,6 +213,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher
         }
         catch (Exception ex)
         {
+            _logger?.Error(ex, "Failed to launch CrossOver app: {Name}", context.Title);
             return LaunchResult.Failed($"Failed to launch CrossOver app: {ex.Message}");
         }
     }

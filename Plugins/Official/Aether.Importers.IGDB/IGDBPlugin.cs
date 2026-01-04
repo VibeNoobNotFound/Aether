@@ -13,11 +13,20 @@ namespace Aether.Importers.IGDB;
 /// IGDB metadata provider using the official igdb-dotnet library.
 /// Implements IStorageAware for credential persistence.
 /// </summary>
-public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
+public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "IGDB";
     public string Author => "VibeNoobNotFound";
     public string Version => "2.0.0";
+
+    // Logging
+    private Serilog.ILogger? _logger;
+
+    public void SetLogger(Serilog.ILogger logger)
+    {
+        _logger = logger;
+        _logger.Information("IGDBPlugin initialized");
+    }
 
     public static class Constants
     {
@@ -43,15 +52,22 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
     {
         if (_storage == null) return;
 
-        var creds = await _storage.LoadAsync<TwitchCredentials>("credentials");
-        if (creds != null && !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret))
+        try
         {
-            _client = new IGDBClient(
-                creds.ClientId,
-                creds.ClientSecret,
-                new PluginTokenStore(_storage)
-            );
-            Console.WriteLine("IGDB client initialized from stored credentials.");
+            var creds = await _storage.LoadAsync<TwitchCredentials>("credentials");
+            if (creds != null && !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret))
+            {
+                _client = new IGDBClient(
+                    creds.ClientId,
+                    creds.ClientSecret,
+                    new PluginTokenStore(_storage)
+                );
+                _logger?.Information("IGDB client initialized from stored credentials.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error(ex, "Failed to initialize IGDB client");
         }
     }
 
@@ -63,6 +79,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
         if (_client == null)
             return results;
 
+        _logger?.Debug("Searching IGDB for: {Name}", gameName);
         try
         {
             var games = await _client.QueryAsync<IGDBGame>(
@@ -72,6 +89,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
 
             if (games != null)
             {
+                _logger?.Debug("Found {Count} results from IGDB", games.Length);
                 foreach (var game in games)
                 {
                     results.Add(MapToMetadata(game));
@@ -80,7 +98,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"IGDB search failed: {ex.Message}");
+            _logger?.Error(ex, "IGDB search failed for {Name}", gameName);
         }
         return results;
     }
@@ -102,7 +120,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"IGDB fetch failed: {ex.Message}");
+            _logger?.Error(ex, "IGDB fetch failed for {Id}", gameId);
             return null;
         }
     }
@@ -171,6 +189,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
             }
             else if (actionId == Constants.ActionTestAuth)
             {
+                _logger?.Information("Testing IGDB credentials...");
                 // Create temp client to test
                 var testClient = new IGDBClient(
                     clientId,
@@ -186,18 +205,19 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
 
                 if (result != null)
                 {
-                    Console.WriteLine("IGDB authentication successful!");
+                    _logger?.Information("IGDB authentication successful!");
                     return WidgetActionResult.Ok("Authentication successful!");
                 }
                 else
                 {
+                    _logger?.Warning("IGDB authentication failed - no response");
                     return WidgetActionResult.Fail("Authentication failed - no response");
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Widget action failed: {ex.Message}");
+            _logger?.Error(ex, "Widget action failed: {Action}", actionId);
             return WidgetActionResult.Fail(ex.Message);
         }
 
