@@ -509,3 +509,4 @@ Aether.MacOS/AetherIPC/Sources/AetherIPC/*.grpc.swift
 *.swp
 *.swo
 *~
+/Aether.MacOS/Aether.xcodeproj/project.xcworkspace/xcuserdata
