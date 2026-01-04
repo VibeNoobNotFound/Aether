@@ -76,11 +76,11 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider
     }
 
     // IMetadataProvider - Fetches from Steam if AppID is provided
-    public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
+    public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
         // TODO: Implement Steam Web API search by game name
         // This would require Steam Web API key and search endpoint
-        return null;
+        return new List<GameMetadata>();
     }
 
     public async Task<GameMetadata?> GetByIdAsync(string gameId)

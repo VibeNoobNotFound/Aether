@@ -6,17 +6,17 @@ namespace Aether.PluginSDK.Library;
 public interface IMetadataProvider
 {
     string Name { get; } // "Steam", "IGDB", "Custom", etc.
-    
+
     /// <summary>
     /// Search for game metadata by name
     /// </summary>
-    Task<GameMetadata?> SearchAsync(string gameName, string? platform = null);
-    
+    Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null);
+
     /// <summary>
     /// Get metadata by external ID (e.g., Steam AppID)
     /// </summary>
     Task<GameMetadata?> GetByIdAsync(string gameId);
-    
+
     /// <summary>
     /// Get additional media for a game
     /// </summary>

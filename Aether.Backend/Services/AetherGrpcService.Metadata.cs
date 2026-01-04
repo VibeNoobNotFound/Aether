@@ -26,28 +26,31 @@ public partial class AetherGrpcService
             {
                 try
                 {
-                    var metadata = await provider.SearchAsync(request.Query);
-                    if (metadata != null)
+                    var metadatas = await provider.SearchAsync(request.Query);
+                    if (metadatas != null)
                     {
-                        var result = new MetadataSearchResult
+                        foreach (var metadata in metadatas)
                         {
-                            Provider = provider.Name,
-                            ExternalId = metadata.ExternalId ?? "",
-                            Title = metadata.Title ?? request.Query,
-                            Developer = metadata.Developer ?? "",
-                            Publisher = metadata.Publisher ?? "",
-                            Description = metadata.Description ?? "",
-                            CoverImageUrl = metadata.CoverImageUrl ?? "",
-                            LogoImageUrl = metadata.LogoImageUrl ?? "",
-                            ReleaseYear = metadata.ReleaseDate?.Year ?? 0
-                        };
+                            var result = new MetadataSearchResult
+                            {
+                                Provider = provider.Name,
+                                ExternalId = metadata.ExternalId ?? "",
+                                Title = metadata.Title ?? request.Query,
+                                Developer = metadata.Developer ?? "",
+                                Publisher = metadata.Publisher ?? "",
+                                Description = metadata.Description ?? "",
+                                CoverImageUrl = metadata.CoverImageUrl ?? "",
+                                LogoImageUrl = metadata.LogoImageUrl ?? "",
+                                ReleaseYear = metadata.ReleaseDate?.Year ?? 0
+                            };
 
-                        // Add arrays
-                        if (metadata.Videos != null) result.Videos.AddRange(metadata.Videos);
-                        if (metadata.Screenshots != null) result.Screenshots.AddRange(metadata.Screenshots);
-                        if (metadata.Genres != null) result.Genres.AddRange(metadata.Genres);
+                            // Add arrays
+                            if (metadata.Videos != null) result.Videos.AddRange(metadata.Videos);
+                            if (metadata.Screenshots != null) result.Screenshots.AddRange(metadata.Screenshots);
+                            if (metadata.Genres != null) result.Genres.AddRange(metadata.Genres);
 
-                        response.Results.Add(result);
+                            response.Results.Add(result);
+                        }
                     }
                 }
                 catch (Exception ex)

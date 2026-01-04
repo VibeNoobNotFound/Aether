@@ -1,18 +1,23 @@
 using System.Text.Json;
 using Aether.PluginSDK;
 using Aether.PluginSDK.Library;
+using Aether.PluginSDK.Storage;
 using Aether.PluginSDK.UI;
+using IGDB;
+using IGDBGame = IGDB.Models.Game;
+using IGDBImageSize = IGDB.ImageSize;
 
 namespace Aether.Importers.IGDB;
 
 /// <summary>
-/// IGDB metadata provider using Twitch OAuth
+/// IGDB metadata provider using the official igdb-dotnet library.
+/// Implements IStorageAware for credential persistence.
 /// </summary>
-public class IGDBPlugin : IPlugin, IMetadataProvider
+public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware
 {
     public string Name => "IGDB";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.1.0";
+    public string Version => "2.0.0";
 
     public static class Constants
     {
@@ -24,79 +29,82 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
 
-    private readonly HttpClient _httpClient = new HttpClient();
-    private string? _clientId;
-    private string? _clientSecret;
-    private string? _accessToken;
-    private DateTime _tokenExpiry = DateTime.MinValue;
+    private IPluginStorage? _storage;
+    private IGDBClient? _client;
+
+    // IStorageAware implementation
+    public void SetStorage(IPluginStorage storage)
+    {
+        _storage = storage;
+        _ = InitializeClientAsync(); // Fire and forget
+    }
+
+    private async Task InitializeClientAsync()
+    {
+        if (_storage == null) return;
+
+        var creds = await _storage.LoadAsync<TwitchCredentials>("credentials");
+        if (creds != null && !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret))
+        {
+            _client = new IGDBClient(
+                creds.ClientId,
+                creds.ClientSecret,
+                new PluginTokenStore(_storage)
+            );
+            Console.WriteLine("IGDB client initialized from stored credentials.");
+        }
+    }
 
     // IMetadataProvider Implementation
-    public async Task<GameMetadata?> SearchAsync(string gameName, string? platform = null)
+    // IMetadataProvider Implementation
+    public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
-        if (!await EnsureAuthenticated())
-            return null;
+        var results = new List<GameMetadata>();
+        if (_client == null)
+            return results;
 
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.igdb.com/v4/games");
-            request.Headers.Add("Client-ID", _clientId);
-            request.Headers.Add("Authorization", $"Bearer {_accessToken}");
+            var games = await _client.QueryAsync<IGDBGame>(
+                IGDBClient.Endpoints.Games,
+                $"search \"{EscapeQuery(gameName)}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*; limit 10;"
+            );
 
-            // IGDB uses a custom query language
-            var query = $"search \"{gameName}\"; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url,videos.video_id; limit 1;";
-            request.Content = new StringContent(query);
-
-            var response = await _httpClient.SendAsync(request);
-            var content = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(content);
-            var games = doc.RootElement;
-
-            if (games.GetArrayLength() > 0)
+            if (games != null)
             {
-                var game = games[0];
-                return ParseGameMetadata(game);
+                foreach (var game in games)
+                {
+                    results.Add(MapToMetadata(game));
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"IGDB search failed: {ex.Message}");
         }
-
-        return null;
+        return results;
     }
 
     public async Task<GameMetadata?> GetByIdAsync(string gameId)
     {
-        if (!await EnsureAuthenticated())
+        if (_client == null || !int.TryParse(gameId, out var id))
             return null;
 
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.igdb.com/v4/games");
-            request.Headers.Add("Client-ID", _clientId);
-            request.Headers.Add("Authorization", $"Bearer {_accessToken}");
+            var games = await _client.QueryAsync<IGDBGame>(
+                IGDBClient.Endpoints.Games,
+                $"where id = {id}; fields name,summary,storyline,cover.*,first_release_date,involved_companies.company.name,genres.name,screenshots.*,videos.*; limit 1;"
+            );
 
-            var query = $"where id = {gameId}; fields name,summary,cover.url,first_release_date,involved_companies.company.name,genres.name,screenshots.url,storyline,videos.video_id; limit 1;";
-            request.Content = new StringContent(query);
-
-            var response = await _httpClient.SendAsync(request);
-            var content = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(content);
-            var games = doc.RootElement;
-
-            if (games.GetArrayLength() > 0)
-            {
-                return ParseGameMetadata(games[0]);
-            }
+            var game = games.FirstOrDefault();
+            return game != null ? MapToMetadata(game) : null;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"IGDB fetch failed: {ex.Message}");
+            return null;
         }
-
-        return null;
     }
 
     public Task<List<string>> GetScreenshotsAsync(string gameId) => Task.FromResult(new List<string>());
@@ -113,7 +121,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
             {
                 WidgetBuilder.Section("Twitch API Credentials", "Required for IGDB metadata. Get credentials at dev.twitch.tv",
                     WidgetBuilder.TextInput(Constants.ClientId, "Client ID", placeholder: "Enter your Twitch Client ID"),
-                    WidgetBuilder.TextInput(Constants.ClientSecret, "Client Secret", placeholder: "Enter your Twitch Client Secret"),
+                    WidgetBuilder.TextInput(Constants.ClientSecret, "Client Secret", placeholder: "Enter your Twitch Client Secret", secure: true),
                     WidgetBuilder.Row(
                         WidgetBuilder.Button("Test Connection", Constants.ActionTestAuth),
                         WidgetBuilder.PrimaryButton("Save Credentials", Constants.ActionSaveCredentials)
@@ -124,42 +132,66 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
         return new List<Widget>();
     }
 
-    public List<Widget> GetWidgets(Game game) => new List<Widget>();
+    public List<Widget> GetWidgets(Aether.PluginSDK.Game game) => new List<Widget>();
 
     public async Task<WidgetActionResult> OnWidgetAction(string actionId, string payload)
     {
+        if (_storage == null)
+            return WidgetActionResult.Fail("Storage not initialized");
+
         try
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);
+            if (data == null)
+                return WidgetActionResult.Fail("Invalid payload");
+
+            var clientId = data.GetValueOrDefault(Constants.ClientId);
+            var clientSecret = data.GetValueOrDefault(Constants.ClientSecret);
+
+            if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                return WidgetActionResult.Fail("Client ID and Secret are required");
 
             if (actionId == Constants.ActionSaveCredentials)
             {
-                if (data != null)
+                await _storage.SaveAsync("credentials", new TwitchCredentials
                 {
-                    _clientId = data.GetValueOrDefault(Constants.ClientId);
-                    _clientSecret = data.GetValueOrDefault(Constants.ClientSecret);
+                    ClientId = clientId,
+                    ClientSecret = clientSecret
+                });
 
-                    // TODO: Persist to secure storage
-                    Console.WriteLine("IGDB credentials saved.");
-                }
+                // Reinitialize client with new credentials
+                _client = new IGDBClient(
+                    clientId,
+                    clientSecret,
+                    new PluginTokenStore(_storage)
+                );
+
+                Console.WriteLine("IGDB credentials saved.");
+                return WidgetActionResult.Ok("Credentials saved successfully!");
             }
             else if (actionId == Constants.ActionTestAuth)
             {
-                if (data != null)
-                {
-                    _clientId = data.GetValueOrDefault(Constants.ClientId);
-                    _clientSecret = data.GetValueOrDefault(Constants.ClientSecret);
+                // Create temp client to test
+                var testClient = new IGDBClient(
+                    clientId,
+                    clientSecret,
+                    new PluginTokenStore(_storage)
+                );
 
-                    if (await GetAccessToken())
-                    {
-                        Console.WriteLine("IGDB authentication successful!");
-                        return WidgetActionResult.Ok("Authentication successful!");
-                    }
-                    else
-                    {
-                        Console.WriteLine("IGDB authentication failed.");
-                        return WidgetActionResult.Fail("Authentication failed.");
-                    }
+                // Try a simple query
+                var result = await testClient.QueryAsync<IGDBGame>(
+                    IGDBClient.Endpoints.Games,
+                    "fields name; limit 1;"
+                );
+
+                if (result != null)
+                {
+                    Console.WriteLine("IGDB authentication successful!");
+                    return WidgetActionResult.Ok("Authentication successful!");
+                }
+                else
+                {
+                    return WidgetActionResult.Fail("Authentication failed - no response");
                 }
             }
         }
@@ -173,131 +205,92 @@ public class IGDBPlugin : IPlugin, IMetadataProvider
     }
 
     public Task OnLibraryScan(LibraryContext context) => Task.CompletedTask;
-    public Task OnGameLaunched(Game game) => Task.CompletedTask;
-    public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
+    public Task OnGameLaunched(Aether.PluginSDK.Game game) => Task.CompletedTask;
+    public Task OnGameStopped(Aether.PluginSDK.Game game, TimeSpan sessionDuration) => Task.CompletedTask;
 
     // Helper Methods
-    private async Task<bool> EnsureAuthenticated()
+    private static string EscapeQuery(string input)
     {
-        if (string.IsNullOrEmpty(_clientId) || string.IsNullOrEmpty(_clientSecret))
-            return false;
-
-        if (DateTime.UtcNow < _tokenExpiry && !string.IsNullOrEmpty(_accessToken))
-            return true;
-
-        return await GetAccessToken();
+        return input.Replace("\"", "\\\"");
     }
 
-    private async Task<bool> GetAccessToken()
+    private GameMetadata MapToMetadata(IGDBGame game)
     {
-        try
+        // Cover URL
+        string? coverUrl = null;
+        if (game.Cover?.Value?.ImageId != null)
         {
-            var url = $"https://id.twitch.tv/oauth2/token?client_id={_clientId}&client_secret={_clientSecret}&grant_type=client_credentials";
-            var response = await _httpClient.PostAsync(url, null);
-            var content = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(content);
-            if (doc.RootElement.TryGetProperty("access_token", out var token))
-            {
-                _accessToken = token.GetString();
-
-                if (doc.RootElement.TryGetProperty("expires_in", out var expiresIn))
-                {
-                    _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn.GetInt32() - 60); // Refresh 1 min early
-                }
-
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to get Twitch token: {ex.Message}");
+            coverUrl = ImageHelper.GetImageUrl(
+                imageId: game.Cover.Value.ImageId,
+                size: IGDBImageSize.CoverBig,
+                retina: false
+            );
         }
 
-        return false;
-    }
-
-    private GameMetadata? ParseGameMetadata(JsonElement game)
-    {
-        try
+        // Screenshots
+        string[]? screenshots = null;
+        if (game.Screenshots?.Values != null)
         {
-            // Cover URL needs prefix
-            string? coverUrl = null;
-            if (game.TryGetProperty("cover", out var cover) && cover.TryGetProperty("url", out var coverUrlProp))
-            {
-                coverUrl = "https:" + coverUrlProp.GetString()?.Replace("t_thumb", "t_cover_big");
-            }
-
-            // Parse genres
-            string[]? genres = null;
-            if (game.TryGetProperty("genres", out var genresArray))
-            {
-                genres = genresArray.EnumerateArray()
-                    .Select(g => g.TryGetProperty("name", out var n) ? n.GetString() : null)
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .Cast<string>()
-                    .ToArray();
-            }
-
-            // Parse screenshots
-            string[]? screenshots = null;
-            if (game.TryGetProperty("screenshots", out var screenshotsArray))
-            {
-                screenshots = screenshotsArray.EnumerateArray()
-                    .Select(s => s.TryGetProperty("url", out var u) ? "https:" + u.GetString()?.Replace("t_thumb", "t_screenshot_big") : null)
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .Cast<string>()
-                    .ToArray();
-            }
-
-            // Parse developer
-            string? developer = null;
-            if (game.TryGetProperty("involved_companies", out var companies))
-            {
-                foreach (var company in companies.EnumerateArray())
-                {
-                    if (company.TryGetProperty("company", out var comp) && comp.TryGetProperty("name", out var name))
-                    {
-                        developer = name.GetString();
-                        break;
-                    }
-                }
-            }
-
-            // Parse release date
-            DateTime? releaseDate = null;
-            if (game.TryGetProperty("first_release_date", out var releaseProp))
-            {
-                releaseDate = DateTimeOffset.FromUnixTimeSeconds(releaseProp.GetInt64()).DateTime;
-            }
-
-            // Parse videos
-            string[]? videos = null;
-            if (game.TryGetProperty("videos", out var videosArray))
-            {
-                videos = videosArray.EnumerateArray()
-                    .Select(v => v.TryGetProperty("video_id", out var id) ? "https://www.youtube.com/watch?v=" + id.GetString() : null)
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .Cast<string>()
-                    .ToArray();
-            }
-
-            return new GameMetadata
-            {
-                Description = game.TryGetProperty("summary", out var summary) ? summary.GetString() : null,
-                ShortDescription = game.TryGetProperty("storyline", out var storyline) ? storyline.GetString() : null,
-                CoverImageUrl = coverUrl,
-                Genres = genres,
-                Screenshots = screenshots,
-                Videos = videos,
-                Developer = developer,
-                ReleaseDate = releaseDate
-            };
+            screenshots = game.Screenshots.Values
+                .Where(s => s.ImageId != null)
+                .Select(s => ImageHelper.GetImageUrl(
+                    imageId: s.ImageId!,
+                    size: IGDBImageSize.ScreenshotBig,
+                    retina: false
+                ))
+                .ToArray();
         }
-        catch (Exception ex)
+
+        // Genres
+        string[]? genres = null;
+        if (game.Genres?.Values != null)
         {
-            Console.WriteLine($"Failed to parse IGDB metadata: {ex.Message}");
-            return null;
+            genres = game.Genres.Values
+                .Where(g => !string.IsNullOrEmpty(g.Name))
+                .Select(g => g.Name!)
+                .ToArray();
         }
+
+        // Developer & Publisher
+        string? developer = null;
+        string? publisher = null;
+        if (game.InvolvedCompanies?.Values != null)
+        {
+            var devCompany = game.InvolvedCompanies.Values.FirstOrDefault(c => c.Developer == true);
+            var pubCompany = game.InvolvedCompanies.Values.FirstOrDefault(c => c.Publisher == true);
+
+            developer = devCompany?.Company?.Value?.Name;
+            publisher = pubCompany?.Company?.Value?.Name;
+        }
+
+        // Videos
+        string[]? videos = null;
+        if (game.Videos?.Values != null)
+        {
+            videos = game.Videos.Values
+                .Where(v => !string.IsNullOrEmpty(v.VideoId))
+                .Select(v => $"https://www.youtube.com/watch?v={v.VideoId}")
+                .ToArray();
+        }
+
+        // Release date
+        DateTime? releaseDate = game.FirstReleaseDate?.DateTime;
+
+        return new GameMetadata
+        {
+            ExternalId = game.Id.ToString(),
+            Title = game.Name ?? "Unknown",
+            Description = game.Summary,
+            ShortDescription = game.Storyline,
+            CoverImageUrl = coverUrl,
+            BackgroundImageUrl = screenshots?.FirstOrDefault(), // Use first screenshot as background
+            Genres = genres,
+            Screenshots = screenshots,
+            Videos = videos,
+            Developer = developer,
+            Publisher = publisher,
+            ReleaseDate = releaseDate
+        };
     }
 }
+
