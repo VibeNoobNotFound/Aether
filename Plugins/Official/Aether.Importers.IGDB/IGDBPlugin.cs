@@ -157,6 +157,9 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
         if (_storage == null)
             return WidgetActionResult.Fail("Storage not initialized");
 
+        if (string.IsNullOrWhiteSpace(payload))
+            return WidgetActionResult.Fail("Invalid payload: Empty");
+
         try
         {
             var data = JsonSerializer.Deserialize<Dictionary<string, string>>(payload);

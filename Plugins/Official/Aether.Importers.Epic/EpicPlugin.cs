@@ -9,7 +9,7 @@ namespace Aether.Importers.Epic;
 /// <summary>
 /// Epic Games Store library importer
 /// </summary>
-public class EpicPlugin : ILibraryImporter, IGameLauncher
+public class EpicPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Epic Games";
     public string Author => "VibeNoobNotFound";

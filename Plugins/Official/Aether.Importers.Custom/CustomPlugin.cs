@@ -15,7 +15,7 @@ namespace Aether.Importers.Custom;
 /// Custom game importer for manually added games
 /// Allows users to add any game and optionally fetch metadata from Steam
 /// </summary>
-public class CustomPlugin : ILibraryImporter, IMetadataProvider
+public class CustomPlugin : ILibraryImporter, IMetadataProvider, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Custom";
     public string Author => "VibeNoobNotFound";

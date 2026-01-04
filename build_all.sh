@@ -60,8 +60,11 @@ copy_plugin() {
         # Copy all DLLs (dependencies included)
         cp "$src_dir"/*.dll "$PLUGIN_DIR/"
         
-        # Remove Aether.PluginSDK.dll to prevent type conflicts
+        # Remove shared assemblies to prevent type conflicts (PluginLoadContext handles this, but we clean up to be safe)
         rm -f "$PLUGIN_DIR/Aether.PluginSDK.dll"
+        rm -f "$PLUGIN_DIR/Serilog.dll"
+        rm -f "$PLUGIN_DIR/Serilog.Sinks.File.dll"
+        rm -f "$PLUGIN_DIR/Google.Protobuf.dll"
         
         echo "✅ Deployed $dll_name and dependencies to plugins folder"
     else

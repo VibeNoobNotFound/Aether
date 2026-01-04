@@ -11,4 +11,8 @@
     <ProjectReference Include="..\..\..\Aether.PluginSDK\Aether.PluginSDK.csproj" />
   </ItemGroup>
 
+  <Target Name="CopyPluginToBackend" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="../../../Aether.Backend/bin/$(Configuration)/$(TargetFramework)/plugins" />
+  </Target>
+
 </Project>

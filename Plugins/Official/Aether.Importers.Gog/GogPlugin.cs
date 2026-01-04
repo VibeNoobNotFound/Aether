@@ -7,7 +7,7 @@ using Aether.PluginSDK.UI;
 
 namespace Aether.Importers.Gog;
 
-public class GogPlugin : ILibraryImporter, IGameLauncher
+public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";

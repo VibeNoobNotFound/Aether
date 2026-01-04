@@ -67,6 +67,7 @@
 				"HelperTools/protobuf-net.Core.dll",
 				"HelperTools/protobuf-net.dll",
 				HelperTools/RestEase.dll,
+				HelperTools/Serilog.dll,
 				HelperTools/SteamKit2.dll,
 				HelperTools/System.IO.Hashing.dll,
 				HelperTools/ZstdSharp.dll,

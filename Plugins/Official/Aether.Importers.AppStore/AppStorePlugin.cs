@@ -9,7 +9,7 @@ namespace Aether.Importers.AppStore;
 /// <summary>
 /// macOS App Store and .app bundle importer
 /// </summary>
-public class AppStorePlugin : ILibraryImporter, IGameLauncher
+public class AppStorePlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";

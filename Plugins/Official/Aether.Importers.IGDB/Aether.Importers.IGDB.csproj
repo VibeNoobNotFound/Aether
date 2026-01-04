@@ -15,4 +15,8 @@
     <PackageReference Include="IGDB" Version="4.0.0" />
   </ItemGroup>
 
+  <Target Name="CopyPluginToBackend" AfterTargets="Build">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="../../../Aether.Backend/bin/$(Configuration)/$(TargetFramework)/plugins" />
+  </Target>
+
 </Project>

@@ -17,6 +17,15 @@ public class PluginLoadContext : AssemblyLoadContext
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        // Explicitly ignore shared assemblies to ensure they are loaded from the default context
+        if (assemblyName.Name == "Aether.PluginSDK" || 
+            assemblyName.Name == "Serilog" ||
+            assemblyName.Name == "Serilog.Sinks.File" ||
+            assemblyName.Name == "Google.Protobuf") 
+        {
+            return null;
+        }
+
         // Try to resolve from plugin directory first
         var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
         if (assemblyPath != null)
