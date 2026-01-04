@@ -32,7 +32,12 @@ public class PluginStorageService : IPluginStorage, IDisposable
     public Task SaveAsync<T>(string key, T value)
     {
         var json = STJ.JsonSerializer.Serialize(value);
-        var entry = new StorageEntry { Key = key, ValueJson = json, TypeName = typeof(T).FullName ?? typeof(T).Name };
+        var existing = _collection.FindOne(x => x.Key == key);
+
+        var entry = existing ?? new StorageEntry { Key = key };
+        entry.ValueJson = json;
+        entry.TypeName = typeof(T).FullName ?? typeof(T).Name;
+
         _collection.Upsert(entry);
         return Task.CompletedTask;
     }

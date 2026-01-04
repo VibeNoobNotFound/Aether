@@ -29,14 +29,14 @@ public static class WidgetBuilder
     }
 
     public static Widget Row(params Widget[] children) => Container(ContainerOrientation.Horizontal, children);
-    
+
     public static Widget Column(params Widget[] children) => Container(ContainerOrientation.Vertical, children);
 
     public static Widget Section(string title, string description, params Widget[] children)
     {
         var sectionHeader = Text(title, TextVariant.SectionHeader);
         var descWidget = Text(description, TextVariant.Caption);
-        
+
         var list = new List<Widget> { sectionHeader, descWidget };
         list.AddRange(children);
 
@@ -58,7 +58,7 @@ public static class WidgetBuilder
         return new Widget(container) { Id = id };
     }
 
-    public static Widget TextInput(string id, string label, string? placeholder = null, bool required = false, bool secure = false)
+    public static Widget TextInput(string id, string label, string? placeholder = null, bool required = false, bool secure = false, string initialValue = "")
     {
         return new Widget(new TextInputContent
         {
@@ -66,7 +66,8 @@ public static class WidgetBuilder
             Label = label,
             Placeholder = placeholder,
             IsRequired = required,
-            IsSecure = secure
+            IsSecure = secure,
+            InitialValue = initialValue
         });
     }
 

@@ -96,7 +96,9 @@ struct PluginSetupView: View {
             // So payload passed from renderer is "Submit" (action.type)
 
             var finalPayload = payload
-            if payload == "Submit" {
+            // If payload == "Submit", we send the form values
+            // Or if payload is empty and we have form values (implicit submission context)
+            if payload == "Submit" || (payload.isEmpty && !formValues.isEmpty) {
                 // Serialize form data
                 if let data = try? JSONEncoder().encode(formValues),
                     let json = String(data: data, encoding: .utf8)
@@ -119,10 +121,10 @@ struct PluginSetupView: View {
                     dismiss()
                     await appState.refreshLibrary()
                 } else {
-                    errorMessage = response.message
+                    errorMessage = "\(response.message) and final payload: \(finalPayload)"
                 }
             } catch {
-                errorMessage = "Action failed: \(error.localizedDescription)"
+                errorMessage = "Action failed: \(error.localizedDescription), final payload: \(finalPayload)"
             }
         }
     }

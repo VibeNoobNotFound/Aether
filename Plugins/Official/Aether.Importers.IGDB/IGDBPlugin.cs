@@ -135,11 +135,34 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
     {
         if (location == WidgetLocation.Settings)
         {
+            var clientId = "";
+            var clientSecret = "";
+
+            if (_storage != null)
+            {
+                // Synchronous load for UI population - usually fast with LiteDB
+                // Using .Result is generally discouraged but GetPluginWidgets is synchronous.
+                // A better approach would be caching credentials during InitializeClientAsync.
+                try
+                {
+                    var creds = _storage.LoadAsync<TwitchCredentials>("credentials").Result;
+                    if (creds != null)
+                    {
+                        clientId = creds.ClientId;
+                        clientSecret = creds.ClientSecret;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Warning(ex, "Failed to load credentials for widgets");
+                }
+            }
+
             return new List<Widget>
             {
                 WidgetBuilder.Section("Twitch API Credentials", "Required for IGDB metadata. Get credentials at dev.twitch.tv",
-                    WidgetBuilder.TextInput(Constants.ClientId, "Client ID", placeholder: "Enter your Twitch Client ID"),
-                    WidgetBuilder.TextInput(Constants.ClientSecret, "Client Secret", placeholder: "Enter your Twitch Client Secret", secure: true),
+                    WidgetBuilder.TextInput(Constants.ClientId, "Client ID", placeholder: "Enter your Twitch Client ID", initialValue: clientId),
+                    WidgetBuilder.TextInput(Constants.ClientSecret, "Client Secret", placeholder: "Enter your Twitch Client Secret", secure: true, initialValue: clientSecret),
                     WidgetBuilder.Row(
                         WidgetBuilder.Button("Test Connection", Constants.ActionTestAuth),
                         WidgetBuilder.PrimaryButton("Save Credentials", Constants.ActionSaveCredentials)
@@ -187,7 +210,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
                     new PluginTokenStore(_storage)
                 );
 
-                Console.WriteLine("IGDB credentials saved.");
+                _logger?.Information("IGDB credentials saved.");
                 return WidgetActionResult.Ok("Credentials saved successfully!");
             }
             else if (actionId == Constants.ActionTestAuth)
