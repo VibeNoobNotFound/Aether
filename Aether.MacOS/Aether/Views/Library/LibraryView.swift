@@ -151,9 +151,11 @@ struct LibraryView: View {
         .sheet(item: $selectedPlugin) { plugin in
             LibraryAddMenuView(pluginName: plugin.name)
                 .frame(minWidth: 500, minHeight: 400)
+                .presentationBackground(.clear)
         }
         .sheet(isPresented: $showCollectionEditor) {
             CollectionEditorSheet()
+                .presentationBackground(.clear)
         }
     }
 }

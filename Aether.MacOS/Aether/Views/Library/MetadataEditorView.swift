@@ -261,6 +261,7 @@ struct MetadataEditorView: View {
                         }
                     }
                 )
+                .presentationBackground(.clear)
             }
         }
         .frame(minWidth: 600, minHeight: 700)
@@ -328,45 +329,48 @@ struct SearchResultCard: View {
     let action: () -> Void
 
     var body: some View {
-        GlassCard(isHoverable: true, action: action) {
-            HStack(spacing: 16) {
-                AsyncImage(url: URL(string: result.coverImageUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                }
-                .frame(width: 60, height: 90)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
+        Button(action: action) {
+            GlassCard(isHoverable: true) {
+                HStack(spacing: 16) {
+                    AsyncImage(url: URL(string: result.coverImageUrl)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                    }
+                    .frame(width: 60, height: 90)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(result.title)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(result.developer)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    if result.releaseYear > 0 {
-                        Text(String(result.releaseYear))
-                            .font(.caption)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(result.title)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                        Text(result.developer)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        if result.releaseYear > 0 {
+                            Text(String(result.releaseYear))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+
+                    Spacer()
+
+                    Text(result.provider)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background {
+                            GlassCard(padding: 0, cornerRadius: 100) { Color.clear }
+                        }
+                        .foregroundStyle(.blue)
                 }
-
-                Spacer()
-
-                Text(result.provider)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background {
-                        GlassCard(padding: 0, cornerRadius: 100) { Color.clear }
-                    }
-                    .foregroundStyle(.blue)
             }
         }
+        .buttonStyle(.plain)
     }
 }
 

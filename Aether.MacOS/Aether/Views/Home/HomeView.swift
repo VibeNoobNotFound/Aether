@@ -102,12 +102,14 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showCollectionEditor) {
             CollectionEditorSheet()
+                .presentationBackground(.clear)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openCollectionEditor)) { _ in
             showCollectionEditor = true
         }
         .sheet(isPresented: $showCarouselEditor) {
             CarouselEditorSheet()
+                .presentationBackground(.clear)
         }
     }
 }

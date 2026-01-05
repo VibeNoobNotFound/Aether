@@ -109,6 +109,7 @@ struct GameDetailView: View {
         .sheet(isPresented: $showingMetadataEditor) {
             MetadataEditorView(game: game)
                 .environmentObject(appState)
+                .presentationBackground(.clear)
         }
     }
 

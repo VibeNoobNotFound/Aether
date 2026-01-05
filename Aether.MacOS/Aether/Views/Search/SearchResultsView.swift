@@ -11,54 +11,57 @@ struct SearchResultsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Filter Bar
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    // Dynamic Importer Filters from AppState
-                    ForEach(viewModel.availableImporters) { plugin in
-                        FilterChip(
-                            title: plugin.name,
-                            icon: "gamecontroller",
-                            isSelected: viewModel.filterPlatform == plugin.name
-                        ) {
-                            if viewModel.filterPlatform == plugin.name {
-                                viewModel.filterPlatform = nil
-                            } else {
-                                viewModel.filterPlatform = plugin.name
+            ZStack(){
+                GlassCard(padding: 6, cornerRadius: 16, isHoverable: false){
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            // Dynamic Importer Filters from AppState
+                            ForEach(viewModel.availableImporters) { plugin in
+                                FilterChip(
+                                    title: plugin.name,
+                                    icon: "gamecontroller",
+                                    isSelected: viewModel.filterPlatform == plugin.name
+                                ) {
+                                    if viewModel.filterPlatform == plugin.name {
+                                        viewModel.filterPlatform = nil
+                                    } else {
+                                        viewModel.filterPlatform = plugin.name
+                                    }
+                                }
                             }
+                            
+                            // Sort Options
+                            Menu {
+                                Picker("Sort By", selection: $viewModel.sortBy) {
+                                    Text("Relevance").tag(Aether_LibrarySearchRequest.SortOption.relevance)
+                                    Text("Name").tag(Aether_LibrarySearchRequest.SortOption.name)
+                                    Text("Date Added").tag(
+                                        Aether_LibrarySearchRequest.SortOption.releaseDate)
+                                    Text("Playtime").tag(Aether_LibrarySearchRequest.SortOption.playtime)
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                    Text("Sort")
+                                }
+                                .font(.system(size: 13, weight: .medium))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(.regularMaterial)  // Standard macOS material
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                )
+                            }
+                            .menuStyle(.borderlessButton)
+                            .fixedSize()
                         }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
                     }
-
-                    // Sort Options
-                    Menu {
-                        Picker("Sort By", selection: $viewModel.sortBy) {
-                            Text("Relevance").tag(Aether_LibrarySearchRequest.SortOption.relevance)
-                            Text("Name").tag(Aether_LibrarySearchRequest.SortOption.name)
-                            Text("Date Added").tag(
-                                Aether_LibrarySearchRequest.SortOption.releaseDate)
-                            Text("Playtime").tag(Aether_LibrarySearchRequest.SortOption.playtime)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.arrow.down")
-                            Text("Sort")
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.regularMaterial)  // Standard macOS material
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-            }
-            .background(.regularMaterial)  // Use material instead of opacity black for better glass effect
+            }.padding(.horizontal,12)
 
             // Results Grid
             ScrollView {

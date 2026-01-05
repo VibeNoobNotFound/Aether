@@ -45,44 +45,86 @@ struct SettingsView: View {
                     // GENERAL SECTION
                     VStack(alignment: .leading, spacing: 16) {
                         SectionHeader(title: "GENERAL")
-
+                        
                         // Appearance Tile
                         SettingsTile {
-                            HStack(spacing: 16) {
-                                SettingsIcon(icon: "sidebar.left", color: .orange)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Navigation Style")
-                                        .font(.body)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(.white)
-                                    Text("Choose between sidebar or top navigation")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            VStack(spacing: 0) {
+                                HStack(spacing: 16) {
+                                    SettingsIcon(icon: "sidebar.left", color: .orange)
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Navigation Style")
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.white)
+                                        Text("Choose between sidebar or top navigation")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Picker(
+                                        "",
+                                        selection: Binding(
+                                            get: {
+                                                UserDefaults.standard.bool(forKey: "useTopNavigation")
+                                            },
+                                            set: {
+                                                UserDefaults.standard.set(
+                                                    $0, forKey: "useTopNavigation")
+                                            }
+                                        )
+                                    ) {
+                                        Text("Sidebar").tag(false)
+                                        Text("Top").tag(true)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .frame(width: 150)
                                 }
-
-                                Spacer()
-
-                                Picker(
-                                    "",
-                                    selection: Binding(
-                                        get: {
-                                            UserDefaults.standard.bool(forKey: "useTopNavigation")
-                                        },
-                                        set: {
-                                            UserDefaults.standard.set(
-                                                $0, forKey: "useTopNavigation")
-                                        }
-                                    )
-                                ) {
-                                    Text("Sidebar").tag(false)
-                                    Text("Top").tag(true)
+                                .padding()
+                                
+                                
+                                Divider().background(.white.opacity(0.1))
+                                
+                                HStack(spacing: 16) {
+                                    SettingsIcon(icon: "square.stack.3d.up", color: .blue)
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Game Card Style")
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.white)
+                                        Text("Use Liquid Glass effect on game cards")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Picker(
+                                        "",
+                                        selection: Binding(
+                                            get: {
+                                                UserDefaults.standard.bool(
+                                                    forKey: "useLiquidGlassCards")
+                                            },
+                                            set: {
+                                                UserDefaults.standard.set(
+                                                    $0, forKey: "useLiquidGlassCards")
+                                            }
+                                        )
+                                    ) {
+                                        Text("Standard").tag(false)
+                                        Text("Liquid Glass").tag(true)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .frame(width: 180)
                                 }
-                                .pickerStyle(.segmented)
-                                .frame(width: 150)
+                                .padding()
                             }
                         }
-
+                    
                         // About Tile
                         SettingsTile {
                             HStack(spacing: 16) {

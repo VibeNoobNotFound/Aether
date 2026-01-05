@@ -45,7 +45,7 @@ struct CollectionRowView: View {
                     .padding(.bottom, 20)
                     .padding(.top, 10)
                 }
-                .frame(minHeight: 400)
+                .frame(minHeight: 350)
             }
             .padding(.top, 10)
         }

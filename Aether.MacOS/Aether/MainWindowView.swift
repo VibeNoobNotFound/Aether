@@ -38,7 +38,10 @@ struct MainWindowView: View {
                     .navigationDestination(for: GameViewModel.self) { game in
                         GameDetailView(game: game)
                     }
-                    .toolbarBackground(.automatic, for: .windowToolbar)
+                    .toolbarBackground(
+                        searchViewModel.query.isEmpty ? .automatic : .hidden,
+                        for: .windowToolbar
+                    )
                     .searchable(
                         text: $searchViewModel.query, placement: .toolbar,
                         prompt: "Search library...")
@@ -55,7 +58,9 @@ struct MainWindowView: View {
                 } detail: {
                     NavigationStack {
                         ZStack {
-                            Color.black.edgesIgnoringSafeArea(.all)
+                            Color.black
+                                .edgesIgnoringSafeArea(.all)
+                                .backgroundExtensionEffect()
 
                             if !searchViewModel.query.isEmpty {
                                 SearchResultsView(viewModel: searchViewModel)
@@ -77,7 +82,10 @@ struct MainWindowView: View {
                         .navigationDestination(for: GameViewModel.self) { game in
                             GameDetailView(game: game)
                         }
-                        .toolbarBackground(.automatic, for: .windowToolbar)
+                        .toolbarBackground(
+                            searchViewModel.query.isEmpty ? .automatic : .hidden,
+                            for: .windowToolbar
+                        )
                         .searchable(
                             text: $searchViewModel.query, placement: .toolbar,
                             prompt: "Search library...")
