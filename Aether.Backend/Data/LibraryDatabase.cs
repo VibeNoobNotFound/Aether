@@ -78,7 +78,7 @@ public class LibraryDatabase : IDisposable
             game.UpdatedAt = DateTime.UtcNow;
 
             // Merge stats
-            if (!game.LastPlayed.HasValue) 
+            if (!game.LastPlayed.HasValue)
                 game.LastPlayed = existing.LastPlayed;
             else if (existing.LastPlayed.HasValue && existing.LastPlayed > game.LastPlayed)
                 game.LastPlayed = existing.LastPlayed; // Keep most recent
@@ -94,7 +94,7 @@ public class LibraryDatabase : IDisposable
             // Actually, FromImportedGame sets IsFavorite = entity.IsFavorite (Wait, ScanService sets it from where?)
             // ScanService sets IsFavorite = entity.IsFavorite (which is wrong, it should be false for new games).
             // Let's ensure we preserve local IsFavorite.
-            game.IsFavorite = existing.IsFavorite; 
+            game.IsFavorite = existing.IsFavorite;
 
             _games.Update(game);
             _logger.Debug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
@@ -231,25 +231,46 @@ public class LibraryDatabase : IDisposable
     /// <summary>
     /// Initialize default collections on first run
     /// </summary>
-    public void SeedDefaultCollections()
+    /// <summary>
+    /// Initialize default collections on first run
+    /// </summary>
+    public void SeedDefaultCollections(IEnumerable<Aether.PluginSDK.Library.ILibraryImporter> importers)
     {
         if (Collections.Count() > 0) return; // Already seeded
 
         _logger.Information("Seeding default collections...");
-        
+
         int order = 0;
         var defaults = new List<CollectionEntity>
         {
             new() { Name = "Favorites", IconName = "heart.fill", Type = CollectionType.Favorites, IsSystem = true, SortOrder = order++ },
             new() { Name = "Recently Played", IconName = "clock.fill", Type = CollectionType.RecentlyPlayed, IsSystem = true, SortOrder = order++ },
-            new() { Name = "Steam", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Steam", SortOrder = order++ },
-            new() { Name = "Epic Games", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Epic", SortOrder = order++ },
-            new() { Name = "GOG Galaxy", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "GOG", SortOrder = order++ },
-            new() { Name = "Mac App Store", IconName = "apple.logo", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "App Store", SortOrder = order++ },
-            new() { Name = "CrossOver", IconName = "desktopcomputer", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "CrossOver", SortOrder = order++ },
-            new() { Name = "Custom Games", IconName = "folder.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Custom", SortOrder = order++ },
-            new() { Name = "Web Links", IconName = "globe", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Web", SortOrder = order++ },
+            // Platform collections generated from plugins
         };
+
+        foreach (var importer in importers)
+        {
+            // Use a mapping or heuristic for icons if possible, otherwise default to gamecontroller
+            var icon = "gamecontroller.fill";
+            if (importer.Name.Contains("Apple", StringComparison.OrdinalIgnoreCase)) icon = "apple.logo";
+            if (importer.Name.Contains("Web", StringComparison.OrdinalIgnoreCase)) icon = "globe";
+            if (importer.Name.Contains("CrossOver", StringComparison.OrdinalIgnoreCase)) icon = "desktopcomputer";
+
+            defaults.Add(new CollectionEntity
+            {
+                Name = importer.Name,
+                IconName = icon,
+                Type = CollectionType.Platform,
+                IsSystem = true,
+                PlatformFilter = importer.Name,
+                SortOrder = order++
+            });
+        }
+
+        // Always add Custom Games fallback if desired, or skip it. User requested plugins only.
+        // Let's keep "Custom Games" manual collection if it's not a platform import?
+        // Actually user said "plugins names of the ones that have ILibraryImporter".
+        // So we strictly stick to that list plus Favorites/Recent.
 
         foreach (var col in defaults)
         {
@@ -297,7 +318,7 @@ public class LibraryDatabase : IDisposable
     {
         var col = GetCollectionById(collectionId);
         if (col == null || col.Type != CollectionType.Custom) return;
-        
+
         if (!col.GameIds.Contains(gameId))
         {
             col.GameIds.Add(gameId);
@@ -310,7 +331,7 @@ public class LibraryDatabase : IDisposable
     {
         var col = GetCollectionById(collectionId);
         if (col == null || col.Type != CollectionType.Custom) return;
-        
+
         if (col.GameIds.Remove(gameId))
         {
             col.UpdatedAt = DateTime.UtcNow;
@@ -374,9 +395,9 @@ public class LibraryDatabase : IDisposable
     public IEnumerable<GameEntity> GetCarouselGames()
     {
         var config = GetCarouselConfig();
-        
+
         IEnumerable<GameEntity> games;
-        
+
         if (config.CollectionId.HasValue)
         {
             var col = GetCollectionById(config.CollectionId.Value);
@@ -396,10 +417,10 @@ public class LibraryDatabase : IDisposable
                 .OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue)
                 .Take(config.MaxGames)
                 .ToList();
-            
+
             games = favorites.Union(recent).DistinctBy(g => g.Id);
         }
-        
+
         return games.Take(config.MaxGames);
     }
 

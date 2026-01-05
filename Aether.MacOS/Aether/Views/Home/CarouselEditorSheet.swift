@@ -77,7 +77,7 @@ struct CarouselEditorSheet: View {
                 loadConfig()
             }
         }
-        .frame(width: 450, height: 550)
+        .frame(width: 600, height: 550)
     }
 
     func loadConfig() {

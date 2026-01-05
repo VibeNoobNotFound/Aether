@@ -68,31 +68,20 @@ struct HomeView: View {
             }
         }
         .toolbar {
-            ToolbarItem {
-                Menu {
-                    Button(action: {
-                        showCarouselEditor = true
-                    }) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                ControlGroup {
+                    Button(action: { showCarouselEditor = true }) {
                         Label("Edit Carousel", systemImage: "photo.on.rectangle")
                     }
-
-                    Button(action: {
-                        showCollectionEditor = true
-                    }) {
-                        Label("Edit Collections", systemImage: "square.grid.3x3")
+                    Button(action: { showCollectionEditor = true }) {
+                        Label("Collections", systemImage: "square.grid.3x3")
                     }
+                }
 
-                    Divider()
-
-                    Button(action: {
-                        Task {
-                            await appState.scanLibrary()
-                        }
-                    }) {
-                        Label("Scan Library", systemImage: "arrow.clockwise")
-                    }
-                } label: {
-                    Label("Options", systemImage: "ellipsis.circle")
+                Button(action: {
+                    Task { await appState.scanLibrary() }
+                }) {
+                    Label("Scan Library", systemImage: "arrow.clockwise")
                 }
             }
         }
@@ -110,6 +99,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showCollectionEditor) {
             CollectionEditorSheet()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openCollectionEditor)) { _ in
+            showCollectionEditor = true
         }
         .sheet(isPresented: $showCarouselEditor) {
             CarouselEditorSheet()

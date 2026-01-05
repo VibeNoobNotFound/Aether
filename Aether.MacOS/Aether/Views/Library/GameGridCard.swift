@@ -28,7 +28,8 @@ struct GameGridCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .init(horizontal: .leading, vertical: .bottom))
+                
 
             // Title
             Text(game.title)
@@ -50,6 +51,8 @@ struct GameGridCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+            }else{
+                Spacer();
             }
         }
         .contentShape(Rectangle())  // Make entire area clickable

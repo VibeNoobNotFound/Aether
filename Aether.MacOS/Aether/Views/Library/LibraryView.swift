@@ -106,43 +106,44 @@ struct LibraryView: View {
         }
         // Removed manual top padding
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                HStack {
-                    Menu {
-                        ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
-                            Button(action: {
-                                selectedPlugin = plugin
-                            }) {
-                                Label(plugin.name, systemImage: "plus")
-                            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                // Add Game Menu
+                Menu {
+                    ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
+                        Button(action: {
+                            selectedPlugin = plugin
+                        }) {
+                            Label(plugin.name, systemImage: "plus")
                         }
-                    } label: {
-                        Label("Add Game", systemImage: "plus")
+                    }
+                } label: {
+                    Label("Add Game", systemImage: "plus")
+                }
+
+                // Management Group
+                ControlGroup {
+                    Button(action: {
+                        showCollectionEditor = true
+                    }) {
+                        Label("Collections", systemImage: "square.grid.3x3")
                     }
 
-                    Menu {
-                        Button {
-                            Task { await appState.scanLibrary() }
-                        } label: {
-                            Label("Scan Library", systemImage: "arrow.clockwise")
-                        }
-
-                        Button(role: .destructive) {
-                            Task { await appState.clearLibrary() }
-                        } label: {
-                            Label("Clear Library", systemImage: "trash")
-                        }
-                    } label: {
-                        Label("Manage", systemImage: "ellipsis.circle")
+                    Button(action: {
+                        Task { await appState.scanLibrary() }
+                    }) {
+                        Label("Scan", systemImage: "arrow.clockwise")
                     }
                 }
-            }
 
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    showCollectionEditor = true
-                }) {
-                    Label("Manage Collections", systemImage: "square.grid.3x3")
+                // Destructive/Advanced Actions Menu
+                Menu {
+                    Button(role: .destructive) {
+                        Task { await appState.clearLibrary() }
+                    } label: {
+                        Label("Clear Library", systemImage: "trash")
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
                 }
             }
         }

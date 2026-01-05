@@ -1,5 +1,5 @@
-import SwiftUI
 import AetherIPC
+import SwiftUI
 
 struct CollectionEditorSheet: View {
     @EnvironmentObject var appState: AppState
@@ -49,6 +49,7 @@ struct CollectionEditorSheet: View {
                 .background(Color(nsColor: .windowBackgroundColor))
             }
             .navigationTitle("Manage Collections")
+
             // Initialize local state
             .onAppear {
                 localCollections = appState.collections.sorted { $0.sortOrder < $1.sortOrder }
@@ -95,7 +96,7 @@ struct CollectionEditorSheet: View {
     }
 }
 
-// Extracted Subview to fix type-check performance issue
+// Extracted Subview with Layout Preview
 struct CollectionRowItem: View {
     let collection: CollectionViewModel
     let onToggleVisibility: () -> Void
@@ -103,54 +104,87 @@ struct CollectionRowItem: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack {
-            Image(systemName: collection.iconName)
-                .frame(width: 24)
+        HStack(alignment: .top, spacing: 12) {
+            // Drag Handle
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.secondary)
+                .frame(maxHeight: .infinity)  // Center vertically relative to row
+                .padding(.leading, 4)
 
-            Text(collection.name)
-                .font(.headline)
+            // Layout Preview (Header + Content)
+            HStack(spacing: 0) {
+                // Header Area
+                ZStack {
+                    Rectangle()
+                        .fill(Color.blue.opacity(0.1))
 
-            if collection.isSystem {
-                Text("System")
-                    .font(.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.white.opacity(0.1))
-                    .clipShape(Capsule())
+                    VStack(spacing: 4) {
+                        Image(systemName: collection.iconName)
+                            .font(.system(size: 14))
+                    }
+                }
+                .frame(width: 40)
+
+                // Content Area (Mock cards)
+                HStack(spacing: 4) {
+                    ForEach(0..<3) { _ in
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.secondary.opacity(0.1))
+                            .aspectRatio(0.7, contentMode: .fit)
+                    }
+                    Spacer()
+                }
+                .padding(4)
             }
+            .frame(height: 50)
+            .background(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.2)))
 
-            Spacer()
+            // Title and Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(collection.name)
+                    .font(.headline)
+                    .lineLimit(1)
 
-            // Visibility Toggle
-            Button(action: onToggleVisibility) {
-                Image(systemName: collection.isVisible ? "eye" : "eye.slash")
-                    .foregroundStyle(collection.isVisible ? .primary : .secondary)
+                if collection.isSystem {
+                    Text("System")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .buttonStyle(.plain)
-            .padding(.trailing, 8)
+            .frame(maxWidth: .infinity, alignment: .topLeading)  // Align top-left
+            .padding(.top, 0)  // Remove top padding to align with box top
 
-            // Edit Button
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-            }
-            .buttonStyle(.plain)
-            .disabled(collection.isSystem && collection.type != .collectionCustom)
-
-            // Delete Button
-            if !collection.isSystem {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
+            // Actions
+            HStack(spacing: 12) {
+                // Visibility Toggle
+                Button(action: onToggleVisibility) {
+                    Image(systemName: collection.isVisible ? "eye" : "eye.slash")
+                        .foregroundStyle(collection.isVisible ? .primary : .secondary)
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, 8)
+
+                // Edit
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.plain)
+
+                // Delete
+                if !collection.isSystem {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.top, 4)  // Align with top elements
+            .padding(.trailing, 8)
         }
         .padding(.vertical, 4)
     }
 }
 
-// Placeholder for detail editor
 struct CollectionDetailEditor: View {
     let collection: CollectionViewModel
     @EnvironmentObject var appState: AppState
@@ -159,6 +193,7 @@ struct CollectionDetailEditor: View {
     @State private var name: String
     @State private var iconName: String
     @State private var selectedGames: Set<String>
+    @State private var showIconPicker = false
 
     init(collection: CollectionViewModel) {
         self.collection = collection
@@ -171,8 +206,27 @@ struct CollectionDetailEditor: View {
         NavigationStack {
             Form {
                 Section("Details") {
-                    TextField("Name", text: $name)
-                    TextField("Icon (SF Symbol)", text: $iconName)
+                    if collection.isSystem {
+                        // System collections: Name is read-only
+                        LabeledContent("Name", value: name)
+                    } else {
+                        TextField("Name", text: $name)
+                    }
+
+                    HStack {
+                        Text("Icon")
+                        Spacer()
+                        Button(action: { showIconPicker = true }) {
+                            HStack {
+                                Image(systemName: iconName)
+                                    .font(.title2)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.secondary.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 if collection.type == .collectionCustom {
@@ -200,7 +254,7 @@ struct CollectionDetailEditor: View {
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("Edit Collection")
+            .navigationTitle(collection.isSystem ? "Edit Icon" : "Edit Collection")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -210,6 +264,9 @@ struct CollectionDetailEditor: View {
                         save()
                     }
                 }
+            }
+            .sheet(isPresented: $showIconPicker) {
+                SFIconPicker(selectedIcon: $iconName)
             }
         }
         .frame(width: 400, height: 500)
@@ -228,14 +285,81 @@ struct CollectionDetailEditor: View {
                 let toRemove = currentIds.subtracting(selectedGames)
 
                 for id in toAdd {
-                    await appState.addGameToCollection(collectionId: collection.id, gameId: id)
+                    await appState.addGameToCollection(
+                        collectionId: collection.id, gameId: id)
                 }
 
                 for id in toRemove {
-                    await appState.removeGameFromCollection(collectionId: collection.id, gameId: id)
+                    await appState.removeGameFromCollection(
+                        collectionId: collection.id, gameId: id)
                 }
             }
             dismiss()
         }
+    }
+}
+
+struct SFIconPicker: View {
+    @Binding var selectedIcon: String
+    @Environment(\.dismiss) var dismiss
+    @State private var searchText = ""
+
+    let icons = [
+        "folder.fill", "gamecontroller.fill", "heart.fill", "star.fill", "clock.fill",
+        "flame.fill", "bolt.fill", "desktopcomputer", "laptopcomputer", "display",
+        "keyboard", "mouse", "logo.playstation", "logo.xbox", "apple.logo",
+        "globe", "cloud.fill", "wifi", "person.fill", "person.2.fill",
+        "house.fill", "building.2.fill", "cart.fill", "bag.fill", "creditcard.fill",
+        "wand.and.stars", "sparkles", "crown.fill", "rosette", "trophy.fill",
+        "flag.fill", "location.fill", "tag.fill", "bookmark.fill", "book.closed.fill",
+    ]
+
+    var filteredIcons: [String] {
+        if searchText.isEmpty {
+            return icons
+        } else {
+            return icons.filter { $0.localizedCaseInsensitiveContains(searchText) }
+        }
+    }
+
+    let columns = [GridItem(.adaptive(minimum: 50))]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 20) {
+                    ForEach(filteredIcons, id: \.self) { icon in
+                        Button(action: {
+                            selectedIcon = icon
+                            dismiss()
+                        }) {
+                            VStack {
+                                Image(systemName: icon)
+                                    .font(.title)
+                                    .frame(width: 40, height: 40)
+                                    .foregroundStyle(selectedIcon == icon ? .blue : .primary)
+                            }
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(
+                                        selectedIcon == icon ? Color.blue.opacity(0.1) : Color.clear
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding()
+            }
+            .searchable(text: $searchText, prompt: "Search icons")
+            .navigationTitle("Choose Icon")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+        .frame(width: 400, height: 500)
     }
 }

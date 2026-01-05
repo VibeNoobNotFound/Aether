@@ -8,13 +8,13 @@ struct CollectionRowView: View {
         let games = appState.getGames(for: collection)
 
         if !games.isEmpty {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 // Header
-                HStack(alignment: .center, spacing: 10) {
+                HStack(alignment: .center, spacing: 12) {
                     Image(systemName: collection.iconName)
                         .font(.title2)
                         .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
+                        .frame(width: 32, height: 32)
                         .background(
                             Circle()
                                 .fill(.ultraThinMaterial)
@@ -27,32 +27,25 @@ struct CollectionRowView: View {
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
 
-                    if collection.gameCount > games.count {
-                        // Badge showing total if filtered (e.g. system collections might have more)
-                        // Actually getGames returns all, so games.count is accurate for now
-                    }
-
                     Spacer()
-
-                    // "See All" button? Future work
                 }
                 .padding(.horizontal)
 
                 // Horizontal Scroll
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 20) {
+                    LazyHStack(alignment: .top, spacing: 20) {
                         ForEach(games) { game in
                             NavigationLink(destination: GameDetailView(game: game)) {
                                 GameGridCard(game: game)
-                                    .frame(width: 200)  // Fixed width cards for horizontal row
                             }
                             .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 20)  // Space for shadows
+                    .padding(.bottom, 20)
+                    .padding(.top, 10)
                 }
-                .frame(height: 320)  // Adjust based on card aspect ratio
+                .frame(minHeight: 400)
             }
             .padding(.top, 10)
         }

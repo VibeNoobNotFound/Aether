@@ -48,7 +48,7 @@ try
     {
         var logger = sp.GetRequiredService<Serilog.ILogger>();
         var db = new LibraryDatabase(dbPath, logger);
-        db.SeedDefaultCollections(); // Seed collections on first run
+        // Seeding deferred until plugins are loaded
         return db;
     });
     Log.Information("Database initialized at {Path}", dbPath);
@@ -80,6 +80,11 @@ try
         var logger = sp.GetRequiredService<Serilog.ILogger>();
         var manager = new PluginManager(pluginPath, logger);
         manager.LoadPlugins();
+
+        // Seed database with plugins now available
+        var db = sp.GetRequiredService<LibraryDatabase>();
+        db.SeedDefaultCollections(manager.GetLibraryImporters());
+
         return manager;
     });
     Log.Information("Plugin system initialized at {Path}", pluginPath);
