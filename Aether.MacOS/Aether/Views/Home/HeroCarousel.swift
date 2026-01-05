@@ -3,14 +3,11 @@ import SwiftUI
 struct HeroCarousel: View {
     @EnvironmentObject var appState: AppState
     @Binding var currentIndex: Int
+    let games: [GameViewModel]
     @State private var scrollID: Int? = 0
 
     // Fallback if no games
     let defaultGame = "Scanning Library..."
-
-    var displayGames: [GameViewModel] {
-        Array(appState.games.prefix(5))
-    }
 
     var body: some View {
         ZStack {
@@ -18,12 +15,12 @@ struct HeroCarousel: View {
             GeometryReader { geometry in
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 0) {
-                        if appState.games.isEmpty {
+                        if games.isEmpty {
                             gameCard(
                                 title: defaultGame, id: "", imageUrl: nil,
                                 width: geometry.size.width)
                         } else {
-                            ForEach(Array(displayGames.enumerated()), id: \.element.id) {
+                            ForEach(Array(games.enumerated()), id: \.element.id) {
                                 index, game in
                                 NavigationLink(value: game) {
                                     gameCard(
@@ -55,9 +52,9 @@ struct HeroCarousel: View {
             // Custom Page Indicators (non-blocking)
             VStack {
                 Spacer()
-                if !appState.games.isEmpty && displayGames.count > 1 {
+                if !games.isEmpty && games.count > 1 {
                     HStack(spacing: 8) {
-                        ForEach(0..<displayGames.count, id: \.self) { index in
+                        ForEach(0..<games.count, id: \.self) { index in
                             Circle()
                                 .fill(
                                     currentIndex == index ? Color.white : Color.white.opacity(0.5)
@@ -76,7 +73,7 @@ struct HeroCarousel: View {
             .allowsHitTesting(true)  // Allow dot clicks
 
             // Navigation Arrows (overlaid, only capture clicks on arrows)
-            if !appState.games.isEmpty && displayGames.count > 1 {
+            if !games.isEmpty && games.count > 1 {
                 HStack {
                     // Previous Button
                     Button(action: {
@@ -98,7 +95,7 @@ struct HeroCarousel: View {
                     // Next Button
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            scrollID = min(displayGames.count - 1, currentIndex + 1)
+                            scrollID = min(games.count - 1, currentIndex + 1)
                         }
                     }) {
                         Image(systemName: "chevron.right.circle.fill")
@@ -107,8 +104,8 @@ struct HeroCarousel: View {
                             .shadow(radius: 10)
                     }
                     .buttonStyle(.plain)
-                    .opacity(currentIndex < displayGames.count - 1 ? 1.0 : 0.3)
-                    .disabled(currentIndex >= displayGames.count - 1)
+                    .opacity(currentIndex < games.count - 1 ? 1.0 : 0.3)
+                    .disabled(currentIndex >= games.count - 1)
                 }
                 .padding(.horizontal, 40)
                 .allowsHitTesting(true)
@@ -120,7 +117,8 @@ struct HeroCarousel: View {
     @ViewBuilder
     func gameCard(title: String, id: String, imageUrl: String?, width: CGFloat) -> some View {
         // Find the game object if possible to get more metadata
-        let game = appState.games.first(where: { $0.id == id })
+        let game =
+            games.first(where: { $0.id == id }) ?? appState.games.first(where: { $0.id == id })
 
         ZStack(alignment: .bottomLeading) {
             // Background Image - fills and clips
@@ -176,6 +174,7 @@ struct HeroCarousel: View {
                             HStack(spacing: 3) {
                                 Image(systemName: "star.fill")
                                     .foregroundStyle(.yellow)
+                                    .foregroundStyle(.white)
                                 Text("\(Int(score))")
                                     .foregroundStyle(.white)
                             }

@@ -222,4 +222,187 @@ public class LibraryDatabase : IDisposable
     {
         _db?.Dispose();
     }
+
+    #region Collections
+
+    private ILiteCollection<CollectionEntity> Collections => _db.GetCollection<CollectionEntity>("collections");
+    private ILiteCollection<CarouselConfig> CarouselConfigs => _db.GetCollection<CarouselConfig>("carousel_config");
+
+    /// <summary>
+    /// Initialize default collections on first run
+    /// </summary>
+    public void SeedDefaultCollections()
+    {
+        if (Collections.Count() > 0) return; // Already seeded
+
+        _logger.Information("Seeding default collections...");
+        
+        int order = 0;
+        var defaults = new List<CollectionEntity>
+        {
+            new() { Name = "Favorites", IconName = "heart.fill", Type = CollectionType.Favorites, IsSystem = true, SortOrder = order++ },
+            new() { Name = "Recently Played", IconName = "clock.fill", Type = CollectionType.RecentlyPlayed, IsSystem = true, SortOrder = order++ },
+            new() { Name = "Steam", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Steam", SortOrder = order++ },
+            new() { Name = "Epic Games", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Epic", SortOrder = order++ },
+            new() { Name = "GOG Galaxy", IconName = "gamecontroller.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "GOG", SortOrder = order++ },
+            new() { Name = "Mac App Store", IconName = "apple.logo", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "App Store", SortOrder = order++ },
+            new() { Name = "CrossOver", IconName = "desktopcomputer", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "CrossOver", SortOrder = order++ },
+            new() { Name = "Custom Games", IconName = "folder.fill", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Custom", SortOrder = order++ },
+            new() { Name = "Web Links", IconName = "globe", Type = CollectionType.Platform, IsSystem = true, PlatformFilter = "Web", SortOrder = order++ },
+        };
+
+        foreach (var col in defaults)
+        {
+            col.CreatedAt = DateTime.UtcNow;
+            col.UpdatedAt = DateTime.UtcNow;
+            Collections.Insert(col);
+        }
+
+        _logger.Information("Seeded {Count} default collections", defaults.Count);
+    }
+
+    public IEnumerable<CollectionEntity> GetAllCollections()
+    {
+        return Collections.FindAll().OrderBy(c => c.SortOrder);
+    }
+
+    public CollectionEntity? GetCollectionById(int id)
+    {
+        return Collections.FindById(id);
+    }
+
+    public int CreateCollection(CollectionEntity collection)
+    {
+        collection.CreatedAt = DateTime.UtcNow;
+        collection.UpdatedAt = DateTime.UtcNow;
+        // Set sort order to end
+        collection.SortOrder = Collections.Count();
+        return Collections.Insert(collection);
+    }
+
+    public bool UpdateCollection(CollectionEntity collection)
+    {
+        collection.UpdatedAt = DateTime.UtcNow;
+        return Collections.Update(collection);
+    }
+
+    public bool DeleteCollection(int id)
+    {
+        var col = GetCollectionById(id);
+        if (col == null || col.IsSystem) return false; // Cannot delete system collections
+        return Collections.Delete(id);
+    }
+
+    public void AddGameToCollection(int collectionId, int gameId)
+    {
+        var col = GetCollectionById(collectionId);
+        if (col == null || col.Type != CollectionType.Custom) return;
+        
+        if (!col.GameIds.Contains(gameId))
+        {
+            col.GameIds.Add(gameId);
+            col.UpdatedAt = DateTime.UtcNow;
+            Collections.Update(col);
+        }
+    }
+
+    public void RemoveGameFromCollection(int collectionId, int gameId)
+    {
+        var col = GetCollectionById(collectionId);
+        if (col == null || col.Type != CollectionType.Custom) return;
+        
+        if (col.GameIds.Remove(gameId))
+        {
+            col.UpdatedAt = DateTime.UtcNow;
+            Collections.Update(col);
+        }
+    }
+
+    public void ReorderCollections(IList<int> orderedIds)
+    {
+        for (int i = 0; i < orderedIds.Count; i++)
+        {
+            var col = GetCollectionById(orderedIds[i]);
+            if (col != null)
+            {
+                col.SortOrder = i;
+                col.UpdatedAt = DateTime.UtcNow;
+                Collections.Update(col);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get games for a collection based on its type
+    /// </summary>
+    public IEnumerable<GameEntity> GetGamesForCollection(CollectionEntity collection)
+    {
+        return collection.Type switch
+        {
+            CollectionType.Favorites => _games.Find(g => g.IsFavorite),
+            CollectionType.RecentlyPlayed => _games.FindAll()
+                .Where(g => g.LastPlayed.HasValue)
+                .OrderByDescending(g => g.LastPlayed),
+            CollectionType.Platform => _games.Find(g => g.Platform == collection.PlatformFilter),
+            CollectionType.Custom => collection.GameIds
+                .Select(id => _games.FindById(id))
+                .Where(g => g != null)!,
+            _ => Enumerable.Empty<GameEntity>()
+        };
+    }
+
+    #endregion
+
+    #region Carousel Config
+
+    public CarouselConfig GetCarouselConfig()
+    {
+        var config = CarouselConfigs.FindById(1);
+        return config ?? new CarouselConfig();
+    }
+
+    public void SetCarouselConfig(CarouselConfig config)
+    {
+        config.Id = 1; // Ensure singleton
+        config.UpdatedAt = DateTime.UtcNow;
+        CarouselConfigs.Upsert(config);
+    }
+
+    /// <summary>
+    /// Get games to display in carousel based on config
+    /// </summary>
+    public IEnumerable<GameEntity> GetCarouselGames()
+    {
+        var config = GetCarouselConfig();
+        
+        IEnumerable<GameEntity> games;
+        
+        if (config.CollectionId.HasValue)
+        {
+            var col = GetCollectionById(config.CollectionId.Value);
+            games = col != null ? GetGamesForCollection(col) : _games.FindAll();
+        }
+        else if (config.GameIds.Count > 0)
+        {
+            games = config.GameIds
+                .Select(id => _games.FindById(id))
+                .Where(g => g != null)!;
+        }
+        else
+        {
+            // Default: mix of favorites and recent
+            var favorites = _games.Find(g => g.IsFavorite).ToList();
+            var recent = _games.FindAll()
+                .OrderByDescending(g => g.LastPlayed ?? DateTime.MinValue)
+                .Take(config.MaxGames)
+                .ToList();
+            
+            games = favorites.Union(recent).DistinctBy(g => g.Id);
+        }
+        
+        return games.Take(config.MaxGames);
+    }
+
+    #endregion
 }
+

@@ -47,7 +47,9 @@ try
     builder.Services.AddSingleton(sp =>
     {
         var logger = sp.GetRequiredService<Serilog.ILogger>();
-        return new LibraryDatabase(dbPath, logger);
+        var db = new LibraryDatabase(dbPath, logger);
+        db.SeedDefaultCollections(); // Seed collections on first run
+        return db;
     });
     Log.Information("Database initialized at {Path}", dbPath);
 

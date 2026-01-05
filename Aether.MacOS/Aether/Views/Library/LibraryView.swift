@@ -4,6 +4,7 @@ struct LibraryView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedGame: GameViewModel?
     @State private var selectedPlugin: PluginViewModel?
+    @State private var showCollectionEditor = false
 
     let columns = [
         GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 20)
@@ -136,10 +137,21 @@ struct LibraryView: View {
                     }
                 }
             }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    showCollectionEditor = true
+                }) {
+                    Label("Manage Collections", systemImage: "square.grid.3x3")
+                }
+            }
         }
         .sheet(item: $selectedPlugin) { plugin in
             LibraryAddMenuView(pluginName: plugin.name)
                 .frame(minWidth: 500, minHeight: 400)
+        }
+        .sheet(isPresented: $showCollectionEditor) {
+            CollectionEditorSheet()
         }
     }
 }

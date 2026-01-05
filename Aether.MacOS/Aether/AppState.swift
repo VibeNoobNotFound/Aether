@@ -228,7 +228,69 @@ struct MetadataSearchResult: Identifiable, Hashable {
 class AppState: ObservableObject {
     @Published var games: [GameViewModel] = []
     @Published var plugins: [PluginViewModel] = []
+    @Published var collections: [CollectionViewModel] = []
+    @Published var carouselConfig: CarouselConfig?
     @Published var currentScreen: AppScreen = .home
+
+    // Computed Properties
+
+    var visibleCollections: [CollectionViewModel] {
+        collections.filter { $0.isVisible }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    var carouselGames: [GameViewModel] {
+        guard let config = carouselConfig else {
+            return Array(games.prefix(5))
+        }
+
+        var result: [GameViewModel] = []
+
+        if let colId = config.collectionId {
+            // Priority 1: From Collection
+            if let col = collections.first(where: { $0.id == colId }) {
+                result = getGames(for: col)
+            }
+        } else if !config.gameIds.isEmpty {
+            // Priority 2: Manual Game IDs
+            result = config.gameIds.compactMap { id in
+                games.first { $0.id == id }
+            }
+        } else {
+            // Priority 3: Default (Favorites + Recent mixed)
+            let favorites = games.filter { $0.isFavorite }
+            let recent = games.filter { $0.lastPlayed != nil }
+                .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
+
+            var combined = favorites
+            for game in recent {
+                if !combined.contains(where: { $0.id == game.id }) {
+                    combined.append(game)
+                }
+            }
+            result = combined
+        }
+
+        return Array(result.prefix(config.maxGames))
+    }
+
+    func getGames(for collection: CollectionViewModel) -> [GameViewModel] {
+        if let filter = collection.platformFilter?.lowercased() {
+            return games.filter {
+                if filter == "favorites" { return $0.isFavorite }
+                return $0.platform.lowercased().contains(filter)
+            }
+        } else if collection.type == .collectionFavorites {
+            return games.filter { $0.isFavorite }
+        } else if collection.type == .collectionRecentlyPlayed {
+            return games.filter { $0.lastPlayed != nil }
+                .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
+        } else {
+            // Custom collection with game IDs
+            let ids = Set(collection.gameIds)
+            return games.filter { ids.contains(Int32($0.id) ?? 0) }
+        }
+    }
 
     private let grpcClient = GrpcClient()
 
@@ -281,8 +343,10 @@ class AppState: ObservableObject {
                 }
             }
 
-            // Also refresh plugins
+            // Also refresh plugins and collections
             await fetchPlugins()
+            await fetchCollections()
+            await fetchCarouselConfig()
 
         } catch {
             Logger.shared.log("Failed to fetch library: \(error)", type: .error)
@@ -418,6 +482,128 @@ class AppState: ObservableObject {
             Logger.shared.log("Plugins fetched: \(self.plugins.count)")
         } catch {
             Logger.shared.log("Failed to fetch plugins: \(error)", type: .error)
+        }
+    }
+
+    // MARK: - Collections & Carousel
+
+    func fetchCollections() async {
+        do {
+            let response = try await grpcClient.client.getCollections(Aether_Empty())
+            let protos = response.collections
+            await MainActor.run {
+                self.collections = protos.map { CollectionViewModel(from: $0) }
+            }
+        } catch {
+            Logger.shared.log("Failed to fetch collections: \(error)", type: .error)
+        }
+    }
+
+    func createCollection(name: String, iconName: String) async {
+        do {
+            var request = Aether_CreateCollectionRequest()
+            request.name = name
+            request.iconName = iconName
+
+            _ = try await grpcClient.client.createCollection(request)
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to create collection: \(error)", type: .error)
+        }
+    }
+
+    func updateCollection(
+        id: Int32, name: String? = nil, iconName: String? = nil, sortOrder: Int32? = nil,
+        isVisible: Bool? = nil
+    ) async {
+        do {
+            var request = Aether_UpdateCollectionRequest()
+            request.id = id
+            if let n = name { request.name = n }
+            if let i = iconName { request.iconName = i }
+            if let s = sortOrder { request.sortOrder = s }
+            if let v = isVisible { request.isVisible = v }
+
+            _ = try await grpcClient.client.updateCollection(request)
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to update collection: \(error)", type: .error)
+        }
+    }
+
+    func deleteCollection(id: Int32) async {
+        do {
+            var request = Aether_CollectionId()
+            request.id = id
+            _ = try await grpcClient.client.deleteCollection(request)
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to delete collection: \(error)", type: .error)
+        }
+    }
+
+    func addGameToCollection(collectionId: Int32, gameId: String) async {
+        do {
+            var request = Aether_CollectionGameAction()
+            request.collectionID = collectionId
+            request.gameID = gameId
+            _ = try await grpcClient.client.addGameToCollection(request)
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to add game to collection: \(error)", type: .error)
+        }
+    }
+
+    func removeGameFromCollection(collectionId: Int32, gameId: String) async {
+        do {
+            var request = Aether_CollectionGameAction()
+            request.collectionID = collectionId
+            request.gameID = gameId
+            _ = try await grpcClient.client.removeGameFromCollection(request)
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to remove game from collection: \(error)", type: .error)
+        }
+    }
+
+    func reorderCollections(ids: [Int32]) async {
+        do {
+            var request = Aether_ReorderCollectionsRequest()
+            request.collectionIds = ids
+            _ = try await grpcClient.client.reorderCollections(request)
+            // Optimistic update done in UI usually, but confirm with fetch
+            await fetchCollections()
+        } catch {
+            Logger.shared.log("Failed to reorder collections: \(error)", type: .error)
+        }
+    }
+
+    func fetchCarouselConfig() async {
+        do {
+            let configProto = try await grpcClient.client.getCarouselConfig(Aether_Empty())
+            await MainActor.run {
+                self.carouselConfig = CarouselConfig(from: configProto)
+            }
+        } catch {
+            Logger.shared.log("Failed to fetch carousel config: \(error)", type: .error)
+        }
+    }
+
+    func updateCarouselConfig(collectionId: Int32?, gameIds: [String]?, maxGames: Int = 5) async {
+        do {
+            var request = Aether_CarouselConfig()
+            if let c = collectionId {
+                request.collectionID = c
+            }
+            if let g = gameIds {
+                request.gameIds = g
+            }
+            request.maxGames = Int32(maxGames)
+
+            _ = try await grpcClient.client.setCarouselConfig(request)
+            await fetchCarouselConfig()
+        } catch {
+            Logger.shared.log("Failed to update carousel config: \(error)", type: .error)
         }
     }
 
@@ -614,13 +800,52 @@ class AppState: ObservableObject {
 
         if !response.success {
             throw NSError(
-                domain: "PluginError", code: 2,
+                domain: "PluginError", code: 1,
                 userInfo: [NSLocalizedDescriptionKey: response.message])
         }
 
         Logger.shared.log("Plugin uninstalled: \(name)")
-        // Allow some time for backend reload
         try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
         await fetchPlugins()
+    }
+
+    // MARK: - Update Management
+
+    func checkForUpdates(currentVersion: String) async throws -> Aether_UpdateInfo {
+        var request = Aether_CheckUpdateRequest()
+        request.currentVersion = currentVersion
+        request.includePrerelease = false  // TODO: Add setting for this
+
+        return try await grpcClient.client.checkForUpdates(request)
+    }
+
+    func downloadUpdate(version: String, progressHandler: @escaping (Double) -> Void) async throws {
+        var request = Aether_DownloadUpdateRequest()
+        request.version = version
+
+        try await grpcClient.client.downloadUpdate(request) { response in
+            for try await progress in response.messages {
+                if progress.status == .downloading {
+                    let percent = Double(progress.percent) / 100.0
+                    progressHandler(percent)
+                } else if progress.status == .failed {
+                    throw NSError(
+                        domain: "UpdateError", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: progress.errorMessage])
+                }
+            }
+        }
+    }
+
+    func installUpdate(extractPath: String) async throws {
+        var request = Aether_InstallUpdateRequest()
+        request.extractPath = extractPath
+        let response = try await grpcClient.client.installAppUpdate(request)
+
+        if !response.success {
+            throw NSError(
+                domain: "UpdateError", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: response.message])
+        }
     }
 }
