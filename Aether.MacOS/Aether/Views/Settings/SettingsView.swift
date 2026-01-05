@@ -469,3 +469,8 @@ struct PluginCard: View {
         .onHover { isHovered = $0 }
     }
 }
+
+#Preview {
+    SettingsView()
+        .environmentObject(MockData.appState)
+}

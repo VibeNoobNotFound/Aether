@@ -51,3 +51,9 @@ struct CollectionRowView: View {
         }
     }
 }
+
+#Preview {
+    CollectionRowView(collection: MockData.collections[0])
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 400)
+}

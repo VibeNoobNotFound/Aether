@@ -28,8 +28,8 @@ struct GameGridCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .frame(maxWidth: .infinity, alignment: .init(horizontal: .leading, vertical: .bottom))
-                
+                .frame(
+                    maxWidth: .infinity, alignment: .init(horizontal: .leading, vertical: .bottom))
 
             // Title
             Text(game.title)
@@ -51,8 +51,8 @@ struct GameGridCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-            }else{
-                Spacer();
+            } else {
+                Spacer()
             }
         }
         .contentShape(Rectangle())  // Make entire area clickable
@@ -94,5 +94,21 @@ struct GameGridCard: View {
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
             }
+    }
+}
+
+#Preview {
+    ZStack {
+        Color.black
+        GameGridCard(game: MockData.games[0])
+            .frame(width: 200, height: 300)
+    }
+}
+
+#Preview {
+    ZStack {
+        Color.black
+        GameGridCard(game: MockData.games[0])
+            .frame(width: 200, height: 300)
     }
 }

@@ -122,3 +122,8 @@ struct CarouselEditorSheet: View {
         }
     }
 }
+
+#Preview {
+    CarouselEditorSheet()
+        .environmentObject(MockData.appState)
+}

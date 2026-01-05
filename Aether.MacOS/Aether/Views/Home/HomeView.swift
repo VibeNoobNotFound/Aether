@@ -108,3 +108,9 @@ struct HomeView: View {
         }
     }
 }
+
+#Preview {
+    HomeView()
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 600)
+}

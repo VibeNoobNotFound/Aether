@@ -81,21 +81,6 @@ struct GlassCard<Content: View>: View {
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .fill(tint.opacity(LiquidGlass.tintOpacity))
                     }
-
-                    // 3. Highlight Stroke (Simulated Refraction)
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(isHovered ? 0.6 : 0.4),  // Top-left light
-                                    .white.opacity(0.1),
-                                    .white.opacity(0.05),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
                 }
             }
             // 4. Depth Shadows (Glow + Drop)

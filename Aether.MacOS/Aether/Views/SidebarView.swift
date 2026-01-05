@@ -31,3 +31,8 @@ struct SidebarView: View {
         .navigationTitle("Aether")
     }
 }
+
+#Preview {
+    SidebarView()
+        .environmentObject(MockData.appState)
+}

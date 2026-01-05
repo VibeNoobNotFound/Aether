@@ -480,3 +480,8 @@ struct MetadataSearchSheet: View {
         }
     }
 }
+
+#Preview {
+    MetadataEditorView(game: MockData.games[0])
+        .environmentObject(MockData.appState)
+}

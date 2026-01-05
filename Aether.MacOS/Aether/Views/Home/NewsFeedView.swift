@@ -1,4 +1,6 @@
+import AetherIPC
 import SwiftUI
+import SwiftProtobuf
 
 struct NewsFeedView: View {
     let news: [NewsItem]
@@ -154,5 +156,30 @@ struct NewsFeedView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
+    }
+}
+
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        NewsFeedView(
+            news: [
+                NewsItem(
+                    from: Aether_NewsItem.with {
+                        $0.title = "Steam Deck OLED Announced"
+                        $0.author = "Valve"
+                        $0.source = "Steam"
+                        $0.dateUnix = Int64(Date().timeIntervalSince1970)
+                    }),
+                NewsItem(
+                    from: Aether_NewsItem.with {
+                        $0.title = "Epic Mega Sale"
+                        $0.author = "Epic Games"
+                        $0.source = "Epic"
+                        $0.dateUnix = Int64(Date().timeIntervalSince1970)
+                    }),
+            ]
+        )
+        .padding()
     }
 }

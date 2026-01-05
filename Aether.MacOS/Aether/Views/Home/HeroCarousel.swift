@@ -237,3 +237,12 @@ struct HeroCarousel: View {
         .frame(width: max(0, width))
     }
 }
+
+#Preview {
+    HeroCarousel(
+        currentIndex: .constant(0),
+        games: MockData.games
+    )
+    .environmentObject(MockData.appState)
+    .frame(width: 800, height: 400)
+}

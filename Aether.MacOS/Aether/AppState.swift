@@ -849,3 +849,245 @@ class AppState: ObservableObject {
         }
     }
 }
+
+#if DEBUG
+    struct MockData {
+        static let games: [GameViewModel] = [
+            GameViewModel(
+                id: "game_1",
+                title: "Cyberpunk 2077",
+                platform: "Steam",
+                externalID: "1091500",
+                installPath: "/games/cp2077",
+                executablePath: "/games/cp2077/bin/x64/Cyberpunk2077.exe",
+                launchArguments: nil,
+                coverImageURL: URL(
+                    string: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2mjs.jpg"),
+                backgroundImageURL: URL(
+                    string: "https://images.igdb.com/igdb/image/upload/t_screenshot_big/sc8hvo.jpg"),
+                logoImageURL: nil,
+                screenshots: [],
+                videos: [],
+                description:
+                    "Cyberpunk 2077 is an open-world, action-adventure story set in Night City.",
+                shortDescription: "Open-world action adventure.",
+                genres: ["RPG", "Shooter"],
+                tags: ["Cyberpunk", "Sci-fi"],
+                categories: ["Game"],
+                developer: "CD PROJEKT RED",
+                publisher: "CD PROJEKT RED",
+                releaseDate: Date(),
+                metacriticScore: 86,
+                userScore: 7.8,
+                reviewCount: 1000,
+                hasAchievements: true,
+                achievementCount: 50,
+                hasMultiplayer: false,
+                hasSinglePlayer: true,
+                hasCloudSaves: true,
+                minimumRequirements: "GTX 780",
+                recommendedRequirements: "RTX 2060",
+                supportedLanguages: ["English"],
+                totalPlaytime: 3600 * 25,
+                lastPlayed: Date().addingTimeInterval(-86400),
+                isFavorite: true,
+                isInstalled: true,
+                steamId: "1091500"
+            ),
+            GameViewModel(
+                id: "game_2",
+                title: "Hades",
+                platform: "Epic Games",
+                externalID: "hades",
+                installPath: "/games/hades",
+                executablePath: "/games/hades/Hades.exe",
+                launchArguments: nil,
+                coverImageURL: nil,
+                backgroundImageURL: nil,
+                logoImageURL: nil,
+                screenshots: [],
+                videos: [],
+                description:
+                    "Defy the god of the dead as you hack and slash out of the Underworld.",
+                shortDescription: "God-like rogue-like.",
+                genres: ["Action", "Roguelite"],
+                tags: ["Indie"],
+                categories: ["Game"],
+                developer: "Supergiant Games",
+                publisher: "Supergiant Games",
+                releaseDate: Date(),
+                metacriticScore: 93,
+                userScore: 9.0,
+                reviewCount: 500,
+                hasAchievements: true,
+                achievementCount: 50,
+                hasMultiplayer: false,
+                hasSinglePlayer: true,
+                hasCloudSaves: true,
+                minimumRequirements: nil,
+                recommendedRequirements: nil,
+                supportedLanguages: ["English"],
+                totalPlaytime: 3600 * 10,
+                lastPlayed: Date().addingTimeInterval(-3600),
+                isFavorite: false,
+                isInstalled: true,
+                steamId: "1145360"
+            ),
+        ]
+
+        static let plugins: [PluginViewModel] = [
+            PluginViewModel(
+                from: Aether_PluginInfo.with {
+                    $0.name = "Steam"
+                    $0.version = "1.0.0"
+                    $0.author = "Aether Team"
+                    $0.isImporter = true
+                    $0.supportsManualAddition = false
+                    $0.supportedPlatforms = ["steam"]
+                }
+            ),
+            PluginViewModel(
+                from: Aether_PluginInfo.with {
+                    $0.name = "Epic Games"
+                    $0.version = "1.0.0"
+                    $0.author = "Aether Team"
+                    $0.isImporter = true
+                    $0.supportsManualAddition = false
+                    $0.supportedPlatforms = ["epic"]
+                }
+            ),
+        ]
+
+        static let collections: [CollectionViewModel] = [
+            CollectionViewModel(
+                from: Aether_Collection.with {
+                    $0.id = 1
+                    $0.name = "Favorites"
+                    $0.iconName = "heart.fill"
+                    $0.type = .collectionFavorites
+                    $0.isSystem = true
+                    $0.sortOrder = 0
+                    $0.isVisible = true
+                    $0.gameIds = []  // Assuming gameIds can be empty for mock
+                }
+            ),
+            CollectionViewModel(
+                from: Aether_Collection.with {
+                    $0.id = 2
+                    $0.name = "Action Games"
+                    $0.iconName = "flame.fill"
+                    $0.type = .collectionCustom
+                    $0.sortOrder = 1
+                    $0.isVisible = true
+                    $0.gameIds = [1, 2]
+                }
+            ),
+        ]
+
+        static var appState: AppState {
+            let state = AppState()
+            state.games = games
+            state.plugins = plugins
+            state.collections = collections
+            // CarouselConfig init also uses from proto
+            state.carouselConfig = CarouselConfig(
+                from: Aether_CarouselConfig.with {
+                    $0.gameIds = ["game_1", "game_2"]  // Using string IDs as per GameViewModel
+                    $0.maxGames = 5
+                })
+            return state
+        }
+    }
+
+    extension GameViewModel {
+        init(
+            id: String,
+            title: String,
+            platform: String,
+            externalID: String,
+            installPath: String,
+            executablePath: String,
+            launchArguments: String?,
+            coverImageURL: URL?,
+            backgroundImageURL: URL?,
+            logoImageURL: URL?,
+            screenshots: [URL],
+            videos: [URL],
+            description: String,
+            shortDescription: String,
+            genres: [String],
+            tags: [String],
+            categories: [String],
+            developer: String?,
+            publisher: String?,
+            releaseDate: Date?,
+            metacriticScore: Double?,
+            userScore: Double?,
+            reviewCount: Int,
+            hasAchievements: Bool,
+            achievementCount: Int,
+            hasMultiplayer: Bool,
+            hasSinglePlayer: Bool,
+            hasCloudSaves: Bool,
+            minimumRequirements: String?,
+            recommendedRequirements: String?,
+            supportedLanguages: [String],
+            totalPlaytime: TimeInterval,
+            lastPlayed: Date?,
+            isFavorite: Bool,
+            isInstalled: Bool,
+            steamId: String?
+        ) {
+            self.id = id
+            self.title = title
+            self.platform = platform
+            self.externalID = externalID
+            self.installPath = installPath
+            self.executablePath = executablePath
+            self.launchArguments = launchArguments
+            self.coverImageURL = coverImageURL
+            self.backgroundImageURL = backgroundImageURL
+            self.logoImageURL = logoImageURL
+            self.screenshots = screenshots
+            self.videos = videos
+            self.description = description
+            self.shortDescription = shortDescription
+            self.genres = genres
+            self.tags = tags
+            self.categories = categories
+            self.developer = developer
+            self.publisher = publisher
+            self.releaseDate = releaseDate
+            self.metacriticScore = metacriticScore
+            self.userScore = userScore
+            self.reviewCount = reviewCount
+            self.hasAchievements = hasAchievements
+            self.achievementCount = achievementCount
+            self.hasMultiplayer = hasMultiplayer
+            self.hasSinglePlayer = hasSinglePlayer
+            self.hasCloudSaves = hasCloudSaves
+            self.minimumRequirements = minimumRequirements
+            self.recommendedRequirements = recommendedRequirements
+            self.supportedLanguages = supportedLanguages
+            self.totalPlaytime = totalPlaytime
+            self.lastPlayed = lastPlayed
+            self.isFavorite = isFavorite
+            self.isInstalled = isInstalled
+            self.steamId = steamId
+        }
+    }
+
+    extension PluginViewModel {
+        init(
+            name: String, version: String, author: String, isImporter: Bool,
+            supportsManualAddition: Bool, supportedPlatforms: [String]
+        ) {
+            self.name = name
+            self.version = version
+            self.author = author
+            self.isImporter = isImporter
+            self.supportsManualAddition = supportsManualAddition
+            self.supportedPlatforms = supportedPlatforms
+        }
+    }
+#endif
