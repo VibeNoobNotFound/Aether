@@ -199,6 +199,7 @@ public class LibraryDatabase : IDisposable
         {
             return _games.Delete(dbId);
         }
+
         return false;
     }
 
@@ -243,8 +244,16 @@ public class LibraryDatabase : IDisposable
         int order = 0;
         var defaults = new List<CollectionEntity>
         {
-            new() { Name = "Favorites", IconName = "heart.fill", Type = CollectionType.Favorites, IsSystem = true, SortOrder = order++ },
-            new() { Name = "Recently Played", IconName = "clock.fill", Type = CollectionType.RecentlyPlayed, IsSystem = true, SortOrder = order++ },
+            new()
+            {
+                Name = "Favorites", IconName = "heart.fill", Type = CollectionType.Favorites, IsSystem = true,
+                SortOrder = order++
+            },
+            new()
+            {
+                Name = "Recently Played", IconName = "clock.fill", Type = CollectionType.RecentlyPlayed,
+                IsSystem = true, SortOrder = order++
+            },
             // Platform collections generated from plugins
         };
 
@@ -425,5 +434,132 @@ public class LibraryDatabase : IDisposable
     }
 
     #endregion
+
+    #region Search
+
+    public enum SortOption
+    {
+        RELEVANCE = 0,
+        NAME = 1,
+        RELEASE_DATE = 2,
+        PLAYTIME = 3
+    }
+
+    public (List<GameEntity> Games, int TotalMatches) SearchLibrary(
+        string query,
+        List<string> platformFilter,
+        List<string> genreFilter,
+        SortOption sortBy,
+        bool sortAscending,
+        int limit)
+    {
+        var games = _games.FindAll();
+
+        // 1. Filtering
+        if (platformFilter != null && platformFilter.Count > 0)
+            games = games.Where(g => platformFilter.Contains(g.Platform));
+
+        if (genreFilter != null && genreFilter.Count > 0)
+            games = games.Where(g => g.Genres != null && g.Genres.Any(genre => genreFilter.Contains(genre)));
+
+        var filteredList = games.ToList();
+
+        // 2. Scoring & Sorting
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            // No query: Just sort by requested field
+            filteredList = SortGames(filteredList, sortBy, sortAscending).ToList();
+        }
+        else
+        {
+            // Search Query: Calculate scores
+            var queryTokens = query.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var scoredGames = filteredList.Select(g =>
+            {
+                int score = CalculateSearchScore(g, query, queryTokens);
+                return (Game: g, Score: score);
+            })
+            .Where(x => x.Score > 0);
+
+            // Sort logic
+            if (sortBy == SortOption.RELEVANCE)
+            {
+                // Primary: Score (Desc), Secondary: Name (Asc)
+                scoredGames = scoredGames.OrderByDescending(x => x.Score).ThenBy(x => x.Game.Title);
+            }
+            else
+            {
+                // Primary: User selection, Secondary: Score
+                var sorted = SortGames(scoredGames.Select(x => x.Game), sortBy, sortAscending);
+                scoredGames = sorted.Select(g => (g, CalculateSearchScore(g, query, queryTokens)));
+            }
+
+            filteredList = scoredGames.Select(x => x.Game).ToList();
+        }
+
+        int total = filteredList.Count;
+        var result = filteredList.Take(limit).ToList();
+
+        return (result, total);
+    }
+
+    private int CalculateSearchScore(GameEntity game, string fullQuery, string[] tokens)
+    {
+        if (string.IsNullOrEmpty(game.Title)) return 0;
+
+        int score = 0;
+        string title = game.Title.ToLowerInvariant();
+        string fullQueryLower = fullQuery.ToLowerInvariant();
+
+        // 1. Exact Match (Highest Priority)
+        if (title == fullQueryLower) return 100;
+
+        // 2. Starts With (High Priority)
+        if (title.StartsWith(fullQueryLower)) score += 80;
+
+        // 3. Contains Full Query Substring (Medium Priority)
+        else if (title.Contains(fullQueryLower)) score += 60;
+
+        // 4. Token Matching
+        int tokensMatched = 0;
+        foreach (var token in tokens)
+        {
+            if (title.Contains(token))
+            {
+                score += 20; // Base score for token match
+
+                // Bonus: Token starts a word
+                if (title.StartsWith(token) || title.Contains(" " + token))
+                    score += 10;
+
+                tokensMatched++;
+            }
+        }
+
+        // Penalty for extra unmatched words in title (Results closer to query length are better)
+        // Only apply if we have matches
+        if (score > 0)
+        {
+            int titleLengthPenalty = Math.Max(0, title.Length - fullQueryLower.Length);
+            score -= Math.Min(10, titleLengthPenalty / 5); // Cap penalty
+        }
+
+        return score;
+    }
+
+    private IEnumerable<GameEntity> SortGames(IEnumerable<GameEntity> games, SortOption sortBy, bool ascending)
+    {
+        return sortBy switch
+        {
+            SortOption.NAME => ascending ? games.OrderBy(g => g.Title) : games.OrderByDescending(g => g.Title),
+            SortOption.RELEASE_DATE => ascending ? games.OrderBy(g => g.ReleaseDate) : games.OrderByDescending(g => g.ReleaseDate),
+            SortOption.PLAYTIME => ascending ? games.OrderBy(g => g.TotalPlaytime) : games.OrderByDescending(g => g.TotalPlaytime),
+            _ => games // Default (or RELEVANCE fallback)
+        };
+    }
+
+    #endregion
+
 }
+
 

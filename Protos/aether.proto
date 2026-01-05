@@ -71,6 +71,9 @@ service AetherOrchestrator {
   rpc GetCarouselConfig (Empty) returns (CarouselConfig);
   rpc SetCarouselConfig (CarouselConfig) returns (OperationStatus);
   rpc GetCarouselGames (Empty) returns (stream Game);
+
+  // SEARCH
+  rpc SearchLibrary (LibrarySearchRequest) returns (LibrarySearchResponse);
 }
 
 
@@ -80,6 +83,29 @@ service AetherOrchestrator {
 // -----------------------------------------------------------
 
 message Empty {}
+
+message LibrarySearchRequest {
+  string query = 1;
+  // bool filter_installed = 2; // Removed
+  repeated string filter_platforms = 3;
+  repeated string filter_genres = 4;
+  
+  enum SortOption {
+    RELEVANCE = 0;
+    NAME = 1;
+    RELEASE_DATE = 2;
+    PLAYTIME = 3;
+  }
+  SortOption sort_by = 5;
+  bool sort_ascending = 6;
+  int32 limit = 7;
+}
+
+message LibrarySearchResponse {
+  repeated Game games = 1;
+  int32 total_matches = 2;
+}
+
 
 message PingResponse {
   bool healthy = 1;

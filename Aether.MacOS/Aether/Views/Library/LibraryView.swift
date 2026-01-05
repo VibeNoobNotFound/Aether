@@ -106,8 +106,7 @@ struct LibraryView: View {
         }
         // Removed manual top padding
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                // Add Game Menu
+            ToolbarItem(placement: .navigation) {
                 Menu {
                     ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
                         Button(action: {
@@ -119,23 +118,25 @@ struct LibraryView: View {
                 } label: {
                     Label("Add Game", systemImage: "plus")
                 }
+            }
 
-                // Management Group
-                ControlGroup {
-                    Button(action: {
-                        showCollectionEditor = true
-                    }) {
-                        Label("Collections", systemImage: "square.grid.3x3")
-                    }
-
-                    Button(action: {
-                        Task { await appState.scanLibrary() }
-                    }) {
-                        Label("Scan", systemImage: "arrow.clockwise")
-                    }
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    showCollectionEditor = true
+                }) {
+                    Label("Collections", systemImage: "square.grid.3x3")
                 }
+            }
 
-                // Destructive/Advanced Actions Menu
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    Task { await appState.scanLibrary() }
+                }) {
+                    Label("Scan", systemImage: "arrow.clockwise")
+                }
+            }
+
+            ToolbarItem(placement: .navigation) {
                 Menu {
                     Button(role: .destructive) {
                         Task { await appState.clearLibrary() }

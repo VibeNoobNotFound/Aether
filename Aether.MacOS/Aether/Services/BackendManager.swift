@@ -23,7 +23,7 @@ class BackendManager: ObservableObject {
     // DEV TOGGLE: Set to false for production, true during development
     // When true, assumes backend is running externally (e.g., via `dotnet run`)
     // ═══════════════════════════════════════════════════════════════════════════
-    private let useExternalBackend = false  // <-- TOGGLE THIS FOR DEV/PROD
+    private let useExternalBackend = true  // <-- TOGGLE THIS FOR DEV/PROD
 
     // ═══════════════════════════════════════════════════════════════════════════
     // ADMIN TOGGLE: Set to true for Debug builds (fixes TCC), false for Release (if signed)

@@ -68,16 +68,19 @@ struct HomeView: View {
             }
         }
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-                    Button(action: { showCarouselEditor = true }) {
-                        Label("Edit Carousel", systemImage: "photo.on.rectangle")
-                    }
-                    Button(action: { showCollectionEditor = true }) {
-                        Label("Collections", systemImage: "square.grid.3x3")
-                    }
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showCarouselEditor = true }) {
+                    Label("Edit Carousel", systemImage: "photo.on.rectangle")
                 }
+            }
 
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showCollectionEditor = true }) {
+                    Label("Collections", systemImage: "square.grid.3x3")
+                }
+            }
+
+            ToolbarItem(placement: .navigation) {
                 Button(action: {
                     Task { await appState.scanLibrary() }
                 }) {

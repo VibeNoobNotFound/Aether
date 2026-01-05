@@ -3,26 +3,31 @@ import SwiftUI
 struct MainWindowView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("useTopNavigation") private var useTopNavigation = false
+    @StateObject private var searchViewModel = SearchViewModel()
 
     var body: some View {
         Group {
             if useTopNavigation {
-                // Top Navigation Layout - Nav in title bar using toolbar
+                // Top Navigation Layout
                 NavigationStack {
                     ZStack {
                         Color.black.ignoresSafeArea()
 
-                        switch appState.currentScreen {
-                        case .home:
-                            HomeView()
-                        case .library:
-                            LibraryView()
-                        case .store:
-                            Text("Coming Soon")
-                                .font(.largeTitle)
-                                .foregroundStyle(.secondary)
-                        case .settings:
-                            SettingsView()
+                        if !searchViewModel.query.isEmpty {
+                            SearchResultsView(viewModel: searchViewModel)
+                        } else {
+                            switch appState.currentScreen {
+                            case .home:
+                                HomeView()
+                            case .library:
+                                LibraryView()
+                            case .store:
+                                Text("Coming Soon")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.secondary)
+                            case .settings:
+                                SettingsView()
+                            }
                         }
                     }
                     .toolbar {
@@ -34,6 +39,9 @@ struct MainWindowView: View {
                         GameDetailView(game: game)
                     }
                     .toolbarBackground(.automatic, for: .windowToolbar)
+                    .searchable(
+                        text: $searchViewModel.query, placement: .toolbar,
+                        prompt: "Search library...")
                 }
                 .overlay(alignment: .bottom) {
                     ConnectionStatusBar()
@@ -49,23 +57,30 @@ struct MainWindowView: View {
                         ZStack {
                             Color.black.edgesIgnoringSafeArea(.all)
 
-                            switch appState.currentScreen {
-                            case .home:
-                                HomeView()
-                            case .library:
-                                LibraryView()
-                            case .store:
-                                Text("Coming Soon")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(.secondary)
-                            case .settings:
-                                SettingsView()
+                            if !searchViewModel.query.isEmpty {
+                                SearchResultsView(viewModel: searchViewModel)
+                            } else {
+                                switch appState.currentScreen {
+                                case .home:
+                                    HomeView()
+                                case .library:
+                                    LibraryView()
+                                case .store:
+                                    Text("Coming Soon")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.secondary)
+                                case .settings:
+                                    SettingsView()
+                                }
                             }
                         }
                         .navigationDestination(for: GameViewModel.self) { game in
                             GameDetailView(game: game)
                         }
                         .toolbarBackground(.automatic, for: .windowToolbar)
+                        .searchable(
+                            text: $searchViewModel.query, placement: .toolbar,
+                            prompt: "Search library...")
                     }
                 }
                 .overlay(alignment: .bottom) {
@@ -76,7 +91,9 @@ struct MainWindowView: View {
         }
         .frame(minWidth: 800, minHeight: 600)
         .task {
+            // Refresh library on launch
             await appState.refreshLibrary()
+            searchViewModel.appState = appState
         }
     }
 }
