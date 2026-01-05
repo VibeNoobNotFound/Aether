@@ -48,7 +48,42 @@ struct AetherApp: App {
         }
         .windowToolbarStyle(.unified(showsTitle: false))
         .windowResizability(.contentSize)
+        .commands {
+            // Standard Sidebar commands (Show/Hide Sidebar)
+            SidebarCommands()
+
+            CommandGroup(replacing: .newItem) {}
+
+            // Custom Library Menu
+            CommandGroup(after: .newItem) {
+                Divider()
+                Button("Scan Library") {
+                    Task { await appState.scanLibrary() }
+                }
+                .keyboardShortcut("R", modifiers: [.command])
+
+                Button("Manage Collections") {
+                    // Logic to open sheet - simpler to use a notification or binding
+                    // For now, this might need a window-scoped binding or event.
+                    // A simple workaround is sending a NotificationCenter event
+                    NotificationCenter.default.post(name: .openCollectionEditor, object: nil)
+                }
+                .keyboardShortcut("C", modifiers: [.command, .shift])
+            }
+
+            // Remove some standard items if desired by replacing with nothing
+            CommandGroup(replacing: .help) {
+                Button("Aether Help") {
+                    // Open URL
+                }
+            }
+        }
     }
+}
+
+// Notification extension for menu commands
+extension Notification.Name {
+    static let openCollectionEditor = Notification.Name("openCollectionEditor")
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {

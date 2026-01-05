@@ -1,4 +1,5 @@
 import AetherIPC
+import SwiftProtobuf
 import SwiftUI
 
 struct WidgetRenderer: View {
@@ -257,4 +258,18 @@ extension Color {
             opacity: Double(a) / 255
         )
     }
+}
+
+#Preview {
+    WidgetRenderer(
+        widget: Aether_UIWidget.with {
+            $0.content = .text(
+                Aether_TextWidget.with {
+                    $0.text = "Preview Widget"
+                    $0.variant = .headline
+                })
+        },
+        formValues: .constant([:]),
+        onAction: { _, _ in }
+    )
 }

@@ -94,3 +94,8 @@ struct LibraryAddMenuView: View {
         }
     }
 }
+
+#Preview {
+    LibraryAddMenuView(pluginName: "Preview Plugin")
+        .environmentObject(MockData.appState)
+}

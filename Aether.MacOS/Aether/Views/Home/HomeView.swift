@@ -4,14 +4,16 @@ struct HomeView: View {
     @EnvironmentObject var appState: AppState
     @State private var news: [NewsItem] = []
     @State private var carouselIndex = 0
+    @State private var showCollectionEditor = false
+    @State private var showCarouselEditor = false
 
     // Pick game for background based on Carousel index
     var backgroundGame: GameViewModel? {
-        let games = Array(appState.games.prefix(5))  // Logic must match HeroCarousel
+        let games = appState.carouselGames
         if games.indices.contains(carouselIndex) {
             return games[carouselIndex]
         }
-        return appState.games.randomElement()
+        return games.randomElement()
     }
 
     var body: some View {
@@ -41,7 +43,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 30) {
                     // Wide Layout (Side by Side)
                     HStack(alignment: .top, spacing: 12) {
-                        HeroCarousel(currentIndex: $carouselIndex)
+                        HeroCarousel(currentIndex: $carouselIndex, games: appState.carouselGames)
                             .frame(height: 380)
                             .clipped()
 
@@ -55,39 +57,32 @@ struct HomeView: View {
                     }
                     .padding(.top, 20)
 
-                    if !appState.games.filter({ $0.isFavorite }).isEmpty {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Favorites")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .padding(.horizontal)
-                                .shadow(radius: 5)
-
-                            favoritesList
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("All Games")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .padding(.horizontal)
-                            .shadow(radius: 5)
-
-                        recentGamesList
+                    // Dynamic Collections
+                    ForEach(appState.visibleCollections) { collection in
+                        CollectionRowView(collection: collection)
+                            .transition(.opacity)
                     }
                 }
                 .padding(.vertical)
-                .padding(16)  // Moved from outer ZStack
+                .padding(16)
             }
         }
-        // Removed .padding(16) from here
         .toolbar {
-            ToolbarItem {
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showCarouselEditor = true }) {
+                    Label("Edit Carousel", systemImage: "photo.on.rectangle")
+                }
+            }
+
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showCollectionEditor = true }) {
+                    Label("Collections", systemImage: "square.grid.3x3")
+                }
+            }
+
+            ToolbarItem(placement: .navigation) {
                 Button(action: {
-                    Task {
-                        await appState.scanLibrary()
-                    }
+                    Task { await appState.scanLibrary() }
                 }) {
                     Label("Scan Library", systemImage: "arrow.clockwise")
                 }
@@ -105,75 +100,22 @@ struct HomeView: View {
                 return true
             }
         }
-    }
-
-    var favoritesList: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 20) {
-                ForEach(appState.games.filter { $0.isFavorite }) { game in
-                    NavigationLink(value: game) {
-                        GameGridCard(game: game)
-                            .frame(width: 160)
-                            .contextMenu {
-                                Button {
-                                    appState.launchGame(game)
-                                } label: {
-                                    Label("Play", systemImage: "play.fill")
-                                }
-
-                                Button {
-                                    Task { await appState.toggleFavorite(game: game) }
-                                } label: {
-                                    Label("Unfavorite", systemImage: "heart.slash")
-                                }
-
-                                Button {
-                                    Task { await appState.openGameLocation(game: game) }
-                                } label: {
-                                    Label("Show in Finder", systemImage: "folder")
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
+        .sheet(isPresented: $showCollectionEditor) {
+            CollectionEditorSheet()
+                .presentationBackground(.clear)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openCollectionEditor)) { _ in
+            showCollectionEditor = true
+        }
+        .sheet(isPresented: $showCarouselEditor) {
+            CarouselEditorSheet()
+                .presentationBackground(.clear)
         }
     }
+}
 
-    var recentGamesList: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 20) {
-                ForEach(appState.games) { game in
-                    NavigationLink(value: game) {
-                        GameGridCard(game: game)
-                            .frame(width: 160)
-                            .contextMenu {
-                                Button {
-                                    appState.launchGame(game)
-                                } label: {
-                                    Label("Play", systemImage: "play.fill")
-                                }
-
-                                Button {
-                                    Task { await appState.toggleFavorite(game: game) }
-                                } label: {
-                                    Label(
-                                        game.isFavorite ? "Unfavorite" : "Favorite",
-                                        systemImage: game.isFavorite ? "heart.slash" : "heart")
-                                }
-
-                                Button {
-                                    Task { await appState.openGameLocation(game: game) }
-                                } label: {
-                                    Label("Show in Finder", systemImage: "folder")
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-        }
-    }
+#Preview {
+    HomeView()
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 600)
 }

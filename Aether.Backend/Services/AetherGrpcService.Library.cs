@@ -305,6 +305,35 @@ public partial class AetherGrpcService
         _logger.LogInformation("Finished streaming {Count} games", games.Count);
     }
 
+    public override Task<LibrarySearchResponse> SearchLibrary(LibrarySearchRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var (games, totalMatches) = _database.SearchLibrary(
+                request.Query,
+                request.FilterPlatforms.ToList(),
+                request.FilterGenres.ToList(),
+                (LibraryDatabase.SortOption)request.SortBy, // Map Proto enum to Database Enum
+                request.SortAscending,
+                request.Limit > 0 ? request.Limit : 50
+            );
+
+            var response = new LibrarySearchResponse
+            {
+                TotalMatches = totalMatches
+            };
+            response.Games.AddRange(games.Select(MapToProto));
+
+            return Task.FromResult(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching library");
+            // Return empty result on error
+            return Task.FromResult(new LibrarySearchResponse());
+        }
+    }
+
     private static Game MapToProto(GameEntity entity)
     {
         var protoGame = new Game

@@ -124,8 +124,14 @@ struct PluginSetupView: View {
                     errorMessage = "\(response.message) and final payload: \(finalPayload)"
                 }
             } catch {
-                errorMessage = "Action failed: \(error.localizedDescription), final payload: \(finalPayload)"
+                errorMessage =
+                    "Action failed: \(error.localizedDescription), final payload: \(finalPayload)"
             }
         }
     }
+}
+
+#Preview {
+    PluginSetupView(plugin: MockData.plugins[0])
+        .environmentObject(MockData.appState)
 }

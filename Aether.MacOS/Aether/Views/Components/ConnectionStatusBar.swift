@@ -110,3 +110,13 @@ struct ConnectionStatusBar: View {
         }
     }
 }
+
+#Preview {
+    ZStack {
+        Color.black
+        VStack {
+            Spacer()
+            ConnectionStatusBar()
+        }
+    }
+}

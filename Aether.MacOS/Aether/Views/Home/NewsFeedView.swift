@@ -1,3 +1,5 @@
+import AetherIPC
+import SwiftProtobuf
 import SwiftUI
 
 struct NewsFeedView: View {
@@ -66,22 +68,30 @@ struct NewsFeedView: View {
         @State private var isHovered = false
 
         var body: some View {
-            GlassCard(
-                padding: 0, cornerRadius: 16, isHoverable: true,
-                action: {
-                    if let url = item.url ?? URL(string: "https://store.steampowered.com") {
-                        openURL(url)
-                    }
+            Button {
+                if let url = item.url ?? URL(string: "https://store.steampowered.com") {
+                    openURL(url)
                 }
-            ) {
-                ZStack(alignment: .bottomLeading) {
-                    // Background Image
-                    if let imageUrl = item.imageUrl {
-                        CachedAsyncImage(url: imageUrl) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
+            } label: {
+                VStack() {
+                    ZStack(alignment: .bottomLeading) {
+                        // Background Image
+                        if let imageUrl = item.imageUrl {
+                            CachedAsyncImage(url: imageUrl) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.blue.opacity(0.4), .purple.opacity(0.4)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                            }
+                        } else {
                             Rectangle()
                                 .fill(
                                     LinearGradient(
@@ -91,68 +101,85 @@ struct NewsFeedView: View {
                                     )
                                 )
                         }
-                    } else {
-                        Rectangle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.blue.opacity(0.4), .purple.opacity(0.4)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
 
-                    // Bottom Gradient
-                    LinearGradient(
-                        colors: [.clear, .black.opacity(0.8)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-
-                    // Content
-                    VStack(alignment: .leading, spacing: 6) {
-                        // Source Badge
-                        Text(item.source)
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background {
-                                GlassCard(padding: 0, cornerRadius: 100) {
-                                    Color.clear
-                                }
-                            }
-
-                        // Title
-                        Text(item.title)
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .lineLimit(2)
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 5)
-
-                        // Author & Date
-                        HStack {
-                            Text(item.author)
-                                .lineLimit(1)
-                            Spacer()
-                            Text(item.date, style: .date)
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
-                    }.zIndex(1)
-                        .frame(
-                            maxWidth: cardWidth == .infinity ? .infinity : max(0, cardWidth - 32),
-                            alignment: .leading
+                        // Bottom Gradient
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.8)],
+                            startPoint: .center,
+                            endPoint: .bottom
                         )
-                        .padding(16)
+
+                        // Content
+                        VStack(alignment: .leading, spacing: 6) {
+                            // Source Badge
+                            Text(item.source)
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background {
+                                    GlassCard(padding: 0, cornerRadius: 100) {
+                                        Color.clear
+                                    }
+                                }
+
+                            // Title
+                            Text(item.title)
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .lineLimit(2)
+                                .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.5), radius: 5)
+
+                            // Author & Date
+                            HStack {
+                                Text(item.author)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text(item.date, style: .date)
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.7))
+                        }.zIndex(1)
+                            .frame(
+                                maxWidth: cardWidth == .infinity
+                                    ? .infinity : max(0, cardWidth - 32),
+                                alignment: .leading
+                            )
+                            .padding(16)
+                    }
+                    .frame(
+                        width: cardWidth == .infinity ? nil : max(0, cardWidth),
+                        height: nil
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .frame(
-                    width: cardWidth == .infinity ? nil : max(0, cardWidth),
-                    height: nil
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .buttonStyle(.plain)
         }
+    }
+}
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        NewsFeedView(
+            news: [
+                NewsItem(
+                    from: Aether_NewsItem.with {
+                        $0.title = "Steam Deck OLED Announced"
+                        $0.author = "Valve"
+                        $0.source = "Steam"
+                        $0.dateUnix = Int64(Date().timeIntervalSince1970)
+                    }),
+                NewsItem(
+                    from: Aether_NewsItem.with {
+                        $0.title = "Epic Mega Sale"
+                        $0.author = "Epic Games"
+                        $0.source = "Epic"
+                        $0.dateUnix = Int64(Date().timeIntervalSince1970)
+                    }),
+            ]
+        )
+        .padding()
     }
 }

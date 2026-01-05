@@ -56,6 +56,24 @@ service AetherOrchestrator {
   rpc CheckForUpdates (CheckUpdateRequest) returns (UpdateInfo);
   rpc DownloadUpdate (DownloadUpdateRequest) returns (stream DownloadProgress);
   rpc InstallAppUpdate (InstallUpdateRequest) returns (OperationStatus);
+
+  // COLLECTIONS
+  rpc GetCollections (Empty) returns (CollectionList);
+  rpc CreateCollection (CreateCollectionRequest) returns (Collection);
+  rpc UpdateCollection (UpdateCollectionRequest) returns (OperationStatus);
+  rpc DeleteCollection (CollectionId) returns (OperationStatus);
+  rpc AddGameToCollection (CollectionGameAction) returns (OperationStatus);
+  rpc RemoveGameFromCollection (CollectionGameAction) returns (OperationStatus);
+  rpc GetCollectionGames (CollectionId) returns (stream Game);
+  rpc ReorderCollections (ReorderCollectionsRequest) returns (OperationStatus);
+
+  // CAROUSEL
+  rpc GetCarouselConfig (Empty) returns (CarouselConfig);
+  rpc SetCarouselConfig (CarouselConfig) returns (OperationStatus);
+  rpc GetCarouselGames (Empty) returns (stream Game);
+
+  // SEARCH
+  rpc SearchLibrary (LibrarySearchRequest) returns (LibrarySearchResponse);
 }
 
 
@@ -65,6 +83,29 @@ service AetherOrchestrator {
 // -----------------------------------------------------------
 
 message Empty {}
+
+message LibrarySearchRequest {
+  string query = 1;
+  // bool filter_installed = 2; // Removed
+  repeated string filter_platforms = 3;
+  repeated string filter_genres = 4;
+  
+  enum SortOption {
+    RELEVANCE = 0;
+    NAME = 1;
+    RELEASE_DATE = 2;
+    PLAYTIME = 3;
+  }
+  SortOption sort_by = 5;
+  bool sort_ascending = 6;
+  int32 limit = 7;
+}
+
+message LibrarySearchResponse {
+  repeated Game games = 1;
+  int32 total_matches = 2;
+}
+
 
 message PingResponse {
   bool healthy = 1;
@@ -445,4 +486,64 @@ message DownloadProgress {
 
 message InstallUpdateRequest {
   string extract_path = 1;
+}
+
+// -----------------------------------------------------------
+// COLLECTIONS
+// -----------------------------------------------------------
+
+enum CollectionType {
+  COLLECTION_CUSTOM = 0;
+  COLLECTION_FAVORITES = 1;
+  COLLECTION_RECENTLY_PLAYED = 2;
+  COLLECTION_PLATFORM = 3;
+}
+
+message Collection {
+  int32 id = 1;
+  string name = 2;
+  string icon_name = 3;
+  CollectionType type = 4;
+  bool is_system = 5;
+  optional string platform_filter = 6;
+  repeated int32 game_ids = 7;
+  int32 sort_order = 8;
+  bool is_visible = 9;
+  int32 game_count = 10;
+}
+
+message CollectionList {
+  repeated Collection collections = 1;
+}
+
+message CollectionId {
+  int32 id = 1;
+}
+
+message CreateCollectionRequest {
+  string name = 1;
+  string icon_name = 2;
+}
+
+message UpdateCollectionRequest {
+  int32 id = 1;
+  optional string name = 2;
+  optional string icon_name = 3;
+  optional int32 sort_order = 4;
+  optional bool is_visible = 5;
+}
+
+message CollectionGameAction {
+  int32 collection_id = 1;
+  string game_id = 2;
+}
+
+message ReorderCollectionsRequest {
+  repeated int32 collection_ids = 1;
+}
+
+message CarouselConfig {
+  optional int32 collection_id = 1;
+  repeated string game_ids = 2;
+  int32 max_games = 3;
 }

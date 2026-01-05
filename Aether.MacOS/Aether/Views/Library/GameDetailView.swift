@@ -109,6 +109,7 @@ struct GameDetailView: View {
         .sheet(isPresented: $showingMetadataEditor) {
             MetadataEditorView(game: game)
                 .environmentObject(appState)
+                .presentationBackground(.clear)
         }
     }
 
@@ -559,4 +560,10 @@ struct MediaItem: Identifiable, Hashable {
 enum MediaType {
     case image
     case video
+}
+
+#Preview {
+    GameDetailView(game: MockData.games[0])
+        .environmentObject(MockData.appState)
+        .frame(width: 1000, height: 800)
 }

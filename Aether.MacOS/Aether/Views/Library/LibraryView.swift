@@ -4,6 +4,7 @@ struct LibraryView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedGame: GameViewModel?
     @State private var selectedPlugin: PluginViewModel?
+    @State private var showCollectionEditor = false
 
     let columns = [
         GridItem(.adaptive(minimum: 180, maximum: 220), spacing: 20)
@@ -105,41 +106,62 @@ struct LibraryView: View {
         }
         // Removed manual top padding
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                HStack {
-                    Menu {
-                        ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
-                            Button(action: {
-                                selectedPlugin = plugin
-                            }) {
-                                Label(plugin.name, systemImage: "plus")
-                            }
+            ToolbarItem(placement: .navigation) {
+                Menu {
+                    ForEach(appState.plugins.filter { $0.supportsManualAddition }) { plugin in
+                        Button(action: {
+                            selectedPlugin = plugin
+                        }) {
+                            Label(plugin.name, systemImage: "plus")
                         }
-                    } label: {
-                        Label("Add Game", systemImage: "plus")
                     }
+                } label: {
+                    Label("Add Game", systemImage: "plus")
+                }
+            }
 
-                    Menu {
-                        Button {
-                            Task { await appState.scanLibrary() }
-                        } label: {
-                            Label("Scan Library", systemImage: "arrow.clockwise")
-                        }
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    showCollectionEditor = true
+                }) {
+                    Label("Collections", systemImage: "square.grid.3x3")
+                }
+            }
 
-                        Button(role: .destructive) {
-                            Task { await appState.clearLibrary() }
-                        } label: {
-                            Label("Clear Library", systemImage: "trash")
-                        }
+            ToolbarItem(placement: .navigation) {
+                Button(action: {
+                    Task { await appState.scanLibrary() }
+                }) {
+                    Label("Scan", systemImage: "arrow.clockwise")
+                }
+            }
+
+            ToolbarItem(placement: .navigation) {
+                Menu {
+                    Button(role: .destructive) {
+                        Task { await appState.clearLibrary() }
                     } label: {
-                        Label("Manage", systemImage: "ellipsis.circle")
+                        Label("Clear Library", systemImage: "trash")
                     }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
                 }
             }
         }
         .sheet(item: $selectedPlugin) { plugin in
             LibraryAddMenuView(pluginName: plugin.name)
                 .frame(minWidth: 500, minHeight: 400)
+                .presentationBackground(.clear)
+        }
+        .sheet(isPresented: $showCollectionEditor) {
+            CollectionEditorSheet()
+                .presentationBackground(.clear)
         }
     }
+}
+
+#Preview {
+    LibraryView()
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 600)
 }
