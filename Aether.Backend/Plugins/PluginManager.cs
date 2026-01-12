@@ -68,7 +68,9 @@ public class PluginManager : IDisposable
                 // Inject logger if plugin implements ILoggingAware
                 if (plugin is Aether.PluginSDK.Logging.ILoggingAware loggingAware)
                 {
-                    var pluginLogger = _logger.ForContext(plugin.GetType());
+                    var pluginLogger = _logger
+                        .ForContext("PluginName", plugin.Name)  // Tag for log routing
+                        .ForContext(plugin.GetType());
                     loggingAware.SetLogger(pluginLogger);
                     _logger.Debug("Injected logger for plugin: {Name}", plugin.Name);
                 }
