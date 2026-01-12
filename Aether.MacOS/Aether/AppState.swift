@@ -259,8 +259,13 @@ class AppState: ObservableObject {
         } else {
             // Priority 3: Default (Favorites + Recent mixed)
             let favorites = games.filter { $0.isFavorite }
-            let recent = games.filter { $0.lastPlayed != nil }
-                .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
+            let oneMonthAgo =
+                Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            let recent = games.filter {
+                guard let lastPlayed = $0.lastPlayed else { return false }
+                return lastPlayed > oneMonthAgo
+            }
+            .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
 
             var combined = favorites
             for game in recent {
@@ -283,8 +288,13 @@ class AppState: ObservableObject {
         } else if collection.type == .collectionFavorites {
             return games.filter { $0.isFavorite }
         } else if collection.type == .collectionRecentlyPlayed {
-            return games.filter { $0.lastPlayed != nil }
-                .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
+            let oneMonthAgo =
+                Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+            return games.filter {
+                guard let lastPlayed = $0.lastPlayed else { return false }
+                return lastPlayed > oneMonthAgo
+            }
+            .sorted { ($0.lastPlayed ?? .distantPast) > ($1.lastPlayed ?? .distantPast) }
         } else {
             // Custom collection with game IDs
             let ids = Set(collection.gameIds)

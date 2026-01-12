@@ -32,7 +32,7 @@ struct MainWindowView: View {
                     }
                     .toolbar {
                         ToolbarItem(placement: .principal) {
-                            TopNavigationBar()
+                            TopNavigationBar(searchViewModel: searchViewModel)
                         }
                     }
                     .navigationDestination(for: GameViewModel.self) { game in
@@ -109,6 +109,7 @@ struct MainWindowView: View {
 // Top Navigation Bar Component - Clean style (uses macOS toolbar glass)
 struct TopNavigationBar: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var searchViewModel: SearchViewModel
 
     private let screens: [AppScreen] = [.home, .library, .store, .settings]
 
@@ -118,6 +119,8 @@ struct TopNavigationBar: View {
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         appState.currentScreen = screen
+                        // Clear search when navigating
+                        searchViewModel.query = ""
                     }
                 } label: {
                     Text(screen.title)
