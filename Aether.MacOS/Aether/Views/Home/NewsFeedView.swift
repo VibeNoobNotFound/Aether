@@ -160,6 +160,8 @@ struct NewsFeedView: View {
     }
 }
 #Preview {
+    
+#if DEBUG
     ZStack {
         Color.black.ignoresSafeArea()
         NewsFeedView(
@@ -182,4 +184,5 @@ struct NewsFeedView: View {
         )
         .padding()
     }
+    #endif
 }

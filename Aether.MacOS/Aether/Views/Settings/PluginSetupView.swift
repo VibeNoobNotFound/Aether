@@ -132,6 +132,8 @@ struct PluginSetupView: View {
 }
 
 #Preview {
+#if DEBUG
     PluginSetupView(plugin: MockData.plugins[0])
         .environmentObject(MockData.appState)
+    #endif
 }

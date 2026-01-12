@@ -261,6 +261,7 @@ extension Color {
 }
 
 #Preview {
+#if DEBUG
     WidgetRenderer(
         widget: Aether_UIWidget.with {
             $0.content = .text(
@@ -272,4 +273,5 @@ extension Color {
         formValues: .constant([:]),
         onAction: { _, _ in }
     )
+    #endif
 }

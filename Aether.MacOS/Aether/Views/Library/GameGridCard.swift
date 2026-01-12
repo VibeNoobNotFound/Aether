@@ -176,9 +176,11 @@ struct GameGridCard: View {
 }
 
 #Preview {
+#if DEBUG
     ZStack {
         Color.black
         GameGridCard(game: MockData.games[0])
             .frame(width: 200, height: 300)
     }
+    #endif
 }

@@ -14,5 +14,7 @@ struct ContentView: View {
 }
 
 #Preview {
+#if DEBUG
     ContentView()
+    #endif
 }

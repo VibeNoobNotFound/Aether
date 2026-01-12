@@ -33,6 +33,8 @@ struct SidebarView: View {
 }
 
 #Preview {
+#if DEBUG
     SidebarView()
         .environmentObject(MockData.appState)
+    #endif
 }

@@ -112,6 +112,7 @@ struct ConnectionStatusBar: View {
 }
 
 #Preview {
+#if DEBUG
     ZStack {
         Color.black
         VStack {
@@ -119,4 +120,5 @@ struct ConnectionStatusBar: View {
             ConnectionStatusBar()
         }
     }
+    #endif
 }

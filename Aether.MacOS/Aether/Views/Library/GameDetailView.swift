@@ -563,7 +563,9 @@ enum MediaType {
 }
 
 #Preview {
+#if DEBUG
     GameDetailView(game: MockData.games[0])
         .environmentObject(MockData.appState)
         .frame(width: 1000, height: 800)
+    #endif
 }

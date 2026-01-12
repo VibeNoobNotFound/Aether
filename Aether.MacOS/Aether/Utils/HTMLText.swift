@@ -69,8 +69,10 @@ struct HTMLText: View {
 }
 
 #Preview {
+    #if DEBUG
     HTMLText(
         html: "<b>Bold text</b> and <i>italic</i><br><br>New paragraph with <a href='#'>link</a>"
     )
     .padding()
+    #endif
 }

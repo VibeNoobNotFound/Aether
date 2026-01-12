@@ -124,6 +124,8 @@ struct CarouselEditorSheet: View {
 }
 
 #Preview {
+#if DEBUG
     CarouselEditorSheet()
         .environmentObject(MockData.appState)
+    #endif
 }

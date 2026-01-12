@@ -202,5 +202,7 @@ struct UpdateView: View {
 }
 
 #Preview {
+#if DEBUG
     UpdateView()
+    #endif
 }

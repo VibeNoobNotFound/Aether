@@ -161,7 +161,9 @@ struct LibraryView: View {
 }
 
 #Preview {
+#if DEBUG
     LibraryView()
         .environmentObject(MockData.appState)
         .frame(width: 800, height: 600)
+    #endif
 }

@@ -513,6 +513,8 @@ struct PluginCard: View {
 }
 
 #Preview {
+#if DEBUG
     SettingsView()
         .environmentObject(MockData.appState)
+    #endif
 }

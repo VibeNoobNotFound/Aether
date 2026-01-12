@@ -486,6 +486,8 @@ struct MetadataSearchSheet: View {
 }
 
 #Preview {
+#if DEBUG
     MetadataEditorView(game: MockData.games[0])
         .environmentObject(MockData.appState)
+    #endif
 }

@@ -53,7 +53,10 @@ struct CollectionRowView: View {
 }
 
 #Preview {
+    
+#if DEBUG
     CollectionRowView(collection: MockData.collections[0])
         .environmentObject(MockData.appState)
         .frame(width: 800, height: 400)
+    #endif
 }
