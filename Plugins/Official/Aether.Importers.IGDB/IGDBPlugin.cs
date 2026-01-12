@@ -25,7 +25,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
-        _logger.Information("IGDBPlugin initialized");
+        _logger.Information("IGDBPlugin Logger initialized");
     }
 
     public static class Constants
@@ -51,7 +51,9 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
     private async Task InitializeClientAsync()
     {
         if (_storage == null) return;
-
+        
+        _logger?.Debug("Loading credentials from storage");
+        
         try
         {
             var creds = await _storage.LoadAsync<TwitchCredentials>("credentials");

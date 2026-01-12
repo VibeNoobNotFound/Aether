@@ -45,13 +45,13 @@ struct SettingsView: View {
                     // GENERAL SECTION
                     VStack(alignment: .leading, spacing: 16) {
                         SectionHeader(title: "GENERAL")
-                        
+
                         // Appearance Tile
                         SettingsTile {
                             VStack(spacing: 0) {
                                 HStack(spacing: 16) {
                                     SettingsIcon(icon: "sidebar.left", color: .orange)
-                                    
+
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Navigation Style")
                                             .font(.body)
@@ -61,14 +61,15 @@ struct SettingsView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     Picker(
                                         "",
                                         selection: Binding(
                                             get: {
-                                                UserDefaults.standard.bool(forKey: "useTopNavigation")
+                                                UserDefaults.standard.bool(
+                                                    forKey: "useTopNavigation")
                                             },
                                             set: {
                                                 UserDefaults.standard.set(
@@ -83,13 +84,12 @@ struct SettingsView: View {
                                     .frame(width: 150)
                                 }
                                 .padding()
-                                
-                                
+
                                 Divider().background(.white.opacity(0.1))
-                                
+
                                 HStack(spacing: 16) {
                                     SettingsIcon(icon: "square.stack.3d.up", color: .blue)
-                                    
+
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Game Card Style")
                                             .font(.body)
@@ -99,9 +99,9 @@ struct SettingsView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     Picker(
                                         "",
                                         selection: Binding(
@@ -124,7 +124,7 @@ struct SettingsView: View {
                                 .padding()
                             }
                         }
-                    
+
                         // About Tile
                         SettingsTile {
                             HStack(spacing: 16) {
@@ -283,6 +283,22 @@ struct SettingsView: View {
                                 color: .red,
                                 title: "Clear Library",
                                 description: "Remove all games from the database"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            let appSupport = FileManager.default.urls(
+                                for: .applicationSupportDirectory, in: .userDomainMask
+                            ).first!
+                            let logsDir = appSupport.appendingPathComponent("Aether")
+                            NSWorkspace.shared.open(logsDir)
+                        } label: {
+                            SettingsActionCard(
+                                icon: "doc.text.magnifyingglass",
+                                color: .orange,
+                                title: "Open Logs Folder",
+                                description: "View application logs and data"
                             )
                         }
                         .buttonStyle(.plain)
@@ -513,8 +529,8 @@ struct PluginCard: View {
 }
 
 #Preview {
-#if DEBUG
-    SettingsView()
-        .environmentObject(MockData.appState)
+    #if DEBUG
+        SettingsView()
+            .environmentObject(MockData.appState)
     #endif
 }
