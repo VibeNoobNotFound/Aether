@@ -15,6 +15,9 @@ struct AetherApp: App {
     @ObservedObject private var updateManager = UpdateManager.shared
 
     init() {
+        // Initialize logger first
+        _ = AetherLogger.shared
+
         // Check permissions state silently on launch
         PermissionManager.shared.checkPermissions()
     }

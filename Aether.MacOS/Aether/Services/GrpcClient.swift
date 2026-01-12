@@ -15,7 +15,7 @@ class GrpcClient {
     private var transport: HTTP2ClientTransport.Posix
 
     init() {
-        Logger.shared.log("Initializing gRPC Client for 127.0.0.1:55551")
+        AetherLogger.shared.info("Initializing gRPC Client for 127.0.0.1:55551")
 
         // Setup Transport for Localhost TCP
         // Using try! is acceptable here as failure means the app is fundamentally broken
@@ -31,7 +31,7 @@ class GrpcClient {
         // Start transport in background
         Task {
             do {
-                Logger.shared.log("Starting transport execution...")
+                AetherLogger.shared.info("Starting transport execution...")
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     group.addTask {
                         try await transport.connect()
@@ -39,7 +39,7 @@ class GrpcClient {
                     try await group.waitForAll()
                 }
             } catch {
-                Logger.shared.log("Transport execution error: \(error)", type: .error)
+                AetherLogger.shared.error("Transport execution error: \(error)")
             }
         }
     }

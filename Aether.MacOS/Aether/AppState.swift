@@ -305,7 +305,7 @@ class AppState: ObservableObject {
     private let grpcClient = GrpcClient()
 
     init() {
-        Logger.shared.log("AppState initialized")
+        AetherLogger.shared.info("AppState initialized")
         startAutoRefresh()
     }
 
@@ -330,14 +330,14 @@ class AppState: ObservableObject {
 
     func refreshLibrary() async {
         await waitForBackend()
-        Logger.shared.log("Refreshing library...")
+        AetherLogger.shared.info("Refreshing library...")
 
         do {
             // Use gRPC Swift v2 closure pattern
             try await grpcClient.client.getLibrary(Aether_Empty()) { response in
                 var games: [Aether_Game] = []
                 for try await game in response.messages {
-                    // Logger.shared.log("Received game: \(game.title)") // Reduced logging to avoid excessive awaits in loop
+                    // AetherLogger.shared.info("Received game: \(game.title)") // Reduced logging to avoid excessive awaits in loop
                     games.append(game)
                 }
 
@@ -347,7 +347,7 @@ class AppState: ObservableObject {
                 await MainActor.run {
                     self.games = gamesToMap.map { GameViewModel(from: $0) }
                     Task {
-                        Logger.shared.log(
+                        AetherLogger.shared.info(
                             "Library refreshed. Total games: \(self.games.count)")
                     }
                 }
@@ -359,12 +359,12 @@ class AppState: ObservableObject {
             await fetchCarouselConfig()
 
         } catch {
-            Logger.shared.log("Failed to fetch library: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch library: \(error)")
         }
     }
 
     func scanLibrary() async {
-        Logger.shared.log("Starting library scan...")
+        AetherLogger.shared.info("Starting library scan...")
 
         do {
             let request = Aether_ScanRequest.with { $0.forceRefresh = false }
@@ -373,7 +373,7 @@ class AppState: ObservableObject {
                 for try await progress in response.messages {
                     // Log progress
                     if !progress.currentStatus.isEmpty {
-                        await Logger.shared.log("Scan Status: \(progress.currentStatus)")
+                        await AetherLogger.shared.info("Scan Status: \(progress.currentStatus)")
 
                         // Check for backend permission errors
                         if progress.currentStatus.contains("Access")
@@ -385,7 +385,7 @@ class AppState: ObservableObject {
                             }
                         }
                     } else {
-                        await Logger.shared.log(
+                        await AetherLogger.shared.info(
                             "Scan: \(progress.currentPlatform) - \(progress.currentGame) (\(Int(progress.progressPercentage))%)"
                         )
                     }
@@ -407,9 +407,9 @@ class AppState: ObservableObject {
                 }
             }
 
-            Logger.shared.log("Scan complete!")
+            AetherLogger.shared.info("Scan complete!")
         } catch {
-            Logger.shared.log("Scan failed: \(error)", type: .error)
+            AetherLogger.shared.error("Scan failed: \(error)")
         }
     }
 
@@ -423,7 +423,7 @@ class AppState: ObservableObject {
             let response = try await grpcClient.client.getWidgets(request)
             return response.widgets
         } catch {
-            Logger.shared.log("Failed to fetch widgets: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch widgets: \(error)")
             return []
         }
     }
@@ -441,7 +441,7 @@ class AppState: ObservableObject {
 
     func launchGame(_ game: GameViewModel) {
         Task {
-            Logger.shared.log("Launching game with ID: \(game.id)")
+            AetherLogger.shared.info("Launching game with ID: \(game.id)")
 
             do {
                 let request = Aether_LaunchRequest.with {
@@ -451,16 +451,16 @@ class AppState: ObservableObject {
                 let response = try await grpcClient.client.launchGame(request)
 
                 if response.success {
-                    Logger.shared.log(
+                    AetherLogger.shared.info(
                         "Game launched successfully. PID: \(response.processID)")
 
                     // Trigger refresh to update "Last Played" status immediately
                     await refreshLibrary()
                 } else {
-                    Logger.shared.log("Launch failed: \(response.message)", type: .error)
+                    AetherLogger.shared.error("Launch failed: \(response.message)")
                 }
             } catch {
-                Logger.shared.log("Launch error: \(error)", type: .error)
+                AetherLogger.shared.error("Launch error: \(error)")
             }
         }
     }
@@ -475,13 +475,13 @@ class AppState: ObservableObject {
             let response = try await grpcClient.client.canLaunchGame(request)
             return (response.canLaunch, response.reason, response.launchMethod)
         } catch {
-            Logger.shared.log("Error checking canLaunch: \(error)", type: .error)
+            AetherLogger.shared.error("Error checking canLaunch: \(error)")
             return (false, "Error checking launch capability", nil)
         }
     }
 
     func fetchPlugins() async {
-        Logger.shared.log("Fetching plugins...")
+        AetherLogger.shared.info("Fetching plugins...")
         do {
             let pluginsList = try await grpcClient.client.getPlugins(Aether_Empty())
             let protos = pluginsList.plugins
@@ -489,9 +489,9 @@ class AppState: ObservableObject {
             await MainActor.run {
                 self.plugins = protos.map { PluginViewModel(from: $0) }
             }
-            Logger.shared.log("Plugins fetched: \(self.plugins.count)")
+            AetherLogger.shared.info("Plugins fetched: \(self.plugins.count)")
         } catch {
-            Logger.shared.log("Failed to fetch plugins: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch plugins: \(error)")
         }
     }
 
@@ -505,7 +505,7 @@ class AppState: ObservableObject {
                 self.collections = protos.map { CollectionViewModel(from: $0) }
             }
         } catch {
-            Logger.shared.log("Failed to fetch collections: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch collections: \(error)")
         }
     }
 
@@ -518,7 +518,7 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.createCollection(request)
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to create collection: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to create collection: \(error)")
         }
     }
 
@@ -537,7 +537,7 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.updateCollection(request)
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to update collection: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to update collection: \(error)")
         }
     }
 
@@ -548,7 +548,7 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.deleteCollection(request)
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to delete collection: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to delete collection: \(error)")
         }
     }
 
@@ -560,7 +560,7 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.addGameToCollection(request)
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to add game to collection: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to add game to collection: \(error)")
         }
     }
 
@@ -572,7 +572,7 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.removeGameFromCollection(request)
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to remove game from collection: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to remove game from collection: \(error)")
         }
     }
 
@@ -584,7 +584,7 @@ class AppState: ObservableObject {
             // Optimistic update done in UI usually, but confirm with fetch
             await fetchCollections()
         } catch {
-            Logger.shared.log("Failed to reorder collections: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to reorder collections: \(error)")
         }
     }
 
@@ -595,7 +595,7 @@ class AppState: ObservableObject {
                 self.carouselConfig = CarouselConfig(from: configProto)
             }
         } catch {
-            Logger.shared.log("Failed to fetch carousel config: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch carousel config: \(error)")
         }
     }
 
@@ -613,20 +613,20 @@ class AppState: ObservableObject {
             _ = try await grpcClient.client.setCarouselConfig(request)
             await fetchCarouselConfig()
         } catch {
-            Logger.shared.log("Failed to update carousel config: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to update carousel config: \(error)")
         }
     }
 
     // MARK: - QoL Actions
 
     func clearLibrary() async {
-        Logger.shared.log("Clearing library...")
+        AetherLogger.shared.info("Clearing library...")
         do {
             _ = try await grpcClient.client.clearLibrary(Aether_Empty())
             self.games = []  // Clear locally
-            Logger.shared.log("Library cleared.")
+            AetherLogger.shared.info("Library cleared.")
         } catch {
-            Logger.shared.log("Failed to clear library: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to clear library: \(error)")
         }
     }
 
@@ -637,10 +637,10 @@ class AppState: ObservableObject {
             let response = try await grpcClient.client.removeGame(request)
             if response.success {
                 self.games.removeAll { $0.id == id }
-                Logger.shared.log("Game removed: \(id)")
+                AetherLogger.shared.info("Game removed: \(id)")
             }
         } catch {
-            Logger.shared.log("Failed to remove game: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to remove game: \(error)")
         }
     }
 
@@ -660,15 +660,15 @@ class AppState: ObservableObject {
                 if let index = games.firstIndex(where: { $0.id == game.id }) {
                     games[index].isFavorite.toggle()
                 }
-                Logger.shared.log(
-                    "Failed to toggle favorite on server: \(response.message)", type: .error)
+                AetherLogger.shared.error(
+                    "Failed to toggle favorite on server: \(response.message)")
             }
         } catch {
             // Revert on failure
             if let index = games.firstIndex(where: { $0.id == game.id }) {
                 games[index].isFavorite.toggle()
             }
-            Logger.shared.log("Failed to toggle favorite: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to toggle favorite: \(error)")
         }
     }
 
@@ -678,7 +678,7 @@ class AppState: ObservableObject {
             request.id = game.id
             _ = try await grpcClient.client.openGameLocation(request)
         } catch {
-            Logger.shared.log("Failed to open location: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to open location: \(error)")
         }
     }
 
@@ -761,7 +761,7 @@ class AppState: ObservableObject {
             let response = try await grpcClient.client.getGameNews(request)
             return response.news.map { NewsItem(from: $0) }
         } catch {
-            Logger.shared.log("Failed to fetch game news: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch game news: \(error)")
             return []
         }
     }
@@ -772,7 +772,7 @@ class AppState: ObservableObject {
             let response = try await grpcClient.client.getGeneralNews(Aether_Empty())
             return response.news.map { NewsItem(from: $0) }
         } catch {
-            Logger.shared.log("Failed to fetch general news: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to fetch general news: \(error)")
             return []
         }
     }
@@ -796,7 +796,7 @@ class AppState: ObservableObject {
                 userInfo: [NSLocalizedDescriptionKey: response.message])
         }
 
-        Logger.shared.log("Plugin installed: \(filename)")
+        AetherLogger.shared.info("Plugin installed: \(filename)")
         // Allow some time for backend reload
         try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
         await fetchPlugins()
@@ -814,7 +814,7 @@ class AppState: ObservableObject {
                 userInfo: [NSLocalizedDescriptionKey: response.message])
         }
 
-        Logger.shared.log("Plugin uninstalled: \(name)")
+        AetherLogger.shared.info("Plugin uninstalled: \(name)")
         try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
         await fetchPlugins()
     }

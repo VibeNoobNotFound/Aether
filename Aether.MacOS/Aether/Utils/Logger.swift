@@ -1,61 +1,65 @@
 import Foundation
 import OSLog
-import os
 
-final class Logger: @unchecked Sendable {
-    static let shared = Logger()
-    private let logger = OSLog(subsystem: "com.antigravity.aether", category: "Application")
-    private let queue = DispatchQueue(label: "com.antigravity.aether.logger")
-    private var fileHandle: FileHandle?
+/// Simple file logger for Aether frontend
+class AetherLogger {
+    static let shared = AetherLogger()
+
+    private let fileHandle: FileHandle?
+    private let logURL: URL
+    private let osLog = OSLog(subsystem: "com.aether.app", category: "general")
 
     private init() {
-        setupFileLogging()
-    }
+        // Get Application Support directory
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first!
+        let logsDir = appSupport.appendingPathComponent("Aether/logs/client")
 
-    private func setupFileLogging() {
-        guard
-            let appSupport = FileManager.default.urls(
-                for: .applicationSupportDirectory, in: .userDomainMask
-            ).first
-        else { return }
-        let logDir = appSupport.appendingPathComponent("Aether/logs")
-        let logFile = logDir.appendingPathComponent("client.log")
+        // Create logs directory if needed
+        try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
 
-        do {
-            try FileManager.default.createDirectory(at: logDir, withIntermediateDirectories: true)
+        // Create timestamped log file
+        let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(
+            of: ":", with: "-")
+        logURL = logsDir.appendingPathComponent("client-\(timestamp).log")
 
-            if !FileManager.default.fileExists(atPath: logFile.path) {
-                FileManager.default.createFile(atPath: logFile.path, contents: nil)
-            }
+        // Create file and get handle
+        FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        fileHandle = try? FileHandle(forWritingTo: logURL)
 
-            fileHandle = try FileHandle(forWritingTo: logFile)
-            fileHandle?.seekToEndOfFile()
-
-            log("Logger initialized. Log file: \(logFile.path)")
-        } catch {
-            print("Failed to setup file logging: \(error)")
-        }
-    }
-
-    func log(_ message: String, type: OSLogType = .default) {
-        // 1. Console Logging (Unified Logging System) - Thread safe
-        os_log("%{public}@", log: logger, type: type, message)
-
-        // 2. File Logging - Serialized via Queue
-        let timestamp = ISO8601DateFormatter().string(from: Date())
-        let fileMessage = "[\(timestamp)] \(message)\n"
-
-        queue.async {
-            if let data = fileMessage.data(using: .utf8) {
-                self.fileHandle?.write(data)
-            }
-        }
+        log("🚀 Aether client started")
+        log("📁 Log file: \(logURL.path)")
     }
 
     deinit {
-        let handle = fileHandle
-        queue.sync {
-            try? handle?.close()
+        fileHandle?.closeFile()
+    }
+
+    /// Log a message to both console and file
+    func log(_ message: String, level: OSLogType = .info) {
+        let timestamp = DateFormatter.localizedString(
+            from: Date(), dateStyle: .none, timeStyle: .medium)
+        let formattedMessage = "[\(timestamp)] \(message)"
+
+        // Log to console/debug
+        os_log("%{public}@", log: osLog, type: level, formattedMessage)
+
+        // Log to file
+        if let data = (formattedMessage + "\n").data(using: .utf8) {
+            fileHandle?.write(data)
         }
+    }
+
+    func error(_ message: String) {
+        log("[ERR] \(message)", level: .error)
+    }
+
+    func warning(_ message: String) {
+        log("[WRN] \(message)", level: .default)
+    }
+
+    func info(_ message: String) {
+        log("[INF] \(message)", level: .info)
     }
 }

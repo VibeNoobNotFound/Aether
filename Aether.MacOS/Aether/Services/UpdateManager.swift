@@ -69,16 +69,16 @@ class UpdateManager: ObservableObject {
                         sizeBytes: response.sizeBytes,
                         isPrerelease: response.isPrerelease
                     )
-                    Logger.shared.log("Update available: \(response.version)")
+                    AetherLogger.shared.info("Update available: \(response.version)")
                 } else {
                     updateAvailable = false
                     updateInfo = nil
-                    Logger.shared.log("No updates available")
+                    AetherLogger.shared.info("No updates available")
                 }
                 downloadStatus = .idle
             }
         } catch {
-            Logger.shared.log("Failed to check for updates: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to check for updates: \(error)")
             await MainActor.run { downloadStatus = .idle }
         }
     }
@@ -110,7 +110,7 @@ class UpdateManager: ObservableObject {
             await MainActor.run {
                 downloadStatus = .failed
                 errorMessage = error.localizedDescription
-                Logger.shared.log("Download error: \(error)", type: .error)
+                AetherLogger.shared.error("Download error: \(error)")
             }
         }
     }
@@ -128,11 +128,11 @@ class UpdateManager: ObservableObject {
         case .complete:
             downloadStatus = .readyToInstall(extractPath: progress.extractPath)
             downloadProgress = 1.0
-            Logger.shared.log("Download complete, ready to install")
+            AetherLogger.shared.info("Download complete, ready to install")
         case .failed:
             downloadStatus = .failed
             errorMessage = progress.errorMessage
-            Logger.shared.log("Download failed: \(progress.errorMessage)", type: .error)
+            AetherLogger.shared.error("Download failed: \(progress.errorMessage)")
         case .UNRECOGNIZED:
             break
         }
@@ -140,14 +140,14 @@ class UpdateManager: ObservableObject {
 
     /// Install the update (will quit the app)
     func installUpdate(extractPath: String) async {
-        Logger.shared.log("Starting local update installation...")
-        Logger.shared.log("Extract path: \(extractPath)")
+        AetherLogger.shared.info("Starting local update installation...")
+        AetherLogger.shared.info("Extract path: \(extractPath)")
 
         // 1. Prepare the update script
         do {
             try performLocalUpdate(extractPath: extractPath)
         } catch {
-            Logger.shared.log("Failed to prepare local update: \(error)", type: .error)
+            AetherLogger.shared.error("Failed to prepare local update: \(error)")
             await MainActor.run {
                 errorMessage = "Update failed: \(error.localizedDescription)"
                 downloadStatus = .failed
@@ -190,8 +190,8 @@ class UpdateManager: ObservableObject {
                 userInfo: [NSLocalizedDescriptionKey: "Could not find .app bundle in update"])
         }
 
-        Logger.shared.log("Found source app: \(validSourcePath)")
-        Logger.shared.log("Target app: \(bundlePath)")
+        AetherLogger.shared.info("Found source app: \(validSourcePath)")
+        AetherLogger.shared.info("Target app: \(bundlePath)")
 
         // 2. Generate Script
         let scriptContent = """
@@ -244,7 +244,7 @@ class UpdateManager: ObservableObject {
         try scriptContent.write(toFile: scriptPath, atomically: true, encoding: .utf8)
         try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptPath)
 
-        Logger.shared.log("Update script written to \(scriptPath)")
+        AetherLogger.shared.info("Update script written to \(scriptPath)")
 
         // 4. Force Shutdown & Execute
         Task { @MainActor in
@@ -253,11 +253,11 @@ class UpdateManager: ObservableObject {
             self.updateAvailable = false
 
             // Stop Backend
-            Logger.shared.log("Stopping backend...")
+            AetherLogger.shared.info("Stopping backend...")
             BackendManager.shared.stop()
 
             // Execute Script detached
-            Logger.shared.log("Launching updater script and exiting...")
+            AetherLogger.shared.info("Launching updater script and exiting...")
             let task = Process()
             task.executableURL = URL(fileURLWithPath: "/bin/bash")
             task.arguments = ["-c", "nohup \"\(scriptPath)\" > /dev/null 2>&1 &"]

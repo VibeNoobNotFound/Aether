@@ -7,12 +7,41 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using System.IO;
+using System.Runtime.InteropServices;
+
+// Get platform-specific Application Support directory
+string GetLogDirectory()
+{
+    string baseDir;
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        baseDir = Path.Combine(home, "Library/Application Support/Aether/logs/backend");
+    }
+    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        baseDir = Path.Combine(home, ".local/share/Aether/logs/backend");
+    }
+    else // Windows
+    {
+        baseDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Aether", "logs", "backend");
+    }
+    
+    Directory.CreateDirectory(baseDir);
+    return baseDir;
+}
+
+var logDir = GetLogDirectory();
+var logFile = Path.Combine(logDir, "server.log");
 
 // Initialize Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File("logs/server.log", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(logFile, rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 // Debug: Log important paths for troubleshooting sandbox issues
