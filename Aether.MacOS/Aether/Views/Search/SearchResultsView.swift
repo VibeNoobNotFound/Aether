@@ -11,8 +11,8 @@ struct SearchResultsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Filter Bar
-            ZStack(){
-                GlassCard(padding: 6, cornerRadius: 16, isHoverable: false){
+            ZStack {
+                GlassCard(padding: 6, cornerRadius: 16, isHoverable: false) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             // Dynamic Importer Filters from AppState
@@ -29,15 +29,17 @@ struct SearchResultsView: View {
                                     }
                                 }
                             }
-                            
+
                             // Sort Options
                             Menu {
                                 Picker("Sort By", selection: $viewModel.sortBy) {
-                                    Text("Relevance").tag(Aether_LibrarySearchRequest.SortOption.relevance)
+                                    Text("Relevance").tag(
+                                        Aether_LibrarySearchRequest.SortOption.relevance)
                                     Text("Name").tag(Aether_LibrarySearchRequest.SortOption.name)
                                     Text("Date Added").tag(
                                         Aether_LibrarySearchRequest.SortOption.releaseDate)
-                                    Text("Playtime").tag(Aether_LibrarySearchRequest.SortOption.playtime)
+                                    Text("Playtime").tag(
+                                        Aether_LibrarySearchRequest.SortOption.playtime)
                                 }
                             } label: {
                                 HStack(spacing: 4) {
@@ -61,7 +63,7 @@ struct SearchResultsView: View {
                         .padding(.vertical, 12)
                     }
                 }
-            }.padding(.horizontal,12)
+            }.padding(.horizontal, 12)
 
             // Results Grid
             ScrollView {
@@ -82,7 +84,10 @@ struct SearchResultsView: View {
                 } else {
                     LazyVGrid(columns: columns, spacing: 20) {
                         ForEach(viewModel.results) { game in
-                            GameGridCard(game: game)
+                            NavigationLink(value: game) {
+                                GameGridCard(game: game)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(24)
