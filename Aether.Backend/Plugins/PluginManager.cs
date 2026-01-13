@@ -58,36 +58,40 @@ public class PluginManager : IDisposable
         _logger.Debug("Loaded assembly {AssemblyName} from {Path}", assembly.FullName, dllPath);
 
         // Find all types implementing our plugin interfaces
-        foreach (var type in assembly.GetTypes())
+        foreach (var type in assembly.GetExportedTypes())
         {
-            // Check for IPlugin
-            if (typeof(IPlugin).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
-            {
-                var plugin = (IPlugin)Activator.CreateInstance(type)!;
+            if (type.IsInterface || type.IsAbstract) continue;
 
-                // Inject logger if plugin implements ILoggingAware
-                if (plugin is Aether.PluginSDK.Logging.ILoggingAware loggingAware)
+            // Strict IPlugin check - everything must be a plugin
+            if (!typeof(IPlugin).IsAssignableFrom(type)) continue;
+
+            try
+            {
+                // Create Singleton Instance
+                var instance = (IPlugin)Activator.CreateInstance(type)!;
+
+                // 2. Inject Dependencies
+                if (instance is Aether.PluginSDK.Logging.ILoggingAware loggingAware)
                 {
                     var pluginLogger = _logger
-                        .ForContext("PluginName", plugin.Name)  // Tag for log routing
-                        .ForContext(plugin.GetType());
+                        .ForContext("PluginName", instance.Name)
+                        .ForContext(type);
                     loggingAware.SetLogger(pluginLogger);
-                    _logger.Debug("Injected logger for plugin: {Name}", plugin.Name);
+                    _logger.Debug("Injected logger for plugin: {Name}", instance.Name);
                 }
 
-                // Inject storage if plugin implements IStorageAware
-                if (plugin is Aether.PluginSDK.Storage.IStorageAware storageAware)
+                if (instance is Aether.PluginSDK.Storage.IStorageAware storageAware)
                 {
-                    var storage = new Aether.Backend.Services.PluginStorageService(plugin.Name);
+                    var storage = new Aether.Backend.Services.PluginStorageService(instance.Name);
                     storageAware.SetStorage(storage);
-                    _logger.Debug("Injected storage for plugin: {Name}", plugin.Name);
+                    _logger.Debug("Injected storage for plugin: {Name}", instance.Name);
                 }
-                
-                // Check Platform Support
-                if (plugin.SupportedPlatforms != null && plugin.SupportedPlatforms.Any())
+
+                // 3. Platform Check
+                if (instance.SupportedPlatforms != null && instance.SupportedPlatforms.Any())
                 {
                     bool isSupported = false;
-                    foreach (var platform in plugin.SupportedPlatforms)
+                    foreach (var platform in instance.SupportedPlatforms)
                     {
                         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Create(platform.ToUpper())))
                         {
@@ -98,50 +102,41 @@ public class PluginManager : IDisposable
 
                     if (!isSupported)
                     {
-                        _logger.Information("Skipping plugin {Name}: Not supported on current platform", plugin.Name);
+                        _logger.Information("Skipping plugin {Name}: Not supported on current platform", instance.Name);
                         continue;
                     }
                 }
 
-                _loadedPlugins.Add(new LoadedPlugin(loadContext, plugin, null, null));
-                _logger.Information("Loaded Plugin: {Name}", plugin.Name);
-            }
+                // 4. Register Capabilities
+                var importer = instance as ILibraryImporter;
+                var provider = instance as IMetadataProvider;
 
-            // Check for ILibraryImporter
-            if (typeof(ILibraryImporter).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
-            {
-                var importer = (ILibraryImporter)Activator.CreateInstance(type)!;
+                // Check inheritance compatibility (sanity check)
+                if (instance is ILibraryImporter && importer == null)
+                    _logger.Warning("Plugin {Name} implements ILibraryImporter but cast failed.", instance.Name);
 
-                // Update or add to loaded plugins
-                var existing = _loadedPlugins.FirstOrDefault(p => p.Plugin?.Name == importer.Name);
+                // Add to LoadedPlugins
+                var existing = _loadedPlugins.FirstOrDefault(p => p.Plugin?.Name == instance.Name);
+
                 if (existing != null)
                 {
-                    existing.LibraryImporter = importer;
+                    // Merge capabilities
+                    if (existing.Plugin == null) existing.Plugin = instance;
+                    if (existing.LibraryImporter == null) existing.LibraryImporter = importer;
+                    if (existing.MetadataProvider == null) existing.MetadataProvider = provider;
                 }
                 else
                 {
-                    _loadedPlugins.Add(new LoadedPlugin(loadContext, null, importer, null));
+                    _loadedPlugins.Add(new LoadedPlugin(loadContext, instance, importer, provider));
                 }
 
-                _logger.Information("Loaded Library Importer: {Name} v{Version}", importer.Name, importer.Version);
+                _logger.Information("Loaded Plugin '{Name}' (Importer={IsImporter}, Metadata={IsMetadata})",
+                    instance.Name, importer != null, provider != null);
+
             }
-
-            // Check for IMetadataProvider
-            if (typeof(IMetadataProvider).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            catch (Exception ex)
             {
-                var provider = (IMetadataProvider)Activator.CreateInstance(type)!;
-
-                var existing = _loadedPlugins.FirstOrDefault(p => p.Plugin?.Name == provider.Name);
-                if (existing != null)
-                {
-                    existing.MetadataProvider = provider;
-                }
-                else
-                {
-                    _loadedPlugins.Add(new LoadedPlugin(loadContext, null, null, provider));
-                }
-
-                _logger.Information("Loaded Metadata Provider: {Name}", provider.Name);
+                _logger.Error(ex, "Failed to instantiate plugin type {Type} from {Path}", type.FullName, dllPath);
             }
         }
     }
@@ -192,7 +187,7 @@ public class PluginManager : IDisposable
     private class LoadedPlugin
     {
         public PluginLoadContext LoadContext { get; }
-        public IPlugin? Plugin { get; }
+        public IPlugin? Plugin { get; set; }
         public ILibraryImporter? LibraryImporter { get; set; }
         public IMetadataProvider? MetadataProvider { get; set; }
 

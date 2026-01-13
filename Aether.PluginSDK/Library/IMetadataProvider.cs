@@ -3,9 +3,9 @@ namespace Aether.PluginSDK.Library;
 /// <summary>
 /// Metadata provider interface for enriching games with additional information
 /// </summary>
-public interface IMetadataProvider
+public interface IMetadataProvider : IPlugin
 {
-    string Name { get; } // "Steam", "IGDB", "Custom", etc.
+
 
     /// <summary>
     /// Search for game metadata by name

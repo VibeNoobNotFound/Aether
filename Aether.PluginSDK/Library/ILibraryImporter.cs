@@ -6,19 +6,19 @@ namespace Aether.PluginSDK.Library;
 public interface ILibraryImporter : IPlugin
 {
     // Name is inherited from IPlugin
-    string Version { get; }
-    
+
+
     /// <summary>
     /// Whether this importer supports manually adding games via UI (e.g. "Add Game" button)
     /// </summary>
     bool SupportsManualAddition { get; }
 
-    
+
     /// <summary>
     /// Check if this platform's launcher is installed on the system
     /// </summary>
     Task<bool> CanImportAsync();
-    
+
     /// <summary>
     /// Scan the platform's library and yield discovered games
     /// </summary>

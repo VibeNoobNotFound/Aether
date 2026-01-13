@@ -2,7 +2,7 @@ using Serilog;
 
 namespace Aether.PluginSDK.Logging;
 
-public interface ILoggingAware
+public interface ILoggingAware : IPlugin
 {
     void SetLogger(ILogger logger);
 }

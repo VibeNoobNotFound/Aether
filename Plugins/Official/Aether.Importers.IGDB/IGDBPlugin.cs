@@ -50,21 +50,40 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
 
     private async Task InitializeClientAsync()
     {
-        if (_storage == null) return;
-        
-        _logger?.Debug("Loading credentials from storage");
-        
+        if (_storage == null)
+        {
+            _logger?.Error("Storage is null during client initialization!");
+            return;
+        }
+
+        _logger?.Debug("Loading Twitch credentials from storage...");
+
         try
         {
             var creds = await _storage.LoadAsync<TwitchCredentials>("credentials");
             if (creds != null && !string.IsNullOrEmpty(creds.ClientId) && !string.IsNullOrEmpty(creds.ClientSecret))
             {
+                _logger?.Debug("Found credentials for ClientID: {ClientId}...", creds.ClientId.Substring(0, Math.Min(5, creds.ClientId.Length)));
+
                 _client = new IGDBClient(
                     creds.ClientId,
                     creds.ClientSecret,
                     new PluginTokenStore(_storage)
                 );
-                _logger?.Information("IGDB client initialized from stored credentials.");
+
+                // Validate client
+                if (_client != null)
+                {
+                    _logger?.Information("IGDB client successfully initialized.");
+                }
+                else
+                {
+                    _logger?.Error("Failed to create IGDBClient instance.");
+                }
+            }
+            else
+            {
+                _logger?.Warning("No valid credentials found in storage. Please configure in Settings.");
             }
         }
         catch (Exception ex)
@@ -78,25 +97,64 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
     public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
     {
         var results = new List<GameMetadata>();
-        if (_client == null)
-            return results;
 
-        _logger?.Debug("Searching IGDB for: {Name}", gameName);
+        // Wait briefly for client to initialize if it's currently null
+        if (_client == null)
+        {
+            _logger?.Warning("IGDB client is null during search. Waiting briefly for initialization...");
+            // Simple exponential backoff or just a short wait
+            for (int i = 0; i < 5; i++)
+            {
+                if (_client != null) break;
+                await Task.Delay(200);
+            }
+        }
+
+        if (_client == null)
+        {
+            _logger?.Warning("IGDB client is still null. Check credentials.");
+            return results;
+        }
+
+        _logger?.Information("Searching IGDB for: {Name}", gameName);
+
         try
         {
+            // Escape the query first
+            var escapedQuery = EscapeQuery(gameName);
+            var query = $"search \"{escapedQuery}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*; limit 10;";
+
+            _logger?.Debug("IGDB Query: {Query}", query);
+
             var games = await _client.QueryAsync<IGDBGame>(
                 IGDBClient.Endpoints.Games,
-                $"search \"{EscapeQuery(gameName)}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*; limit 10;"
+                query
             );
 
-            if (games != null)
+            if (games != null && games.Length > 0)
             {
-                _logger?.Debug("Found {Count} results from IGDB", games.Length);
+                _logger?.Information("Found {Count} results from IGDB", games.Length);
                 foreach (var game in games)
                 {
-                    results.Add(MapToMetadata(game));
+                    try
+                    {
+                        var metadata = MapToMetadata(game);
+                        results.Add(metadata);
+                    }
+                    catch (Exception mapEx)
+                    {
+                        _logger?.Warning(mapEx, "Failed to map IGDB game {Id} to metadata", game.Id);
+                    }
                 }
             }
+            else
+            {
+                _logger?.Warning("IGDB returned 0 results for: {Name}", gameName);
+            }
+        }
+        catch (RestEase.ApiException apiEx)
+        {
+            _logger?.Error(apiEx, "IGDB API Error: {Content}", apiEx.Content);
         }
         catch (Exception ex)
         {
@@ -262,17 +320,28 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
         return input.Replace("\"", "\\\"");
     }
 
+    private static string? FixUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+        if (url.StartsWith("//"))
+        {
+            return "https:" + url;
+        }
+        return url;
+    }
+
     private GameMetadata MapToMetadata(IGDBGame game)
     {
         // Cover URL
         string? coverUrl = null;
         if (game.Cover?.Value?.ImageId != null)
         {
-            coverUrl = ImageHelper.GetImageUrl(
+            var rawUrl = ImageHelper.GetImageUrl(
                 imageId: game.Cover.Value.ImageId,
                 size: IGDBImageSize.CoverBig,
-                retina: false
+                retina: true
             );
+            coverUrl = FixUrl(rawUrl);
         }
 
         // Screenshots
@@ -281,11 +350,15 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
         {
             screenshots = game.Screenshots.Values
                 .Where(s => s.ImageId != null)
-                .Select(s => ImageHelper.GetImageUrl(
-                    imageId: s.ImageId!,
-                    size: IGDBImageSize.ScreenshotBig,
-                    retina: false
-                ))
+                .Select(s =>
+                {
+                    var rawUrl = ImageHelper.GetImageUrl(
+                        imageId: s.ImageId!,
+                        size: IGDBImageSize.ScreenshotBig,
+                        retina: true
+                    );
+                    return FixUrl(rawUrl)!;
+                })
                 .ToArray();
         }
 

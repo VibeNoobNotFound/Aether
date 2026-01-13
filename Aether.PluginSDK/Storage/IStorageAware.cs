@@ -4,7 +4,7 @@ namespace Aether.PluginSDK.Storage;
 /// Interface for plugins that require persistent storage.
 /// Implement this interface to receive storage injection from the backend.
 /// </summary>
-public interface IStorageAware
+public interface IStorageAware : IPlugin
 {
     /// <summary>
     /// Called by the backend to inject a storage instance for this plugin.
