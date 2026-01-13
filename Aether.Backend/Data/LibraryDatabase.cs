@@ -435,6 +435,25 @@ public class LibraryDatabase : IDisposable
 
     #endregion
 
+    #region Metadata Config
+    
+    private ILiteCollection<MetadataConfig> MetadataConfigs => _db.GetCollection<MetadataConfig>("metadata_config");
+
+    public MetadataConfig GetMetadataConfig()
+    {
+        var config = MetadataConfigs.FindById(1);
+        return config ?? new MetadataConfig();
+    }
+
+    public void SetMetadataConfig(MetadataConfig config)
+    {
+        config.Id = 1;
+        config.UpdatedAt = DateTime.UtcNow;
+        MetadataConfigs.Upsert(config);
+    }
+
+    #endregion
+
     #region Search
 
     public enum SortOption

@@ -213,8 +213,8 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
                             // Images - Use portrait cover art (600x900), not wide header
                             // Steam library_600x900 is the proper vertical box art
                             CoverImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_600x900_2x.jpg",
-                            // Header image is wide and works well for backgrounds
-                            BackgroundImageUrl = GetString(data, "header_image") ?? GetString(data, "background") ?? $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_hero.jpg",
+                            // Prioritize library_hero (1920x620) over header_image (460x215)
+                            BackgroundImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/library_hero.jpg",
                             LogoImageUrl = $"https://steamcdn-a.akamaihd.net/steam/apps/{gameId}/logo.png",
 
                             // Assign pre-calculated values
@@ -395,7 +395,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
         _logger?.Debug("Fetching news for: {Id}", gameId);
         try
         {
-            var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid={gameId}&count=5&format=json";
+            var url = $"https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid={gameId}&count=10&format=json";
             var response = await GetStringWithRetryAsync(url);
             if (string.IsNullOrEmpty(response)) return new List<NewsItem>();
 

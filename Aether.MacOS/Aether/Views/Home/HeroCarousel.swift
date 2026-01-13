@@ -18,7 +18,7 @@ struct HeroCarousel: View {
                         if games.isEmpty {
                             gameCard(
                                 title: defaultGame, id: "", imageUrl: nil,
-                                width: geometry.size.width)
+                                size: geometry.size)
                         } else {
                             ForEach(Array(games.enumerated()), id: \.element.id) {
                                 index, game in
@@ -27,7 +27,7 @@ struct HeroCarousel: View {
                                         title: game.title,
                                         id: game.id,
                                         imageUrl: nil,
-                                        width: geometry.size.width
+                                        size: geometry.size
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -47,7 +47,7 @@ struct HeroCarousel: View {
                     }
                 }
             }
-            .frame(height: 380)
+            // Removed fixed height frame to allow dynamic sizing from parent
 
             // Custom Page Indicators (non-blocking)
             VStack {
@@ -115,12 +115,12 @@ struct HeroCarousel: View {
     }
 
     @ViewBuilder
-    func gameCard(title: String, id: String, imageUrl: String?, width: CGFloat) -> some View {
+    func gameCard(title: String, id: String, imageUrl: String?, size: CGSize) -> some View {
         // Find the game object if possible to get more metadata
         let game =
             games.first(where: { $0.id == id }) ?? appState.games.first(where: { $0.id == id })
 
-        ZStack(alignment: .bottomLeading) {
+        ZStack(alignment: .leading) {
             // Background Image - fills and clips
             Group {
                 if let game = game, let bgURL = game.backgroundImageURL ?? game.coverImageURL {
@@ -129,73 +129,118 @@ struct HeroCarousel: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
-                        gradientPlaceholder(width: width - 40)
+                        gradientPlaceholder(width: size.width - 40)
                     }
                 } else {
-                    gradientPlaceholder(width: width - 40)
+                    gradientPlaceholder(width: size.width - 40)
                 }
             }
-            .frame(width: max(0, width - 40), height: 380)
+            .frame(width: max(0, size.width - 40))
+            .frame(maxHeight: .infinity)
             .clipped()
 
-            // Bottom Gradient for text readability
+            // Leading Gradient for text readability
             LinearGradient(
-                colors: [.clear, .black.opacity(0.6), .black.opacity(0.85)],
-                startPoint: .center,
-                endPoint: .bottom
+                colors: [.black.opacity(0.8), .black.opacity(0.4), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
             )
 
-            // Content Overlay - FIXED at bottom left
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+            // Content Overlay Group
+            ZStack(alignment: .leading) {
+                // 1. Logo and Play Button (Vertically Centered)
+                VStack(alignment: .leading, spacing: 24) {
+                    // Logo or Title
+                    if let game = game, let logoURL = game.logoImageURL {
+                        CachedAsyncImage(url: logoURL) { image in
+                            image
+                                .resizable()
+                                .scaledToFit()
+                        } placeholder: {
+                            Text(title)
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                        }
+                        .frame(height: size.height * 0.35)  // Slightly smaller logo to fit play button
+                        .frame(maxWidth: size.width * 0.5, alignment: .leading)
+                    } else {
+                        Text(title)
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                    }
 
-                if let game = game {
-                    HStack(spacing: 8) {
-                        if !game.genres.isEmpty {
-                            Text(game.genres.prefix(2).joined(separator: " • "))
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.white.opacity(0.9))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                    // Big Play Button
+                    if let game = game {
+                        Button {
+                            appState.launchGame(game)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill")
+                                Text("Play Now")
+                            }
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 32)  // Bigger padding
+                            .padding(.vertical, 16)  // Bigger vertical padding
+                            .glassEffect()  // Ensure glassEffect is available or use appropriate modifier
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .frame(maxWidth: size.width * 0.6, alignment: .leading)
+                .frame(maxHeight: .infinity, alignment: .leading)  // Center vertically, align leading
+
+                // 2. Metadata (Bottom Left Corner)
+                VStack {
+                    Spacer()
+                    HStack(spacing: 12) {
+                        if let game = game {
+                            if !game.genres.isEmpty {
+                                Text(game.genres.prefix(3).joined(separator: " • "))
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.white.opacity(0.9))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background {
+                                        GlassCard(padding: 0, cornerRadius: 100) {
+                                            Color.clear
+                                        }
+                                    }
+                            }
+
+                            if let score = game.metacriticScore {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .foregroundStyle(.white)
+                                    Text("\(Int(score))")
+                                        .foregroundStyle(.white)
+                                }
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
                                 .background {
                                     GlassCard(padding: 0, cornerRadius: 100) {
                                         Color.clear
                                     }
                                 }
-                        }
-
-                        if let score = game.metacriticScore {
-                            HStack(spacing: 3) {
-                                Image(systemName: "star.fill")
-                                    .foregroundStyle(.yellow)
-                                    .foregroundStyle(.white)
-                                Text("\(Int(score))")
-                                    .foregroundStyle(.white)
-                            }
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background {
-                                GlassCard(padding: 0, cornerRadius: 100) {
-                                    Color.clear
-                                }
                             }
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 40)
             }
-            .frame(maxWidth: max(0, width - 100), alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.horizontal, 40)
         }
-        .frame(width: max(0, width - 40), height: 380)
+        .frame(width: max(0, size.width - 40))
+        .frame(maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .contextMenu {
             if let game = game {
@@ -239,13 +284,13 @@ struct HeroCarousel: View {
 }
 
 #Preview {
-    
-#if DEBUG
-    HeroCarousel(
-        currentIndex: .constant(0),
-        games: MockData.games
-    )
-    .environmentObject(MockData.appState)
-    .frame(width: 800, height: 400)
+
+    #if DEBUG
+        HeroCarousel(
+            currentIndex: .constant(0),
+            games: MockData.games
+        )
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 500)
     #endif
 }

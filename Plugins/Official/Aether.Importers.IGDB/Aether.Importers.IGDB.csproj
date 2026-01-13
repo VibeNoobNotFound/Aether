@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="IGDB" Version="4.0.0" />
+    <PackageReference Include="IGDB" Version="6.1.0" />
   </ItemGroup>
 
   <Target Name="CopyPluginToBackend" AfterTargets="Build">

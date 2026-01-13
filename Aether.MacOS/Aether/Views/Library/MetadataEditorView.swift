@@ -20,6 +20,7 @@ struct MetadataEditorView: View {
     @State private var newVideoUrl: String = ""
     @State private var newScreenshotUrl: String = ""
     @State private var launchArguments: String = ""
+    @State private var metacriticScore: String = ""
 
     @State private var isSaving = false
     @State private var errorMessage: String?
@@ -92,6 +93,8 @@ struct MetadataEditorView: View {
                             GlassTextField(title: "Publisher", text: $publisher)
                             GlassTextField(title: "Launch Arguments", text: $launchArguments)
                             GlassTextField(title: "Genres (comma separated)", text: $genres)
+                            GlassTextField(
+                                title: "Metacritic Score (0-100)", text: $metacriticScore)
                         }
 
                         // Images
@@ -259,6 +262,11 @@ struct MetadataEditorView: View {
                         if result.provider == "Steam" && !result.externalId.isEmpty {
                             steamId = result.externalId
                         }
+
+                        // Set Metacritic Score if available
+                        if let score = result.metacriticScore {
+                            metacriticScore = String(score)
+                        }
                     }
                 )
                 .presentationBackground(.clear)
@@ -279,6 +287,9 @@ struct MetadataEditorView: View {
             screenshots = game.screenshots.map { $0.absoluteString }
             steamId = game.steamId ?? ""
             launchArguments = game.launchArguments ?? ""
+            if let score = game.metacriticScore {
+                metacriticScore = String(Int(score))
+            }
         }
     }
 
@@ -305,7 +316,8 @@ struct MetadataEditorView: View {
                     videos: videos,
                     screenshots: screenshots,
                     steamId: steamId,
-                    launchArguments: launchArguments
+                    launchArguments: launchArguments,
+                    metacriticScore: Int32(metacriticScore)
                 )
 
                 await MainActor.run {
@@ -486,8 +498,8 @@ struct MetadataSearchSheet: View {
 }
 
 #Preview {
-#if DEBUG
-    MetadataEditorView(game: MockData.games[0])
-        .environmentObject(MockData.appState)
+    #if DEBUG
+        MetadataEditorView(game: MockData.games[0])
+            .environmentObject(MockData.appState)
     #endif
 }

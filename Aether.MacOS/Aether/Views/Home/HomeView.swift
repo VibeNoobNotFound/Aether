@@ -4,6 +4,7 @@ struct HomeView: View {
     @EnvironmentObject var appState: AppState
     @State private var news: [NewsItem] = []
     @State private var carouselIndex = 0
+    @State private var carouselHeight: CGFloat = 400
     @State private var showCollectionEditor = false
     @State private var showCarouselEditor = false
 
@@ -44,11 +45,22 @@ struct HomeView: View {
                     // Wide Layout (Side by Side)
                     HStack(alignment: .top, spacing: 12) {
                         HeroCarousel(currentIndex: $carouselIndex, games: appState.carouselGames)
-                            .frame(height: 380)
+                            .aspectRatio(460.0 / 215.0, contentMode: .fit)
+                            .id(appState.carouselGames.map { $0.id }.joined())  // Force recreate when games change
+                            .background(
+                                GeometryReader { geo -> Color in
+                                    DispatchQueue.main.async {
+                                        if self.carouselHeight != geo.size.height {
+                                            self.carouselHeight = geo.size.height
+                                        }
+                                    }
+                                    return Color.clear
+                                }
+                            )
                             .clipped()
 
                         if !news.isEmpty {
-                            NewsFeedView(news: news, orientation: .vertical, height: 380)
+                            NewsFeedView(news: news, orientation: .vertical, height: carouselHeight)
                                 .frame(width: 350)
                                 .fixedSize(horizontal: true, vertical: false)
                                 .transition(.opacity)
@@ -115,10 +127,10 @@ struct HomeView: View {
 }
 
 #Preview {
-    
-#if DEBUG
-    HomeView()
-        .environmentObject(MockData.appState)
-        .frame(width: 800, height: 600)
-#endif
+
+    #if DEBUG
+        HomeView()
+            .environmentObject(MockData.appState)
+            .frame(width: 800, height: 600)
+    #endif
 }

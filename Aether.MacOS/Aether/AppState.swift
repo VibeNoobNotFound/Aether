@@ -222,6 +222,7 @@ struct MetadataSearchResult: Identifiable, Hashable {
     let videos: [String]
     let screenshots: [String]
     let genres: [String]
+    let metacriticScore: Int?
 }
 
 @MainActor
@@ -695,7 +696,8 @@ class AppState: ObservableObject {
         videos: [String]? = nil,
         screenshots: [String]? = nil,
         steamId: String? = nil,
-        launchArguments: String? = nil
+        launchArguments: String? = nil,
+        metacriticScore: Int32? = nil
     ) async throws {
         var request = Aether_GameMetadataUpdate()
         request.gameID = gameId
@@ -712,6 +714,7 @@ class AppState: ObservableObject {
         if let s = screenshots { request.screenshots = s }
         if let sid = steamId { request.steamID = sid }
         if let la = launchArguments { request.launchArguments = la }
+        if let ms = metacriticScore { request.metacriticScore = ms }
 
         let response = try await grpcClient.client.updateGameMetadata(request)
 
@@ -747,7 +750,8 @@ class AppState: ObservableObject {
                 releaseYear: Int(result.releaseYear),
                 videos: Array(result.videos),
                 screenshots: Array(result.screenshots),
-                genres: Array(result.genres)
+                genres: Array(result.genres),
+                metacriticScore: result.metacriticScore > 0 ? Int(result.metacriticScore) : nil
             )
         }
     }
