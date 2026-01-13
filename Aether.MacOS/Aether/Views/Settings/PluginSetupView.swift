@@ -16,73 +16,93 @@ struct PluginSetupView: View {
     @State private var isSubmitting = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // Background
-                Color.black.ignoresSafeArea()
 
-                GeometryReader { proxy in
-                    Circle()
-                        .fill(Color.blue.opacity(0.1))
-                        .frame(width: 400, height: 400)
-                        .blur(radius: 100)
-                        .position(x: 0, y: 0)
+        ZStack {
+            // Background
+            Color.black.ignoresSafeArea()
 
-                    Circle()
-                        .fill(Color.purple.opacity(0.1))
-                        .frame(width: 300, height: 300)
-                        .blur(radius: 80)
-                        .position(x: proxy.size.width, y: proxy.size.height)
-                }
-                .ignoresSafeArea()
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 400, height: 400)
+                    .blur(radius: 100)
+                    .position(x: 0, y: 0)
 
-                ScrollView {
-                    VStack(spacing: 24) {
-                        if isLoading {
-                            ProgressView("Loading settings...")
-                                .padding(.top, 50)
-                        } else if !widgets.isEmpty {
-                            // Render top-level widgets
-                            GlassSection(title: plugin.name) {
-                                ForEach(widgets, id: \.id) { widget in
-                                    WidgetRenderer(
-                                        widget: widget, formValues: $formValues,
-                                        onAction: handleAction)
-                                }
-                            }
-                        } else {
-                            ContentUnavailableView(
-                                "No Settings",
-                                systemImage: "gear",
-                                description: Text("\(plugin.name) does not require configuration.")
-                            )
-                            .padding(.top, 50)
-                        }
-
-                        if let error = errorMessage {
-                            Text(error)
-                                .foregroundStyle(.white)
-                                .padding()
-                                .background(Color.red.opacity(0.8))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding()
-                }
+                Circle()
+                    .fill(Color.purple.opacity(0.1))
+                    .frame(width: 300, height: 300)
+                    .blur(radius: 80)
+                    .position(x: proxy.size.width, y: proxy.size.height)
             }
-            .navigationTitle("Setup \(plugin.name)")
-            .toolbarBackground(.automatic, for: .windowToolbar)
-            .task {
-                await loadWidgets()
-                isLoading = false
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 24) {
+                    if isLoading {
+                        ProgressView("Loading settings...")
+                            .padding(.top, 50)
+                    } else if !widgets.isEmpty {
+                        // Render top-level widgets
+                        GlassSection(title: plugin.name) {
+                            ForEach(widgets, id: \.id) { widget in
+                                WidgetRenderer(
+                                    widget: widget, formValues: $formValues,
+                                    onAction: handleAction)
+                            }
+                        }
+                    } else {
+                        ContentUnavailableView(
+                            "No Settings",
+                            systemImage: "gear",
+                            description: Text("\(plugin.name) does not require configuration.")
+                        )
+                        .padding(.top, 50)
+                    }
+
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundStyle(.white)
+                            .padding()
+                            .background(Color.red.opacity(0.8))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding()
             }
         }
+        .navigationTitle("Setup \(plugin.name)")
+        .toolbarBackground(.automatic, for: .windowToolbar)
+        .task {
+            await loadWidgets()
+            isLoading = false
+        }
+
     }
 
     private func loadWidgets() async {
         let widgets = await appState.fetchWidgets(for: plugin.name, location: .settings)
         // Sort by sortOrder
         self.widgets = widgets.sorted { $0.sortOrder < $1.sortOrder }
+        initializeFormValues(self.widgets)
+    }
+
+    private func initializeFormValues(_ widgets: [Aether_UIWidget]) {
+        for widget in widgets {
+            switch widget.content {
+            case .textInput(let input):
+                if !input.boundFieldID.isEmpty && formValues[input.boundFieldID] == nil {
+                    formValues[input.boundFieldID] = input.initialValue
+                }
+            case .toggle(let toggle):
+                if !toggle.boundFieldID.isEmpty && formValues[toggle.boundFieldID] == nil {
+                    formValues[toggle.boundFieldID] = String(toggle.initialValue)
+                }
+            case .container(let container):
+                initializeFormValues(container.children)
+            default:
+                break
+            }
+        }
     }
 
     private func handleAction(actionId: String, payload: String) {
@@ -132,8 +152,8 @@ struct PluginSetupView: View {
 }
 
 #Preview {
-#if DEBUG
-    PluginSetupView(plugin: MockData.plugins[0])
-        .environmentObject(MockData.appState)
+    #if DEBUG
+        PluginSetupView(plugin: MockData.plugins[0])
+            .environmentObject(MockData.appState)
     #endif
 }

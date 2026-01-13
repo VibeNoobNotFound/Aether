@@ -17,7 +17,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
 {
     public string Name => "IGDB";
     public string Author => "VibeNoobNotFound";
-    public string Version => "2.0.0";
+    public string Version => "2.0.1";
 
     // Logging
     private Serilog.ILogger? _logger;
@@ -188,6 +188,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
     public Task<List<string>> GetScreenshotsAsync(string gameId) => Task.FromResult(new List<string>());
     public Task<List<Achievement>> GetAchievementsAsync(string gameId) => Task.FromResult(new List<Achievement>());
     public Task<string?> GetBackgroundImageAsync(string gameId) => Task.FromResult<string?>(null);
+
     public Task<string?> GetLogoImageAsync(string gameId) => Task.FromResult<string?>(null);
 
     // IPlugin Implementation
