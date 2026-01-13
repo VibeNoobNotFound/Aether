@@ -1,17 +1,43 @@
 {
-  "fill" : {
-    "automatic-gradient" : "display-p3:0.68906,0.71149,0.75713,1.00000",
-    "orientation" : {
-      "start" : {
-        "x" : 0.5,
-        "y" : 0
-      },
-      "stop" : {
-        "x" : 0.5,
-        "y" : 0.7
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.52261,0.95647,0.62213,1.00000",
+          "display-p3:0.46165,0.86784,0.83801,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 1
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 0.3
+          }
+        }
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.16859,0.24660,0.23191,1.00000",
+          "display-p3:0.16568,0.19045,0.29270,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 1
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 0.3
+          }
+        }
       }
     }
-  },
+  ],
   "groups" : [
     {
       "layers" : [
@@ -33,11 +59,17 @@
         {
           "image-name" : "Picture3.svg",
           "name" : "Picture3",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
-            "scale" : 0.75,
+            "scale" : 0.69,
             "translation-in-points" : [
-              163.87976682260796,
-              -17.252287740673637
+              194.25896425573546,
+              25.49215033092264
             ]
           }
         },
@@ -45,22 +77,35 @@
           "image-name" : "Picture2.svg",
           "name" : "Picture2",
           "position" : {
-            "scale" : 0.38,
+            "scale" : 0.42,
             "translation-in-points" : [
-              -215.22995022299574,
-              -24.119777004243815
+              -203.45094188454186,
+              19.270396177248358
             ]
           }
         },
         {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "glass" : true,
           "hidden" : false,
           "image-name" : "Picture1.svg",
           "name" : "Picture1",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
-            "scale" : 0.56,
+            "scale" : 0.61,
             "translation-in-points" : [
-              -4.176203850741558,
-              -14.555430784293094
+              10.64716158641545,
+              21.857722679077824
             ]
           }
         },
@@ -68,10 +113,10 @@
           "image-name" : "Picture4.png",
           "name" : "Picture4",
           "position" : {
-            "scale" : 1,
+            "scale" : 1.29,
             "translation-in-points" : [
-              -217,
-              -395.27566522356665
+              -220.77106516100366,
+              -317.98500000000007
             ]
           }
         }

@@ -129,7 +129,7 @@ struct SettingsView: View {
                         // About Tile
                         SettingsTile {
                             HStack(spacing: 16) {
-                                Image(nsImage: NSImage(named: "AppIcon") ?? NSImage())
+                                Image(nsImage: NSImage(named: "Aether") ?? NSImage())
                                     .resizable()
                                     .frame(width: 48, height: 48)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
