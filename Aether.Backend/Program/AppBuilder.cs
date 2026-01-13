@@ -109,6 +109,7 @@ public static class AppBuilder
     {
         // Configure the HTTP request pipeline
         app.MapGrpcService<AetherGrpcService>();
+
         app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
     }
 }

@@ -23,6 +23,21 @@ public partial class AetherGrpcService
         }
     }
 
+    public override Task<OperationStatus> ResetSystem(Empty request, ServerCallContext context)
+    {
+        try
+        {
+            _logger.LogWarning("Performing FACTORY RESET via gRPC");
+            _database.FactoryReset();
+            return Task.FromResult(new OperationStatus { Success = true, Message = "Factory reset complete." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing factory reset");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
+
     public override Task<OperationStatus> RemoveGame(GameId request, ServerCallContext context)
     {
         try
@@ -179,9 +194,9 @@ public partial class AetherGrpcService
 
                 var progress = new Progress<PluginSDK.Library.ScanProgress>(p =>
                 {
-                    // This callback is for generic progress (scanning stages)
-                    // Actual game discovery is handled in the loop below
-                    var protoProgress = new ScanProgress
+                // This callback is for generic progress (scanning stages)
+                // Actual game discovery is handled in the loop below
+                var protoProgress = new ScanProgress
                     {
                         CurrentPlatform = p.CurrentPlatform,
                         GamesFound = p.GamesFound,

@@ -212,6 +212,18 @@ public class LibraryDatabase : IDisposable
     }
 
     /// <summary>
+    /// Factory reset: Drop all collections and vacuum
+    /// </summary>
+    public void FactoryReset()
+    {
+        _db.DropCollection("games");
+        _db.DropCollection("collections");
+        _db.DropCollection("carousel_config");
+        _db.DropCollection("metadata_config");
+        _db.Checkpoint();
+    }
+
+    /// <summary>
     /// Get total game count
     /// </summary>
     public int GetGameCount()
@@ -436,7 +448,7 @@ public class LibraryDatabase : IDisposable
     #endregion
 
     #region Metadata Config
-    
+
     private ILiteCollection<MetadataConfig> MetadataConfigs => _db.GetCollection<MetadataConfig>("metadata_config");
 
     public MetadataConfig GetMetadataConfig()

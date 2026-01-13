@@ -425,8 +425,8 @@ struct SettingsView: View {
     }
 
     func performFactoryReset() async {
-        // 1. Clear Library
-        await appState.clearLibrary()
+        // 1. Call Backend Factory Reset (Clears DB collections)
+        try? await BackendManager.shared.resetBackend()
 
         // 2. Clear UserDefaults (Settings)
         if let bundleID = Bundle.main.bundleIdentifier {
@@ -436,8 +436,17 @@ struct SettingsView: View {
         // 3. Reset Onboarding State
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
 
-        // 4. Reset App State (Navigation will handle view switch)
-        // Additional cleanup if needed
+        // 4. Restart Application
+        let url = URL(fileURLWithPath: Bundle.main.bundlePath)
+        let config = NSWorkspace.OpenConfiguration()
+        config.arguments = []
+        config.createsNewApplicationInstance = true
+
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
+            DispatchQueue.main.async {
+                NSApplication.shared.terminate(nil)
+            }
+        }
     }
 }
 

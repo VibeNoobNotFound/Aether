@@ -340,4 +340,16 @@ class BackendManager: ObservableObject {
             self?.start()
         }
     }
+
+    /// Perform factory reset on backend via gRPC
+    func resetBackend() async throws {
+        // Use the gRPC client to call ResetSystem
+        let response = try await grpcClient.client.resetSystem(Aether_Empty())
+
+        if !response.success {
+            throw NSError(
+                domain: "BackendManager", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: response.message])
+        }
+    }
 }
