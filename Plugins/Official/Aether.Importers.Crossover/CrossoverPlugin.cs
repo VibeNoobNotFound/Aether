@@ -71,7 +71,23 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK
             yield break;
         }
 
-        var apps = Directory.GetDirectories(userApps, "*.app");
+        // Recursive scan for .app bundles
+        // Filter out apps that are inside other apps (e.g. Helper.app inside Game.app)
+        var apps = Directory.GetDirectories(userApps, "*.app", SearchOption.AllDirectories)
+            .Where(path =>
+            {
+                // check if the parent path contains .app
+                var parent = Path.GetDirectoryName(path);
+                while (parent != null && parent.StartsWith(userApps))
+                {
+                    if (parent.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+                        return false;
+                    parent = Path.GetDirectoryName(parent);
+                }
+                return true;
+            })
+            .ToArray();
+
         _logger?.Debug("Found {Count} CrossOver apps", apps.Length);
         int processed = 0;
 
@@ -108,7 +124,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK
             yield break;
         }
 
-        var desktopFiles = Directory.GetFiles(applicationsDir, "*.desktop");
+        var desktopFiles = Directory.GetFiles(applicationsDir, "*.desktop", SearchOption.AllDirectories);
         _logger?.Debug("Found {Count} desktop files to scan", desktopFiles.Length);
         int processed = 0;
 

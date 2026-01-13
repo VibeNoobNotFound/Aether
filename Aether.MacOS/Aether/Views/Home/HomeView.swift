@@ -46,6 +46,7 @@ struct HomeView: View {
                     HStack(alignment: .top, spacing: 12) {
                         HeroCarousel(currentIndex: $carouselIndex, games: appState.carouselGames)
                             .aspectRatio(460.0 / 215.0, contentMode: .fit)
+                            .id(appState.carouselGames.map { $0.id }.joined())  // Force recreate when games change
                             .background(
                                 GeometryReader { geo -> Color in
                                     DispatchQueue.main.async {
