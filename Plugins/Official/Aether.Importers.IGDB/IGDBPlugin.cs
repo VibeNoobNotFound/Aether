@@ -17,7 +17,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
 {
     public string Name => "IGDB";
     public string Author => "VibeNoobNotFound";
-    public string Version => "2.0.1";
+    public string Version => "2.0.2";
 
     // Logging
     private Serilog.ILogger? _logger;

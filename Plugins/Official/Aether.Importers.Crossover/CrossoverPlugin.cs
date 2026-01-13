@@ -13,7 +13,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK
 {
     public string Name => "CrossOver";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.1";
+    public string Version => "1.0.3";
 
     // Logging
     private Serilog.ILogger? _logger;
