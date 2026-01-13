@@ -37,6 +37,7 @@ struct AuroraBackground: View {
 // MARK: - Onboarding View
 
 struct OnboardingView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
     @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding: Bool = false
     @State private var selectedPage = 0
@@ -52,16 +53,19 @@ struct OnboardingView: View {
                 switch selectedPage {
                 case 0:
                     WelcomePage()
+                        .padding(16)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 case 1:
                     UnifiedLibraryPage()
+                        .padding(16)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 case 2:
                     PluginsPage(plugins: appState.plugins)
+                        .padding(16)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -83,6 +87,7 @@ struct OnboardingView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                             .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
                     }
+                    .padding(16)
                     .transition(
                         .asymmetric(
                             insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -104,12 +109,14 @@ struct OnboardingView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                             .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
                     }
+                    .padding(16)
                     .transition(
                         .asymmetric(
                             insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 case 5:
                     // Interactive Settings Page
                     SettingsOnboardingPage()
+                        .padding(16)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -117,6 +124,7 @@ struct OnboardingView: View {
                     GetStartedPage {
                         completeOnboarding()
                     }
+                    .padding(16)
                     .transition(
                         .asymmetric(
                             insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -163,19 +171,27 @@ struct OnboardingView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 40)
             }
+
+            // Connection Status Pill
+            VStack {
+                ConnectionStatusBar()
+                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+                Spacer()
+            }
         }
-        // Fetch plugins on appear so they are ready for the Plugins page
+        // Wait for backend and fetch plugins so they are ready for the Plugins page
         .task {
             await appState.fetchPlugins()
         }
-        .background(Color.clear)
-        .ignoresSafeArea(.all)
+        .frame(minWidth: 900, minHeight: 650)
     }
 
     func completeOnboarding() {
         withAnimation {
             hasCompletedOnboarding = true
         }
+        dismiss()
         // Trigger initial scan
         Task {
             await appState.scanLibrary()
@@ -613,6 +629,26 @@ struct GetStartedPage: View {
             }
             .buttonStyle(.plain)
             .padding(.bottom, 60)
+        }
+    }
+}
+
+// MARK: - Window Accessor Helper
+
+struct WindowAccessor: NSViewRepresentable {
+    let onUpdate: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            self.onUpdate(view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            self.onUpdate(nsView.window)
         }
     }
 }
