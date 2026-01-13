@@ -103,6 +103,12 @@ struct MainWindowView: View {
             await appState.refreshLibrary()
             searchViewModel.appState = appState
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                appState.currentScreen = .settings
+                searchViewModel.query = ""
+            }
+        }
     }
 }
 
