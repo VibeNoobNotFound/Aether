@@ -4,6 +4,7 @@ internal import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingPlugin = false
+    @State private var showMetadataSettings = false
 
     var body: some View {
         ZStack {
@@ -264,6 +265,23 @@ struct SettingsView: View {
                         SectionHeader(title: "LIBRARY")
 
                         Button {
+                            showMetadataSettings = true
+                        } label: {
+                            SettingsActionCard(
+                                icon: "list.number",
+                                color: .purple,
+                                title: "Metadata Sources",
+                                description: "Configure provider priority"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showMetadataSettings) {
+                            MetadataSettingsView()
+                                .presentationDetents([.medium, .large])
+                        }
+
+                        Button {
+                            Task { await appState.scanLibrary() }
                             Task { await appState.scanLibrary() }
                         } label: {
                             SettingsActionCard(

@@ -173,7 +173,8 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.
 
         try
         {
-            var startInfo = new ProcessStartInfo("open");
+            var startInfo = new ProcessStartInfo("/usr/bin/open");
+            startInfo.WorkingDirectory = "/"; // Ensure CWD is valid
             startInfo.ArgumentList.Add("-a");
             startInfo.ArgumentList.Add(appPath);
 

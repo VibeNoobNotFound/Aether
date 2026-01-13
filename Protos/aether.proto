@@ -43,6 +43,8 @@ service AetherOrchestrator {
   // METADATA MANAGEMENT
   rpc UpdateGameMetadata (GameMetadataUpdate) returns (OperationStatus);
   rpc SearchMetadataProviders (MetadataSearchRequest) returns (MetadataSearchResponse);
+  rpc GetMetadataSettings (Empty) returns (MetadataSettings);
+  rpc SetMetadataSettings (MetadataSettings) returns (OperationStatus);
 
   // NEWS
   rpc GetGameNews (GameId) returns (NewsList);
@@ -424,6 +426,11 @@ message MetadataSearchResult {
   repeated string screenshots = 10;
   string logo_image_url = 11;
   repeated string genres = 12;
+}
+
+message MetadataSettings {
+  repeated string provider_priority = 1;
+  repeated string available_providers = 2; // Read-only
 }
 
 message NewsItem {

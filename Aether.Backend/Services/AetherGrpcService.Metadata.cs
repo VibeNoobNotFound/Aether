@@ -66,4 +66,46 @@ public partial class AetherGrpcService
 
         return response;
     }
+
+    public override Task<MetadataSettings> GetMetadataSettings(Empty request, ServerCallContext context)
+    {
+        var providers = _pluginManager.GetMetadataProviders().Select(p => p.Name).ToList();
+        var config = _database.GetMetadataConfig();
+        
+        var settings = new MetadataSettings();
+        settings.AvailableProviders.AddRange(providers);
+
+        if (config.ProviderPriority != null && config.ProviderPriority.Count > 0)
+        {
+            settings.ProviderPriority.AddRange(config.ProviderPriority);
+        }
+        else
+        {
+            // Default Priority: Steam > IGDB > Others
+            var defaults = new List<string> { "Steam", "IGDB" };
+            // Add remaining that are not already in defaults
+            defaults.AddRange(providers.Where(p => p != "Steam" && p != "IGDB"));
+            
+            settings.ProviderPriority.AddRange(defaults);
+        }
+
+        return Task.FromResult(settings);
+    }
+
+    public override Task<OperationStatus> SetMetadataSettings(MetadataSettings request, ServerCallContext context)
+    {
+        try
+        {
+            var config = _database.GetMetadataConfig();
+            config.ProviderPriority = request.ProviderPriority.ToList();
+            _database.SetMetadataConfig(config);
+            
+            return Task.FromResult(new OperationStatus { Success = true, Message = "Metadata settings updated." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving metadata settings");
+            return Task.FromResult(new OperationStatus { Success = false, Message = ex.Message });
+        }
+    }
 }

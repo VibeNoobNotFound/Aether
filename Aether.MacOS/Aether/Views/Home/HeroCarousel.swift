@@ -47,7 +47,7 @@ struct HeroCarousel: View {
                     }
                 }
             }
-            .frame(height: 380)
+            // Removed fixed height frame to allow dynamic sizing from parent
 
             // Custom Page Indicators (non-blocking)
             VStack {
@@ -135,7 +135,8 @@ struct HeroCarousel: View {
                     gradientPlaceholder(width: width - 40)
                 }
             }
-            .frame(width: max(0, width - 40), height: 380)
+            .frame(width: max(0, width - 40))
+            .frame(maxHeight: .infinity)
             .clipped()
 
             // Bottom Gradient for text readability
@@ -146,16 +147,52 @@ struct HeroCarousel: View {
             )
 
             // Content Overlay - FIXED at bottom left
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+            VStack(alignment: .leading, spacing: 16) {
+                // Title or Logo
+                if let game = game, let logoURL = game.logoImageURL {
+                    CachedAsyncImage(url: logoURL) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    } placeholder: {
+                        Text(title)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                    }
+                    .frame(height: 120)
+                    .frame(maxWidth: 400, alignment: .leading)
+                } else {
+                    Text(title)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 3)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
 
-                if let game = game {
-                    HStack(spacing: 8) {
+                // Metadata Chips & Play Button Row
+                HStack(spacing: 16) {
+                    // Play Button
+                    if let game = game {
+                        Button {
+                            appState.launchGame(game)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.fill")
+                                Text("Play")
+                            }
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .glassEffect()
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if let game = game {
                         if !game.genres.isEmpty {
                             Text(game.genres.prefix(2).joined(separator: " • "))
                                 .font(.caption)
@@ -192,10 +229,11 @@ struct HeroCarousel: View {
                 }
             }
             .frame(maxWidth: max(0, width - 100), alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.horizontal, 30)
+            .padding(.bottom, 30)
         }
-        .frame(width: max(0, width - 40), height: 380)
+        .frame(width: max(0, width - 40))
+        .frame(maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .contextMenu {
             if let game = game {
@@ -239,13 +277,13 @@ struct HeroCarousel: View {
 }
 
 #Preview {
-    
-#if DEBUG
-    HeroCarousel(
-        currentIndex: .constant(0),
-        games: MockData.games
-    )
-    .environmentObject(MockData.appState)
-    .frame(width: 800, height: 400)
+
+    #if DEBUG
+        HeroCarousel(
+            currentIndex: .constant(0),
+            games: MockData.games
+        )
+        .environmentObject(MockData.appState)
+        .frame(width: 800, height: 500)
     #endif
 }

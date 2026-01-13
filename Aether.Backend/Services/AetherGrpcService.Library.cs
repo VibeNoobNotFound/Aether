@@ -145,7 +145,23 @@ public partial class AetherGrpcService
         _logger.LogInformation("Starting library scan (force_refresh={ForceRefresh})", request.ForceRefresh);
 
         var importers = _pluginManager.GetLibraryImporters().ToList();
-        var metadataProviders = _pluginManager.GetMetadataProviders().ToList();
+        // Fetch metadata priority
+        var metadataConfig = _database.GetMetadataConfig();
+        var priorityList = metadataConfig?.ProviderPriority ?? new List<string>();
+
+        // Default if empty
+        if (priorityList.Count == 0)
+        {
+            priorityList = new List<string> { "Steam", "IGDB" };
+        }
+
+        var metadataProviders = _pluginManager.GetMetadataProviders()
+            .OrderBy(p =>
+            {
+                var index = priorityList.IndexOf(p.Name);
+                return index == -1 ? int.MaxValue : index;
+            })
+            .ToList();
         int totalGamesFound = 0;
 
         foreach (var importer in importers)
