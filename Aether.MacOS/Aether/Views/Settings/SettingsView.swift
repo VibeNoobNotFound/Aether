@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingPlugin = false
     @State private var showMetadataSettings = false
+    @State private var showFactoryResetAlert = false
 
     var body: some View {
         ZStack {
@@ -322,6 +323,33 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
                     }
 
+                    // DANGER ZONE
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "DANGER ZONE")
+
+                        Button {
+                            showFactoryResetAlert = true
+                        } label: {
+                            SettingsActionCard(
+                                icon: "exclamationmark.triangle.fill",
+                                color: .red,
+                                title: "Factory Reset",
+                                description: "Clear library, reset settings, and restart onboarding"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .alert("Factory Reset", isPresented: $showFactoryResetAlert) {
+                            Button("Cancel", role: .cancel) {}
+                            Button("Reset Everything", role: .destructive) {
+                                Task { await performFactoryReset() }
+                            }
+                        } message: {
+                            Text(
+                                "Are you sure? This will delete your entire library database and reset all settings to default. This action cannot be undone."
+                            )
+                        }
+                    }
+
                     // PLUGINS SECTION
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
@@ -394,6 +422,22 @@ struct SettingsView: View {
                 print("Import failed: \(error)")
             }
         }
+    }
+
+    func performFactoryReset() async {
+        // 1. Clear Library
+        await appState.clearLibrary()
+
+        // 2. Clear UserDefaults (Settings)
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+
+        // 3. Reset Onboarding State
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+
+        // 4. Reset App State (Navigation will handle view switch)
+        // Additional cleanup if needed
     }
 }
 

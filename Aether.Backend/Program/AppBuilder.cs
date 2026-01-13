@@ -18,6 +18,13 @@ public static class AppBuilder
         ConfigureServices(builder.Services);
 
         var app = builder.Build();
+
+        // Eagerly load PluginManager to ensure plugins are loaded on startup
+        using (var scope = app.Services.CreateScope())
+        {
+            _ = scope.ServiceProvider.GetRequiredService<PluginManager>();
+        }
+
         ConfigurePipeline(app);
 
         return app;
