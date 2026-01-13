@@ -402,6 +402,7 @@ message GameMetadataUpdate {
   optional string logo_image_url = 12;
   optional string steam_id = 13;  // For cross-platform news
   optional string launch_arguments = 14; 
+  optional int32 metacritic_score = 15;
 }
 
 message MetadataSearchRequest {
@@ -426,6 +427,7 @@ message MetadataSearchResult {
   repeated string screenshots = 10;
   string logo_image_url = 11;
   repeated string genres = 12;
+  int32 metacritic_score = 13;
 }
 
 message MetadataSettings {

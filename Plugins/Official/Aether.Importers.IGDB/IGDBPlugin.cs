@@ -122,7 +122,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
         {
             // Escape the query first
             var escapedQuery = EscapeQuery(gameName);
-            var query = $"search \"{escapedQuery}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*; limit 10;";
+            var query = $"search \"{escapedQuery}\"; fields name,summary,cover.*,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,genres.name,screenshots.*,videos.*,rating,aggregated_rating; limit 10;";
 
             _logger?.Debug("IGDB Query: {Query}", query);
 
@@ -172,7 +172,7 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
         {
             var games = await _client.QueryAsync<IGDBGame>(
                 IGDBClient.Endpoints.Games,
-                $"where id = {id}; fields name,summary,storyline,cover.*,first_release_date,involved_companies.company.name,genres.name,screenshots.*,videos.*; limit 1;"
+                $"where id = {id}; fields name,summary,storyline,cover.*,first_release_date,involved_companies.company.name,genres.name,screenshots.*,videos.*,rating,aggregated_rating; limit 1;"
             );
 
             var game = games.FirstOrDefault();
@@ -411,7 +411,8 @@ public class IGDBPlugin : IPlugin, IMetadataProvider, IStorageAware, Aether.Plug
             Videos = videos,
             Developer = developer,
             Publisher = publisher,
-            ReleaseDate = releaseDate
+            ReleaseDate = releaseDate,
+            MetacriticScore = (decimal?)(game.AggregatedRating ?? game.Rating)
         };
     }
 }

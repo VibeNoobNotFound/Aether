@@ -126,6 +126,7 @@ public partial class AetherGrpcService
             if (request.HasReleaseDateUnix) game.ReleaseDate = DateTimeOffset.FromUnixTimeSeconds(request.ReleaseDateUnix).DateTime;
             if (request.HasSteamId) game.SteamId = request.SteamId;
             if (request.HasLaunchArguments) game.LaunchArguments = request.LaunchArguments;
+            if (request.HasMetacriticScore) game.MetacriticScore = request.MetacriticScore;
 
             game.UpdatedAt = DateTime.UtcNow;
             _database.UpsertGame(game);
@@ -386,6 +387,7 @@ public partial class AetherGrpcService
             IsFavorite = entity.IsFavorite,
             IsInstalled = entity.IsInstalled,
             TotalPlaytimeSeconds = (long)(entity.TotalPlaytime?.TotalSeconds ?? 0),
+            MetacriticScore = (int)(entity.MetacriticScore ?? 0),
 
             // Timestamps
             ReleaseDateUnix = entity.ReleaseDate.HasValue ? new DateTimeOffset(entity.ReleaseDate.Value).ToUnixTimeSeconds() : 0,
