@@ -33,7 +33,13 @@ jobs:
           OUT_DIR="Aether.MacOS/AetherIPC/Sources/AetherIPC"
           mkdir -p "$OUT_DIR"
           
+          # Get plugin paths from Homebrew
+          PLUGIN_SWIFT="$(brew --prefix swift-protobuf)/bin/protoc-gen-swift"
+          PLUGIN_GRPC="$(brew --prefix protoc-gen-grpc-swift)/bin/protoc-gen-grpc-swift-2"
+          
           protoc \
+            --plugin=protoc-gen-swift="$PLUGIN_SWIFT" \
+            --plugin=protoc-gen-grpc-swift="$PLUGIN_GRPC" \
             --swift_opt=Visibility=Public \
             --grpc-swift_opt=Visibility=Public \
             --swift_out="$OUT_DIR" \
