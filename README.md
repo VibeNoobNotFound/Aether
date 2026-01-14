@@ -11,7 +11,10 @@ Aether is an open-source, next-generation game library manager. It exists to sol
 
 ---
 
-## 🌟 Features
+
+<details>
+<summary>🌟 Features</summary>
+
 
 ### 🎮 Universal Library
 *   **Unified Interface**: One grid to rule them all.
@@ -33,15 +36,27 @@ Aether is an open-source, next-generation game library manager. It exists to sol
 *   **Deep Scanning**: Runs as Root (optional) to bypass macOS TCC restrictions.
 *   **Sandbox-Free**: Manages your entire system's library.
 
----
+</details>
 
 ## 🚀 Quick Start
 
 ### For Users
-1.  Download the latest release.
+1.  Download the latest **[release](releases/latest/Aether-macos.zip)**
 2.  Drag to Applications.
 3.  Launch Aether.
-    > **Note**: Aether asks for **Administrator privileges** to scan your system without restriction.
+
+---
+
+### Nightly Builds
+
+Automated builds are generated on every push to `main`. These are **unsigned** and intended for testing.
+
+**Download:** Go to [Actions](../../actions) → Select latest **Nightly Build** → Download artifact.
+
+**Installation:** After unzipping, run:
+```bash
+xattr -cr /path/to/Aether.app
+```
 
 ### For Developers
 ```bash
@@ -59,18 +74,6 @@ open Aether.MacOS/Aether.xcodeproj
 
 ---
 
-## 🌙 Nightly Builds
-
-Automated builds are generated on every push to `main`. These are **unsigned** and intended for testing.
-
-**Download:** Go to [Actions](../../actions) → Select latest **Nightly Build** → Download artifact.
-
-**Installation:** After unzipping, run:
-```bash
-xattr -cr /path/to/Aether.app
-```
-
----
 
 ## 📚 Documentation
 
@@ -79,8 +82,6 @@ xattr -cr /path/to/Aether.app
 *   **[🚀 Distribution](docs/DISTRIBUTION.md)**: Share the app without paying Apple $99.
 *   **[🛣 Roadmap](docs/ROADMAP.md)**: Plans for Windows, Linux, and Retro Emulation.
 *   **[🛠 Build Guide](docs/BUILD.md)**: Compile from source.
-
----
 
 ## 🤝 Contributing
 
@@ -91,6 +92,7 @@ We welcome contributions!
 
 ---
 
+
 <details>
 <summary>📸 More Screenshots</summary>
 
@@ -100,7 +102,6 @@ We welcome contributions!
 
 </details>
 
----
 
 ## © Copyright & Legal
 
