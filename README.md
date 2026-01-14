@@ -41,7 +41,9 @@ Aether is an open-source, next-generation game library manager. It exists to sol
 ## 🚀 Quick Start
 
 ### For Users
-1.  Download the latest **[release](https://github.com/VibeNoobNotFound/Aether/releases/latest/download/Aether-macos.zip)**
+1.  Download:
+    - **[Latest Stable](https://github.com/VibeNoobNotFound/Aether/releases/latest/download/Aether-macos.zip)** — Recommended
+    - **[Pre-release](https://github.com/VibeNoobNotFound/Aether/releases)** — Beta features, may be unstable
 2.  Drag to Applications.
 3.  Launch Aether.
 4.  First launch: Go to System Settings > Privacy & Security to allow Aether to be opened.  
