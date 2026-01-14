@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingPlugin = false
     @State private var showMetadataSettings = false
+    @State private var showFactoryResetAlert = false
 
     var body: some View {
         ZStack {
@@ -43,11 +44,44 @@ struct SettingsView: View {
                     .padding(.top, 40)
                     .padding(.horizontal)
 
-                    // GENERAL SECTION
-                    VStack(alignment: .leading, spacing: 16) {
-                        SectionHeader(title: "GENERAL")
+                    // 1. ABOUT
+                    SettingsTile {
+                        HStack(spacing: 16) {
+                            Image(nsImage: NSImage(named: "Aether") ?? NSImage())
+                                .resizable()
+                                .frame(width: 48, height: 48)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                        // Appearance Tile
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(
+                                    Bundle.main.infoDictionary?["CFBundleName"] as? String
+                                        ?? "Aether"
+                                )
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+
+                                HStack(spacing: 6) {
+                                    Text(
+                                        "Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")"
+                                    )
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    Text(
+                                        "(\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"))"
+                                    )
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary.opacity(0.7))
+                                }
+                            }
+                            Spacer()
+                        }
+                    }
+
+                    // 2. APPEARANCE
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "APPEARANCE")
+
                         SettingsTile {
                             VStack(spacing: 0) {
                                 HStack(spacing: 16) {
@@ -125,42 +159,12 @@ struct SettingsView: View {
                                 .padding()
                             }
                         }
+                    }
 
-                        // About Tile
-                        SettingsTile {
-                            HStack(spacing: 16) {
-                                Image(nsImage: NSImage(named: "Aether") ?? NSImage())
-                                    .resizable()
-                                    .frame(width: 48, height: 48)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    // 3. UPDATES
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "UPDATES")
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(
-                                        Bundle.main.infoDictionary?["CFBundleName"] as? String
-                                            ?? "Aether"
-                                    )
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white)
-
-                                    HStack(spacing: 6) {
-                                        Text(
-                                            "Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")"
-                                        )
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        Text(
-                                            "(\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"))"
-                                        )
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary.opacity(0.7))
-                                    }
-                                }
-                                Spacer()
-                            }
-                        }
-
-                        // Updates Tile (Grouped)
                         SettingsTile {
                             VStack(spacing: 0) {
                                 // Auto Check
@@ -233,34 +237,24 @@ struct SettingsView: View {
                                     .toggleStyle(.switch)
                                 }
                                 .padding()
-
-                                Divider().background(.white.opacity(0.1))
-
-                                // Check Now
-                                Button {
-                                    Task { await UpdateManager.shared.checkForUpdates() }
-                                } label: {
-                                    HStack(spacing: 16) {
-                                        SettingsIcon(
-                                            icon: "arrow.triangle.2.circlepath", color: .blue)
-                                        Text("Check for Updates Now")
-                                            .font(.body)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(.white)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding()
-                                }
-                                .buttonStyle(.plain)
                             }
                         }
-                        .padding([.horizontal, .top], 0)  // Remove padding from SettingsTile wrapper for this grouped item
-                        .padding(.bottom, 0)
+
+                        // Check Now Action Card
+                        Button {
+                            Task { await UpdateManager.shared.checkForUpdates() }
+                        } label: {
+                            SettingsActionCard(
+                                icon: "arrow.triangle.2.circlepath",
+                                color: .blue,
+                                title: "Check for Updates",
+                                description: "Scan for the latest version"
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
 
-                    // LIBRARY SECTION
+                    // 4. LIBRARY
                     VStack(alignment: .leading, spacing: 16) {
                         SectionHeader(title: "LIBRARY")
 
@@ -281,7 +275,6 @@ struct SettingsView: View {
                         }
 
                         Button {
-                            Task { await appState.scanLibrary() }
                             Task { await appState.scanLibrary() }
                         } label: {
                             SettingsActionCard(
@@ -304,25 +297,9 @@ struct SettingsView: View {
                             )
                         }
                         .buttonStyle(.plain)
-
-                        Button {
-                            let appSupport = FileManager.default.urls(
-                                for: .applicationSupportDirectory, in: .userDomainMask
-                            ).first!
-                            let logsDir = appSupport.appendingPathComponent("Aether")
-                            NSWorkspace.shared.open(logsDir)
-                        } label: {
-                            SettingsActionCard(
-                                icon: "doc.text.magnifyingglass",
-                                color: .orange,
-                                title: "Open Logs Folder",
-                                description: "View application logs and data"
-                            )
-                        }
-                        .buttonStyle(.plain)
                     }
 
-                    // PLUGINS SECTION
+                    // 5. PLUGINS
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Text("INSTALLED PLUGINS")
@@ -365,6 +342,49 @@ struct SettingsView: View {
                         }
                         .padding(.horizontal)
                     }
+
+                    // 6. ADVANCED
+                    VStack(alignment: .leading, spacing: 16) {
+                        SectionHeader(title: "ADVANCED")
+
+                        Button {
+                            let appSupport = FileManager.default.urls(
+                                for: .applicationSupportDirectory, in: .userDomainMask
+                            ).first!
+                            let logsDir = appSupport.appendingPathComponent("Aether")
+                            NSWorkspace.shared.open(logsDir)
+                        } label: {
+                            SettingsActionCard(
+                                icon: "doc.text.magnifyingglass",
+                                color: .orange,
+                                title: "Open Logs Folder",
+                                description: "View application logs and data"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showFactoryResetAlert = true
+                        } label: {
+                            SettingsActionCard(
+                                icon: "exclamationmark.triangle.fill",
+                                color: .red,
+                                title: "Factory Reset",
+                                description: "Clear library, reset settings, and restart onboarding"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .alert("Factory Reset", isPresented: $showFactoryResetAlert) {
+                            Button("Cancel", role: .cancel) {}
+                            Button("Reset Everything", role: .destructive) {
+                                Task { await performFactoryReset() }
+                            }
+                        } message: {
+                            Text(
+                                "Are you sure? This will delete your entire library database and reset all settings to default. This action cannot be undone."
+                            )
+                        }
+                    }
                 }
                 .padding(.bottom, 50)
             }
@@ -392,6 +412,31 @@ struct SettingsView: View {
                 }
             case .failure(let error):
                 print("Import failed: \(error)")
+            }
+        }
+    }
+
+    func performFactoryReset() async {
+        // 1. Call Backend Factory Reset (Clears DB collections)
+        try? await BackendManager.shared.resetBackend()
+
+        // 2. Clear UserDefaults (Settings)
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+
+        // 3. Reset Onboarding State
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+
+        // 4. Restart Application
+        let url = URL(fileURLWithPath: Bundle.main.bundlePath)
+        let config = NSWorkspace.OpenConfiguration()
+        config.arguments = []
+        config.createsNewApplicationInstance = true
+
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in
+            DispatchQueue.main.async {
+                NSApplication.shared.terminate(nil)
             }
         }
     }

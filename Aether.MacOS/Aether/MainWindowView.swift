@@ -47,8 +47,11 @@ struct MainWindowView: View {
                         prompt: "Search library...")
                 }
                 .overlay(alignment: .bottom) {
-                    ConnectionStatusBar()
-                        .padding(.bottom, 16)
+                    VStack(spacing: 0) {
+                        UpdateStatusPill()
+                        ConnectionStatusBar()
+                            .padding(.bottom, 16)
+                    }
                 }
             } else {
                 // Sidebar Navigation Layout
@@ -88,12 +91,22 @@ struct MainWindowView: View {
                         )
                         .searchable(
                             text: $searchViewModel.query, placement: .toolbar,
-                            prompt: "Search library...")
+                            prompt: "Search library..."
+                        )
+                        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                appState.currentScreen = .settings
+                                searchViewModel.query = ""
+                            }
+                        }
                     }
                 }
                 .overlay(alignment: .bottom) {
-                    ConnectionStatusBar()
-                        .padding(.bottom, 16)
+                    VStack(spacing: 0) {
+                        UpdateStatusPill()
+                        ConnectionStatusBar()
+                            .padding(.bottom, 16)
+                    }
                 }
             }
         }
@@ -102,6 +115,12 @@ struct MainWindowView: View {
             // Refresh library on launch
             await appState.refreshLibrary()
             searchViewModel.appState = appState
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                appState.currentScreen = .settings
+                searchViewModel.query = ""
+            }
         }
     }
 }

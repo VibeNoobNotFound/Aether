@@ -39,6 +39,7 @@ service AetherOrchestrator {
   rpc RemoveGame (GameId) returns (OperationStatus);
   rpc ToggleFavorite (GameId) returns (OperationStatus);
   rpc OpenGameLocation (GameId) returns (OperationStatus);
+  rpc ResetSystem (Empty) returns (OperationStatus);
   
   // METADATA MANAGEMENT
   rpc UpdateGameMetadata (GameMetadataUpdate) returns (OperationStatus);

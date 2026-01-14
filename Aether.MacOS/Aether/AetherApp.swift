@@ -52,7 +52,14 @@ struct AetherApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .windowResizability(.contentSize)
         .commands {
-            // Standard Sidebar commands (Show/Hide Sidebar)
+            // Override "About" menu
+            CommandGroup(replacing: .appInfo) {
+                Button("About Aether") {
+                    NotificationCenter.default.post(name: .openSettings, object: nil)
+                }
+            }
+
+            // Standard Sidebar commands
             SidebarCommands()
 
             CommandGroup(replacing: .newItem) {}
@@ -66,20 +73,12 @@ struct AetherApp: App {
                 .keyboardShortcut("R", modifiers: [.command])
 
                 Button("Manage Collections") {
-                    // Logic to open sheet - simpler to use a notification or binding
-                    // For now, this might need a window-scoped binding or event.
-                    // A simple workaround is sending a NotificationCenter event
                     NotificationCenter.default.post(name: .openCollectionEditor, object: nil)
                 }
                 .keyboardShortcut("C", modifiers: [.command, .shift])
             }
 
-            // Remove some standard items if desired by replacing with nothing
-            CommandGroup(replacing: .help) {
-                Button("Aether Help") {
-                    // Open URL
-                }
-            }
+            CommandGroup(replacing: .help) {}
         }
     }
 }
@@ -87,6 +86,7 @@ struct AetherApp: App {
 // Notification extension for menu commands
 extension Notification.Name {
     static let openCollectionEditor = Notification.Name("openCollectionEditor")
+    static let openSettings = Notification.Name("openSettings")
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
