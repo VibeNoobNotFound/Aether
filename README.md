@@ -41,10 +41,19 @@ Aether is an open-source, next-generation game library manager. It exists to sol
 ## 🚀 Quick Start
 
 ### For Users
-1.  Download the latest **[release](releases/latest/Aether-macos.zip)**
+1.  Download the latest **[release](https://github.com/VibeNoobNotFound/Aether/releases/latest/download/Aether-macos.zip)**
 2.  Drag to Applications.
 3.  Launch Aether.
+4.  First launch: Go to System Settings > Privacy & Security to allow Aether to be opened.  
+(*This is needed because the app isn't signed with an Apple Developer certificate*)
+#### If You Get "App Can't Be Opened" Error But Doesn't Show Up in Privacy & Security Settings,
+```bash
+# Remove quarantine attribute
+xattr -d com.apple.quarantine /Applications/Aether.app
 
+# If still doesn't work
+xattr -cr /path/to/Aether.app
+```
 ---
 
 ### Nightly Builds
