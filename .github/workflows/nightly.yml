@@ -72,6 +72,10 @@ jobs:
           mkdir -p build/export
           cp -R "build/Aether.xcarchive/Products/Applications/Aether.app" build/export/
 
+      - name: Clear Quarantine Attributes
+        run: |
+          xattr -cr build/export/Aether.app
+
       - name: Create Zip
         run: |
           cd build/export
