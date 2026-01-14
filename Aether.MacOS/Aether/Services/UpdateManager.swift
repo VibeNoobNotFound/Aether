@@ -69,6 +69,17 @@ class UpdateManager: ObservableObject {
                 $0.includePrerelease = includeBeta
             }
 
+            // check for app translocation
+            if isTranslocated() {
+                await MainActor.run {
+                    checkStatus = .error(
+                        "App is Translocated. Please move Aether to /Applications folder to update."
+                    )
+                    AetherLogger.shared.error("Update aborted: App is running from Translocation.")
+                }
+                return
+            }
+
             let response = try await client.checkForUpdates(request)
 
             await MainActor.run {
@@ -309,5 +320,10 @@ class UpdateManager: ObservableObject {
             updateInfo = nil
             downloadStatus = .idle
         }
+    }
+
+    /// Check if the app is running in App Translocation (Gatekeeper randomization)
+    private func isTranslocated() -> Bool {
+        return Bundle.main.bundlePath.contains("/AppTranslocation/")
     }
 }
