@@ -23,6 +23,26 @@ jobs:
       - name: Build Backend & Bundle
         run: ./build_all.sh --bundle
 
+      - name: Install Protobuf Tools
+        run: |
+          brew install protobuf swift-protobuf grpc-swift
+
+      - name: Generate Swift Protos
+        run: |
+          PROTO_PATH="Protos"
+          OUT_DIR="Aether.MacOS/AetherIPC/Sources/AetherIPC"
+          mkdir -p "$OUT_DIR"
+          
+          protoc \
+            --swift_opt=Visibility=Public \
+            --grpc-swift_opt=Visibility=Public \
+            --swift_out="$OUT_DIR" \
+            --grpc-swift_out="$OUT_DIR" \
+            --proto_path="$PROTO_PATH" \
+            "$PROTO_PATH/aether.proto"
+          
+          echo "✅ Generated Swift Protos"
+
       - name: Build Xcode Archive
         run: |
           xcodebuild archive \
