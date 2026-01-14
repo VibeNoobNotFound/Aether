@@ -1,0 +1,57 @@
+name: Nightly Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Generate Timestamp Version
+        id: version
+        run: echo "VERSION=$(date +'%Y.%m.%d.%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Build Backend & Bundle
+        run: ./build_all.sh --bundle
+
+      - name: Set Xcode Version
+        run: |
+          cd Aether.MacOS
+          agvtool new-marketing-version ${{ steps.version.outputs.VERSION }}
+          agvtool new-version -all ${{ github.run_number }}
+
+      - name: Build Xcode Archive
+        run: |
+          xcodebuild archive \
+            -project Aether.MacOS/Aether.xcodeproj \
+            -scheme Aether \
+            -archivePath build/Aether.xcarchive \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export .app from Archive
+        run: |
+          mkdir -p build/export
+          cp -R "build/Aether.xcarchive/Products/Applications/Aether.app" build/export/
+
+      - name: Create Zip
+        run: |
+          cd build/export
+          zip -r "../Aether_${{ steps.version.outputs.VERSION }}.zip" Aether.app
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aether_${{ steps.version.outputs.VERSION }}
+          path: build/Aether_${{ steps.version.outputs.VERSION }}.zip
