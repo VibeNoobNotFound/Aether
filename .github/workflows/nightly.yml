@@ -23,22 +23,23 @@ jobs:
       - name: Build Backend & Bundle
         run: ./build_all.sh --bundle
 
-      - name: Set Xcode Version
-        run: |
-          cd Aether.MacOS
-          agvtool new-marketing-version ${{ steps.version.outputs.VERSION }}
-          agvtool new-version -all ${{ github.run_number }}
-
       - name: Build Xcode Archive
         run: |
           xcodebuild archive \
             -project Aether.MacOS/Aether.xcodeproj \
             -scheme Aether \
+            -destination "generic/platform=macOS" \
             -archivePath build/Aether.xcarchive \
             -configuration Release \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            MARKETING_VERSION=${{ steps.version.outputs.VERSION }} \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            SKIP_INSTALL=NO \
+            | xcpretty
 
       - name: Export .app from Archive
         run: |
