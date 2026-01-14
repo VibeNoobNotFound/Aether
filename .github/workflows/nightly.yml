@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: macos-26
+    # Skip if commit message contains [skip ci], [ci skip], or [no ci]
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]') && !contains(github.event.head_commit.message, '[no ci]')"
     steps:
       - uses: actions/checkout@v4
 

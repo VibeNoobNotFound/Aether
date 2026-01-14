@@ -59,6 +59,22 @@ We believe in transparency. Dive into our detailed documentation:
 3.  Launch Aether.
     > **Note**: Aether asks for **Administrator privileges** by default to scan your system without restriction (bypassing macOS Sandbox/TCC issues). You can configure this behavior in the source code if building yourself.
 
+---
+
+## 🌙 Nightly Builds
+
+Automated builds are generated on every push to `main`. These are **unsigned** and intended for testing.
+
+### Download
+Go to [Actions](../../actions) → Select the latest successful **Nightly Build** → Download the `Aether_*.zip` artifact.
+
+### Installation
+Since nightly builds are unsigned, macOS will quarantine them. After unzipping, run:
+```bash
+xattr -cr /path/to/Aether.app
+```
+Then drag to Applications and launch.
+
 ### For Developers
 Aether is a hybrid application. You need both an Xcode environment and a .NET environment.
 
