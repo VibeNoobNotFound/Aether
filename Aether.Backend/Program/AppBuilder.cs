@@ -53,7 +53,7 @@ public static class AppBuilder
         services.AddSingleton<Serilog.ILogger>(Log.Logger);
 
         // Initialize database
-        var dbPath = LibraryDatabase.GetDefaultDatabasePath();
+        var dbPath = LibraryDatabase.GetDefaultDatabasePath(out var Basedir);;
         services.AddSingleton(sp =>
         {
             var logger = sp.GetRequiredService<Serilog.ILogger>();

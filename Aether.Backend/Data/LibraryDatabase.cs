@@ -39,9 +39,8 @@ public class LibraryDatabase : IDisposable
     /// <summary>
     /// Get database path based on OS
     /// </summary>
-    public static string GetDefaultDatabasePath()
+    public static string GetDefaultDatabasePath(out string baseDir)
     {
-        string baseDir;
 
         if (OperatingSystem.IsMacOS())
         {
@@ -221,6 +220,35 @@ public class LibraryDatabase : IDisposable
         _db.DropCollection("carousel_config");
         _db.DropCollection("metadata_config");
         _db.Checkpoint();
+
+        // Also delete all plugin storage files (*.db) in the same directory, except library.db
+        try
+        {
+            GetDefaultDatabasePath(out var baseDir);
+            if (Directory.Exists(baseDir))
+            {
+                var files = Directory.GetFiles(baseDir, "*.db");
+                foreach (var file in files)
+                {
+                    if (Path.GetFileName(file).ToLower() != "library.db")
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                            _logger.Information("Deleted plugin storage: {File}", Path.GetFileName(file));
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error(ex, "Failed to delete plugin storage: {File}", Path.GetFileName(file));
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error clearing plugin storage");
+        }
     }
 
     /// <summary>

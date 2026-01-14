@@ -1,3 +1,4 @@
+using Aether.Backend.Data;
 using Aether.PluginSDK.Storage;
 using LiteDB;
 using STJ = System.Text.Json;
@@ -16,14 +17,9 @@ public class PluginStorageService : IPluginStorage, IDisposable
 
     public PluginStorageService(string pluginName)
     {
-        var dataDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".aether",
-            "plugin_data"
-        );
-        Directory.CreateDirectory(dataDir);
-
-        var dbPath = Path.Combine(dataDir, $"{SanitizeFileName(pluginName)}.db");
+       LibraryDatabase.GetDefaultDatabasePath(out var BaseDir);
+       
+        var dbPath = Path.Combine(BaseDir, $"{SanitizeFileName(pluginName)}.db");
         _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
         _collection = _db.GetCollection<StorageEntry>(CollectionName);
         _collection.EnsureIndex(x => x.Key, unique: true);
