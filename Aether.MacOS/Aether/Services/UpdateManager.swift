@@ -15,9 +15,18 @@ class UpdateManager: ObservableObject {
     @Published var downloadProgress: Double = 0
     @Published var downloadStatus: DownloadStatus = .idle
     @Published var errorMessage: String?
+    @Published var checkStatus: UpdateCheckStatus = .idle
 
     // Use shared file logger
     // private let logger = os.Logger(subsystem: "Aether", category: "UpdateManager")
+
+    enum UpdateCheckStatus: Equatable {
+        case idle
+        case checking
+        case available
+        case upToDate
+        case error(String)
+    }
 
     enum DownloadStatus: Equatable {
         case idle
@@ -42,7 +51,10 @@ class UpdateManager: ObservableObject {
     func checkForUpdates() async {
         await MainActor.run {
             downloadStatus = .checking
+            checkStatus = .checking
             errorMessage = nil
+            // Reset status to idle after a timeout if stuck?
+            // Better handled by success/fail blocks
         }
 
         let client = GrpcClient.shared.client
@@ -62,6 +74,7 @@ class UpdateManager: ObservableObject {
             await MainActor.run {
                 if response.updateAvailable {
                     updateAvailable = true
+                    checkStatus = .available
                     updateInfo = UpdateInfo(
                         version: response.version,
                         releaseNotes: response.releaseNotes,
@@ -73,13 +86,33 @@ class UpdateManager: ObservableObject {
                 } else {
                     updateAvailable = false
                     updateInfo = nil
+                    checkStatus = .upToDate
                     AetherLogger.shared.info("No updates available")
+
+                    // Auto-hide "Up to date" status after 3 seconds
+                    Task {
+                        try? await Task.sleep(for: .seconds(3))
+                        if checkStatus == .upToDate {
+                            checkStatus = .idle
+                        }
+                    }
                 }
                 downloadStatus = .idle
             }
         } catch {
             AetherLogger.shared.error("Failed to check for updates: \(error)")
-            await MainActor.run { downloadStatus = .idle }
+            await MainActor.run {
+                downloadStatus = .idle
+                checkStatus = .error(error.localizedDescription)
+
+                // Auto-hide error status after 4 seconds
+                Task {
+                    try? await Task.sleep(for: .seconds(4))
+                    if case .error = checkStatus {
+                        checkStatus = .idle
+                    }
+                }
+            }
         }
     }
 

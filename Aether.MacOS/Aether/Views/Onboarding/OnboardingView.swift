@@ -243,7 +243,7 @@ struct WelcomePage: View {
                             )
                     }
 
-                    Image(nsImage: NSImage(named: "AppIcon") ?? NSImage())
+                    Image(nsImage: NSImage(named: "Aether") ?? NSImage())
                         .resizable()
                         .frame(width: 140, height: 140)
                         .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
