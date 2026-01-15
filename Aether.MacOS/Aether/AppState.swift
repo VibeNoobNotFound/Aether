@@ -170,6 +170,9 @@ struct PluginViewModel: Identifiable {
     let version: String
     let author: String
     let isImporter: Bool
+    let isMetadataProvider: Bool
+    let isGameLauncher: Bool
+    let isNewsProvider: Bool
     let supportsManualAddition: Bool
     let supportedPlatforms: [String]
 
@@ -178,6 +181,9 @@ struct PluginViewModel: Identifiable {
         self.version = proto.version
         self.author = proto.author
         self.isImporter = proto.isImporter
+        self.isMetadataProvider = proto.isMetadataProvider
+        self.isGameLauncher = proto.isGameLauncher
+        self.isNewsProvider = proto.isNewsProvider
         self.supportsManualAddition = proto.supportsManualAddition
         self.supportedPlatforms = Array(proto.supportedPlatforms)
     }
@@ -1094,12 +1100,17 @@ class AppState: ObservableObject {
     extension PluginViewModel {
         init(
             name: String, version: String, author: String, isImporter: Bool,
+            isMetadataProvider: Bool = false, isGameLauncher: Bool = false,
+            isNewsProvider: Bool = false,
             supportsManualAddition: Bool, supportedPlatforms: [String]
         ) {
             self.name = name
             self.version = version
             self.author = author
             self.isImporter = isImporter
+            self.isMetadataProvider = isMetadataProvider
+            self.isGameLauncher = isGameLauncher
+            self.isNewsProvider = isNewsProvider
             self.supportsManualAddition = supportsManualAddition
             self.supportedPlatforms = supportedPlatforms
         }

@@ -385,6 +385,8 @@ message PluginInfo {
   bool is_metadata_provider = 6;
   bool supports_manual_addition = 7;
   repeated string supported_platforms = 8;
+  bool is_game_launcher = 9;
+  bool is_news_provider = 10;
 }
 
 // Metadata Management
