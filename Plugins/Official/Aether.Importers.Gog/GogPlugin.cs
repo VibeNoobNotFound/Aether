@@ -2,16 +2,17 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 
 namespace Aether.Importers.Gog;
 
-public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.1";
+    public string Version => "1.1.0";
 
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
     public bool SupportsManualAddition => false;
@@ -25,10 +26,19 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Loggi
     // Logging
     private Serilog.ILogger? _logger;
 
+    // Session Management
+    private ISessionManager? _sessionManager;
+
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("GogPlugin initialized");
+    }
+
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
@@ -308,13 +318,58 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Loggi
             }
 
             var process = Process.Start(startInfo);
-            return LaunchResult.Succeeded(process?.Id, "direct");
+
+            // Start session tracking
+            _sessionManager?.StartSession(context.GameId);
+
+            // Monitor the process
+            if (process != null && !process.HasExited)
+            {
+                _ = MonitorPidAsync(context.GameId, process.Id);
+            }
+            else if (path.EndsWith(".app"))
+            {
+                // For macOS bundles, monitor by process name
+                var processName = Path.GetFileNameWithoutExtension(path);
+                _ = MonitorProcessAsync(context.GameId, processName);
+            }
+            else
+            {
+                // No reliable tracking, leave session for manual stop
+            }
+
+            // Return success with no backend tracking (we handle it)
+            var result = LaunchResult.Succeeded(process?.Id, "direct");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return result;
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, "Failed to launch GOG game: {Title}", context.Title);
             return LaunchResult.Failed($"Failed to launch GOG game: {ex.Message}");
         }
+    }
+
+    private async Task MonitorPidAsync(string gameId, int pid)
+    {
+        await ProcessMonitor.MonitorByIdAsync(
+            gameId,
+            pid,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 0 }
+        );
+    }
+
+    private async Task MonitorProcessAsync(string gameId, string processName)
+    {
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 3000 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)

@@ -549,9 +549,9 @@ struct PluginCard: View {
                     .fill(plugin.isImporter ? Color.blue.opacity(0.2) : Color.green.opacity(0.2))
                     .frame(width: 48, height: 48)
 
-                Image(systemName: plugin.isImporter ? "arrow.down.circle.fill" : "puzzlepiece.fill")
+                Image(systemName: "puzzlepiece.fill")
                     .font(.system(size: 24))
-                    .foregroundStyle(plugin.isImporter ? .blue : .green)
+                    .foregroundStyle(.green)
             }
 
             VStack(alignment: .leading, spacing: 4) {
@@ -570,6 +570,23 @@ struct PluginCard: View {
                         .foregroundStyle(.secondary)
                 }
                 .font(.caption)
+
+                // Capability Badges
+                HStack(spacing: 4) {
+                    if plugin.isImporter {
+                        CapabilityBadge(name: "Importer", color: .blue)
+                    }
+                    if plugin.isMetadataProvider {
+                        CapabilityBadge(name: "Metadata", color: .purple)
+                    }
+                    if plugin.isGameLauncher {
+                        CapabilityBadge(name: "Launcher", color: .orange)
+                    }
+                    if plugin.isNewsProvider {
+                        CapabilityBadge(name: "News", color: .pink)
+                    }
+                }
+                .padding(.top, 4)
             }
 
             Spacer()
@@ -588,6 +605,26 @@ struct PluginCard: View {
         .scaleEffect(isHovered ? 1.02 : 1.0)
         .animation(.spring(response: 0.3), value: isHovered)
         .onHover { isHovered = $0 }
+    }
+}
+
+struct CapabilityBadge: View {
+    let name: String
+    let color: Color
+
+    var body: some View {
+        Text(name)
+            .font(.system(size: 9))
+            .foregroundStyle(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.1))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(color.opacity(0.3))
+                    .glassEffect()
+            )
     }
 }
 

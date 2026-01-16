@@ -10,19 +10,28 @@ namespace Aether.Importers.Web;
 /// <summary>
 /// Web Importer to add URL shortcuts or Steam Protocols
 /// </summary>
-public class WebPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class WebPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Web";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.2.0";
+    public string Version => "1.3.0";
 
     // Logging
     private Serilog.ILogger? _logger;
+
+    // Session Management
+    private ISessionManager? _sessionManager;
 
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("WebPlugin initialized");
+    }
+
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public static class Constants
@@ -178,7 +187,20 @@ public class WebPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Loggi
             }
 
             Process.Start(startInfo);
-            return LaunchResult.Succeeded(processId: 0, method: "url");
+
+            // Start and immediately stop session (instant launch, no tracking)
+            _sessionManager?.StartSession(context.GameId);
+
+            // Web links are "instant" - mark as played but stop immediately
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000); // Brief delay to register as "played"
+                _sessionManager?.StopSession(context.GameId);
+            });
+
+            var result = LaunchResult.Succeeded(processId: 0, method: "url");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return result;
         }
         catch (Exception ex)
         {

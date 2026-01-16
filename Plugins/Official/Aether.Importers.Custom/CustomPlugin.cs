@@ -15,7 +15,7 @@ namespace Aether.Importers.Custom;
 /// Custom game importer for manually added games
 /// Allows users to add any game and optionally fetch metadata from Steam
 /// </summary>
-public class CustomPlugin : ILibraryImporter, IMetadataProvider, Aether.PluginSDK.Logging.ILoggingAware
+public class CustomPlugin : ILibraryImporter, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Custom";
     public string Author => "VibeNoobNotFound";
@@ -85,38 +85,6 @@ public class CustomPlugin : ILibraryImporter, IMetadataProvider, Aether.PluginSD
             );
         }
     }
-
-    // IMetadataProvider - Fetches from Steam if AppID is provided
-    public async Task<List<GameMetadata>> SearchAsync(string gameName, string? platform = null)
-    {
-        // TODO: Implement Steam Web API search by game name
-        // This would require Steam Web API key and search endpoint
-        return new List<GameMetadata>();
-    }
-
-    public async Task<GameMetadata?> GetByIdAsync(string gameId)
-    {
-        // If gameId looks like a Steam AppID (numeric), fetch from Steam
-        if (int.TryParse(gameId, out var steamAppId))
-        {
-            return await FetchSteamMetadataAsync(steamAppId.ToString());
-        }
-
-        return null;
-    }
-
-    public async Task<List<string>> GetScreenshotsAsync(string gameId)
-    {
-        // TODO: Fetch from Steam API if gameId is Steam AppID
-        return new List<string>();
-    }
-
-    public async Task<List<Achievement>> GetAchievementsAsync(string gameId)
-    {
-        // TODO: Fetch from Steam API if gameId is Steam AppID
-        return new List<Achievement>();
-    }
-
     public async Task<string?> GetBackgroundImageAsync(string gameId)
     {
         if (int.TryParse(gameId, out _))

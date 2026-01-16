@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 
@@ -9,19 +10,28 @@ namespace Aether.Importers.Crossover;
 /// <summary>
 /// CrossOver Importer for macOS and Linux
 /// </summary>
-public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class CrossoverPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "CrossOver";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.3";
+    public string Version => "1.1.0";
 
     // Logging
     private Serilog.ILogger? _logger;
+
+    // Session Management
+    private ISessionManager? _sessionManager;
 
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("CrossoverPlugin initialized");
+    }
+
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS", "Linux" };
@@ -179,59 +189,90 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK
         try
         {
             var startInfo = new ProcessStartInfo();
+            string? processName = null;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 // macOS: open -a "Path/To/App.app" --args <launch_args>
                 startInfo.FileName = "open";
                 startInfo.ArgumentList.Add("-a");
-                startInfo.ArgumentList.Add(context.ExecutablePath); // Currently InstallPath == ExecutablePath for apps
+                startInfo.ArgumentList.Add(context.ExecutablePath);
 
                 if (!string.IsNullOrEmpty(context.LaunchArguments))
                 {
                     startInfo.ArgumentList.Add("--args");
-                    // Split args if necessary, or pass as single string if open supports it properly
-                    // Simpler: Just pass the string
                     foreach (var arg in context.LaunchArguments.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                     {
                         startInfo.ArgumentList.Add(arg);
                     }
                 }
+
+                // For macOS .app bundles, track by bundle name
+                if (context.InstallPath.EndsWith(".app"))
+                {
+                    processName = Path.GetFileNameWithoutExtension(context.InstallPath);
+                }
             }
             else // Linux
             {
-                // Linux: gtk-launch or direct execution of .desktop
-                // Executing .desktop files directly needs specific handling (gtk-launch `basename` or parsing Exec line)
-                // For simplicity, we assume we can execute it if it's marked executable, or fallback to parsing
-
-                // Heuristic: Use 'gtk-launch' which usually works with .desktop names (without path/extension)
-                // BUT context.ExecutablePath is full path.
-
-                // Let's try xdg-open for generic "open this file" handling
+                // Linux: xdg-open for generic file handling
                 startInfo.FileName = "xdg-open";
                 startInfo.ArgumentList.Add(context.ExecutablePath);
 
-                // xdg-open generally doesn't accept extra args for the target app easily
-                // For robust Linux launch with args, we'd need to parse the 'Exec' line from the .desktop file.
-                // Keeping it simple for V1.
+                // For Linux .desktop files, try to extract app name
+                if (context.ExecutablePath.EndsWith(".desktop"))
+                {
+                    processName = Path.GetFileNameWithoutExtension(context.ExecutablePath);
+                }
             }
 
             startInfo.UseShellExecute = false;
 
-            var process = Process.Start(startInfo);
-            if (process != null)
+            Process.Start(startInfo);
+
+            // Start session tracking
+            _sessionManager?.StartSession(context.GameId);
+
+            // Start background monitoring if we have a process name
+            if (!string.IsNullOrEmpty(processName))
             {
-                return LaunchResult.Succeeded(processId: process.Id, method: "direct");
+                _ = MonitorProcessAsync(context.GameId, processName);
+            }
+            else
+            {
+                // No process name found, so we can't track it automatically.
+                // Leave the session running for manual stop.
+                _logger?.Information("No reliable process name for tracking. Session will remain active until manually stopped.");
             }
 
-            // Fire and forget (open command returns immediately)
-            return LaunchResult.Succeeded(processId: 0, method: "direct");
+            // Return success with no backend tracking (we handle it)
+            var result = LaunchResult.Succeeded(processId: 0, method: "crossover");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return result;
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, "Failed to launch CrossOver app: {Name}", context.Title);
             return LaunchResult.Failed($"Failed to launch CrossOver app: {ex.Message}");
         }
+    }
+
+    private async Task MonitorProcessAsync(string gameId, string processName)
+    {
+        // Use SDK Helper with partial matching and launcher heuristic enabled
+        await ProcessMonitor.MonitorByPartialNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions
+            {
+                GracePeriodMs = 4000,
+                EnableLauncherHeuristic = true,
+                LauncherThresholdMs = 15000,
+                MaxSearchTimeMs = 30000
+            }
+        );
     }
 
     // IPlugin Stubs

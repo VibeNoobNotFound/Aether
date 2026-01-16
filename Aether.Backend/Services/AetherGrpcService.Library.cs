@@ -194,9 +194,9 @@ public partial class AetherGrpcService
 
                 var progress = new Progress<PluginSDK.Library.ScanProgress>(p =>
                 {
-                // This callback is for generic progress (scanning stages)
-                // Actual game discovery is handled in the loop below
-                var protoProgress = new ScanProgress
+                    // This callback is for generic progress (scanning stages)
+                    // Actual game discovery is handled in the loop below
+                    var protoProgress = new ScanProgress
                     {
                         CurrentPlatform = p.CurrentPlatform,
                         GamesFound = p.GamesFound,
@@ -337,6 +337,11 @@ public partial class AetherGrpcService
         _logger.LogInformation("Finished streaming {Count} games", games.Count);
     }
 
+    public override Task<LibraryStatsResponse> GetLibraryStats(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(_database.GetLibraryStats());
+    }
+
     public override Task<LibrarySearchResponse> SearchLibrary(LibrarySearchRequest request, ServerCallContext context)
     {
         try
@@ -402,6 +407,7 @@ public partial class AetherGrpcService
             IsFavorite = entity.IsFavorite,
             IsInstalled = entity.IsInstalled,
             TotalPlaytimeSeconds = (long)(entity.TotalPlaytime?.TotalSeconds ?? 0),
+            PlayCount = entity.PlayCount,
             MetacriticScore = (int)(entity.MetacriticScore ?? 0),
 
             // Timestamps

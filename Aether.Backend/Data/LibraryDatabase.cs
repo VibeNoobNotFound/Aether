@@ -1,5 +1,5 @@
 using LiteDB;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace Aether.Backend.Data;
 
@@ -10,9 +10,10 @@ public class LibraryDatabase : IDisposable
 {
     private readonly LiteDatabase _db;
     private readonly ILiteCollection<GameEntity> _games;
-    private readonly ILogger _logger;
+    private readonly ILiteCollection<GameSessionLog> _sessions;
+    private readonly ILogger<LibraryDatabase> _logger;
 
-    public LibraryDatabase(string databasePath, ILogger logger)
+    public LibraryDatabase(string databasePath, ILogger<LibraryDatabase> logger)
     {
         _logger = logger;
 
@@ -25,6 +26,11 @@ public class LibraryDatabase : IDisposable
 
         _db = new LiteDatabase(databasePath);
         _games = _db.GetCollection<GameEntity>("games");
+        _sessions = _db.GetCollection<GameSessionLog>("game_sessions");
+
+        // Sesssion Indexes
+        _sessions.EnsureIndex(x => x.GameId);
+        _sessions.EnsureIndex(x => x.StartTime);
 
         // Create indexes for fast queries
         _games.EnsureIndex(x => x.Platform);
@@ -33,7 +39,7 @@ public class LibraryDatabase : IDisposable
         _games.EnsureIndex(x => x.IsInstalled);
         _games.EnsureIndex(x => x.IsFavorite);
 
-        _logger.Information("Database initialized at {Path}", databasePath);
+        _logger.LogInformation("Database initialized at {Path}", databasePath);
     }
 
     /// <summary>
@@ -96,7 +102,7 @@ public class LibraryDatabase : IDisposable
             game.IsFavorite = existing.IsFavorite;
 
             _games.Update(game);
-            _logger.Debug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
+            _logger.LogDebug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
             return existing.Id;
         }
         else
@@ -106,7 +112,7 @@ public class LibraryDatabase : IDisposable
             game.UpdatedAt = DateTime.UtcNow;
 
             var id = _games.Insert(game);
-            _logger.Debug("Inserted game: {Title} ({Platform})", game.Title, game.Platform);
+            _logger.LogDebug("Inserted game: {Title} ({Platform})", game.Title, game.Platform);
             return id;
         }
     }
@@ -174,6 +180,29 @@ public class LibraryDatabase : IDisposable
         }
     }
 
+    public void UpdatePlayCount(int gameId)
+    {
+        var game = GetGameById(gameId);
+        if (game != null)
+        {
+            game.PlayCount++;
+            game.LastPlayed = DateTime.UtcNow; // Usually associated with a play
+            game.UpdatedAt = DateTime.UtcNow;
+            _games.Update(game);
+        }
+    }
+
+    public void UpdateLastPlayed(int gameId, DateTime time)
+    {
+        var game = GetGameById(gameId);
+        if (game != null)
+        {
+            game.LastPlayed = time;
+            game.UpdatedAt = DateTime.UtcNow;
+            _games.Update(game);
+        }
+    }
+
     /// <summary>
     /// Toggle favorite status
     /// </summary>
@@ -235,11 +264,11 @@ public class LibraryDatabase : IDisposable
                         try
                         {
                             File.Delete(file);
-                            _logger.Information("Deleted plugin storage: {File}", Path.GetFileName(file));
+                            _logger.LogInformation("Deleted plugin storage: {File}", Path.GetFileName(file));
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(ex, "Failed to delete plugin storage: {File}", Path.GetFileName(file));
+                            _logger.LogError(ex, "Failed to delete plugin storage: {File}", Path.GetFileName(file));
                         }
                     }
                 }
@@ -247,7 +276,7 @@ public class LibraryDatabase : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error clearing plugin storage");
+            _logger.LogError(ex, "Error clearing plugin storage");
         }
     }
 
@@ -279,7 +308,7 @@ public class LibraryDatabase : IDisposable
     {
         if (Collections.Count() > 0) return; // Already seeded
 
-        _logger.Information("Seeding default collections...");
+        _logger.LogInformation("Seeding default collections...");
 
         int order = 0;
         var defaults = new List<CollectionEntity>
@@ -328,7 +357,7 @@ public class LibraryDatabase : IDisposable
             Collections.Insert(col);
         }
 
-        _logger.Information("Seeded {Count} default collections", defaults.Count);
+        _logger.LogInformation("Seeded {Count} default collections", defaults.Count);
     }
 
     public IEnumerable<CollectionEntity> GetAllCollections()
@@ -615,6 +644,106 @@ public class LibraryDatabase : IDisposable
             SortOption.PLAYTIME => ascending ? games.OrderBy(g => g.TotalPlaytime) : games.OrderByDescending(g => g.TotalPlaytime),
             _ => games // Default (or RELEVANCE fallback)
         };
+    }
+
+    #endregion
+
+    #region Session Logging & Stats
+
+    /// <summary>
+    /// Log the start of a game session
+    /// </summary>
+    public int LogSessionStart(int gameId, DateTime startTime)
+    {
+        var log = new GameSessionLog
+        {
+            GameId = gameId,
+            StartTime = startTime
+        };
+        return _sessions.Insert(log);
+    }
+
+    /// <summary>
+    /// Log the end of a game session and update duration
+    /// </summary>
+    public void LogSessionEnd(int sessionId, DateTime endTime)
+    {
+        var log = _sessions.FindById(sessionId);
+        if (log != null)
+        {
+            log.EndTime = endTime;
+            log.Duration = endTime - log.StartTime;
+            _sessions.Update(log);
+        }
+    }
+
+    /// <summary>
+    /// Get aggregated stats for the entire library
+    /// </summary>
+    public Aether.Protos.LibraryStatsResponse GetLibraryStats()
+    {
+        var response = new Aether.Protos.LibraryStatsResponse();
+
+        // 1. Total Games
+        response.TotalGames = _games.Count();
+
+        // 2. Playtime & Sessions (from session logs)
+        // If no sessions logged yet, fallback to GameEntity stats? 
+        // For accurate new system, we rely on logs. But for imported history we might need GameEntity data.
+        // Let's rely on new logs for "Active Days" but maybe combining legacy for total time is safer?
+        // User requested "accurate" so let's use logs primarily, but if logs are empty, use specific GameEntity fields?
+        // Actually, user said current system doesn't log exact times. So existing TotalPlaytime in GameEntity is just an aggregate sum.
+        // We will return aggregate from GameEntity for TOTAL time to keep legacy data, but logs for session counts/days.
+
+        // REVISED: Let's calculate from GameEntity for totals (since existing data is there) 
+        // and use SessionLogs for specifics like ActiveDayCount which cannot differ.
+
+        var games = _games.FindAll();
+        long legacyTotalSeconds = 0;
+        int legacyTotalSessions = 0;
+        foreach (var g in games)
+        {
+            legacyTotalSeconds += (long)(g.TotalPlaytime?.TotalSeconds ?? 0);
+            legacyTotalSessions += g.PlayCount;
+        }
+
+        response.TotalPlaytimeSeconds = legacyTotalSeconds;
+        response.TotalSessions = legacyTotalSessions;
+
+        // 3. Active Days (Unique days in session logs)
+        // This MUST come from logs. Existing system didn't track days.
+        var sessionDates = _sessions.Query()
+            .Select(x => x.StartTime)
+            .ToEnumerable()
+            .Select(d => d.Date)
+            .Distinct()
+            .Count();
+
+        // If usage is 0 but we have play counts, active days is at least 1? 
+        // No, show strict log data.
+        response.ActiveDayCount = sessionDates;
+
+        // 4. Top Genres
+        var genreCounts = new Dictionary<string, int>();
+        foreach (var g in games)
+        {
+            if (g.Genres != null)
+            {
+                foreach (var genre in g.Genres)
+                {
+                    if (!genreCounts.ContainsKey(genre)) genreCounts[genre] = 0;
+                    genreCounts[genre]++;
+                }
+            }
+        }
+
+        response.TopGenres.AddRange(
+            genreCounts.OrderByDescending(x => x.Value)
+            .Take(5)
+            .Select(x => new Aether.Protos.GenreStat { Genre = x.Key, Count = x.Value })
+        );
+
+        return response;
     }
 
     #endregion

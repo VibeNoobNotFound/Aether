@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - Aurora Background
 
@@ -70,6 +71,12 @@ struct OnboardingView: View {
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 case 3:
+                    StatsFeaturePage()
+                        .padding(16)
+                        .transition(
+                            .asymmetric(
+                                insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                case 4:
                     TutorialPage(
                         title: "Precision Control",
                         description:
@@ -91,7 +98,7 @@ struct OnboardingView: View {
                     .transition(
                         .asymmetric(
                             insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-                case 4:
+                case 5:
                     TutorialPage(
                         title: "Organize Your Way",
                         description:
@@ -113,14 +120,14 @@ struct OnboardingView: View {
                     .transition(
                         .asymmetric(
                             insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-                case 5:
+                case 6:
                     // Interactive Settings Page
                     SettingsOnboardingPage()
                         .padding(16)
                         .transition(
                             .asymmetric(
                                 insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-                case 6:
+                case 7:
                     GetStartedPage {
                         completeOnboarding()
                     }
@@ -148,13 +155,13 @@ struct OnboardingView: View {
                         .foregroundStyle(.white.opacity(0.6))
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(.ultraThinMaterial)
+                        .glassEffect()
                         .clipShape(Capsule())
                     }
 
                     Spacer()
 
-                    if selectedPage < 6 {
+                    if selectedPage < 7 {
                         Button("Next") {
                             withAnimation { selectedPage += 1 }
                         }
@@ -163,7 +170,7 @@ struct OnboardingView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 10)
-                        .background(Color.blue)
+                        .glassEffect(.regular.tint(.blue))
                         .clipShape(Capsule())
                         .shadow(color: .blue.opacity(0.4), radius: 10, x: 0, y: 5)
                     }
@@ -657,4 +664,148 @@ struct WindowAccessor: NSViewRepresentable {
     OnboardingView()
         .environmentObject(AppState())
         .frame(width: 1000, height: 700)
+}
+
+struct StatsFeaturePage: View {
+    @State private var animate = false
+    @State private var playCount = 0
+    @State private var hoursPlayed = 0
+
+    // Timer for simulating counting up
+    let timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        VStack(spacing: 50) {
+            // Visual Animation
+            ZStack {
+                // Central Hub (Clock/Timer)
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.orange, .pink], startPoint: .topLeading,
+                            endPoint: .bottomTrailing)
+                    )
+                    .frame(width: 160, height: 160)
+                    .shadow(color: .orange.opacity(0.5), radius: 30)
+                    .overlay(
+                        VStack(spacing: 4) {
+                            Text("\(hoursPlayed)h")
+                                .font(.system(size: 48, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .contentTransition(.numericText(value: Double(hoursPlayed)))
+
+                            Text("PLAYED")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                    )
+
+                // Ring orbiting
+                Circle()
+                    .trim(from: 0, to: 0.7)
+                    .stroke(
+                        AngularGradient(colors: [.white, .white.opacity(0)], center: .center),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(animate ? 360 : 0))
+                    .animation(
+                        .linear(duration: 8).repeatForever(autoreverses: false), value: animate)
+
+                // Floating Stat Bubbles
+
+                // Bubble 1: Play Count
+                StatBubble(
+                    icon: "play.circle.fill", value: "\(playCount)", label: "Sessions", color: .blue
+                )
+                .offset(x: -140, y: -40)
+                .scaleEffect(animate ? 1.05 : 0.95)
+                .animation(
+                    .easeInOut(duration: 3).repeatForever(autoreverses: true), value: animate)
+
+                // Bubble 2: Last Played
+                StatBubble(
+                    icon: "calendar.badge.clock", value: "Today", label: "Last Played",
+                    color: .purple
+                )
+                .offset(x: 140, y: 20)
+                .scaleEffect(animate ? 0.95 : 1.05)
+                .animation(
+                    .easeInOut(duration: 4).repeatForever(autoreverses: true).delay(0.5),
+                    value: animate)
+
+                // Bubble 3: Achievements (Visual flair only)
+                StatBubble(icon: "trophy.fill", value: "Stats", label: "*Tracking", color: .yellow)
+                    .offset(x: 0, y: 130)
+                    .scaleEffect(animate ? 1.05 : 1.0)
+                    .animation(
+                        .easeInOut(duration: 2.5).repeatForever(autoreverses: true).delay(1.0),
+                        value: animate)
+
+            }
+            .frame(height: 350)
+            .onAppear {
+                animate = true
+            }
+            .onReceive(timer) { _ in
+                if playCount < 42 {
+                    playCount += 1
+                }
+                if hoursPlayed < 135 {
+                    // Accelerate hours
+                    hoursPlayed += 3
+                }
+            }
+
+            VStack(spacing: 16) {
+                Text("Track Your Journey")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+
+                Text(
+                    "Aether automatically tracks your total playtime, launch counts, and session history across all your games."
+                )
+                .font(.title3)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.7))
+                .padding(.horizontal, 60)
+                .frame(maxWidth: 600)
+                Text("*Tracking Achivements is currently not implemented.\nTracking playtime only works when the game is launched through Aether.")
+                    .multilineTextAlignment(.center)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+        }
+    }
+
+    struct StatBubble: View {
+        let icon: String
+        let value: String
+        let label: String
+        let color: Color
+
+        var body: some View {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(color)
+
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+
+                Text(label)
+                    .font(.caption2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .padding(24)
+            .glassEffect(in: Circle())
+            .clipShape(Circle())
+            .shadow(color: .black.opacity(0.2), radius: 10)
+        }
+    }
 }

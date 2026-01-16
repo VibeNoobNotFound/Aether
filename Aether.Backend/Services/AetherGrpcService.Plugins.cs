@@ -1,5 +1,6 @@
 using Aether.Protos;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Library;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Aether.Backend.Plugins;
@@ -13,57 +14,33 @@ public partial class AetherGrpcService
     {
         var response = new PluginList();
 
-        // Add Library Importers
-        foreach (var importer in _pluginManager.GetLibraryImporters())
+        // Get all unique plugins from the manager
+        var allPlugins = _pluginManager.GetPlugins().ToList();
+
+        foreach (var plugin in allPlugins)
         {
             var info = new PluginInfo
             {
-                Name = importer.Name,
-                Version = importer.Version,
-                Author = importer.Author,
-                IsImporter = true,
-                IsMetadataProvider = false,
-                SupportsManualAddition = importer.SupportsManualAddition
+                Name = plugin.Name,
+                Version = plugin.Version,
+                Author = plugin.Author,
+                IsEnabled = true, // TODO: Implement enable/disable logic
+                IsImporter = plugin is ILibraryImporter,
+                IsMetadataProvider = plugin is IMetadataProvider,
+                IsGameLauncher = plugin is IGameLauncher,
+                IsNewsProvider = plugin is INewsProvider,
+                SupportsManualAddition = (plugin is ILibraryImporter importer) && importer.SupportsManualAddition
             };
 
-            if (importer.SupportedPlatforms != null)
+            if (plugin.SupportedPlatforms != null)
             {
-                foreach (var p in importer.SupportedPlatforms)
+                foreach (var p in plugin.SupportedPlatforms)
                 {
                     info.SupportedPlatforms.Add(p);
                 }
             }
 
             response.Plugins.Add(info);
-        }
-
-        // Add pure plugins if any (that aren't importers)
-        foreach (var plugin in _pluginManager.GetPlugins())
-        {
-            // Simple de-duplication based on name
-            var exists = response.Plugins.Any(p => p.Name == plugin.Name);
-            if (!exists)
-            {
-                var info = new PluginInfo
-                {
-                    Name = plugin.Name,
-                    Version = plugin.Version,
-                    Author = plugin.Author,
-                    IsImporter = false,
-                    IsMetadataProvider = false,
-                    SupportsManualAddition = false // Pure plugins (like metadata providers) generally don't support this
-                };
-
-                if (plugin.SupportedPlatforms != null)
-                {
-                    foreach (var p in plugin.SupportedPlatforms)
-                    {
-                        info.SupportedPlatforms.Add(p);
-                    }
-                }
-
-                response.Plugins.Add(info);
-            }
         }
 
         return Task.FromResult(response);

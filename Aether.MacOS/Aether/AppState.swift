@@ -55,9 +55,13 @@ struct GameViewModel: Identifiable, Hashable {
     let lastPlayed: Date?
     var isFavorite: Bool
     let isInstalled: Bool
+    let playCount: Int
 
     // Cross-Platform News
     let steamId: String?
+
+    // Real-time State
+    var state: Aether_GameState = .stopped
 
     // Computed Properties
     var formattedPlaytime: String {
@@ -99,6 +103,11 @@ struct GameViewModel: Identifiable, Hashable {
         return genres.prefix(3).joined(separator: ", ")
     }
 
+    // End of struct
+
+}
+
+extension GameViewModel {
     // Initializer from proto
     init(from proto: Aether_Game) {
         self.id = proto.id
@@ -158,9 +167,57 @@ struct GameViewModel: Identifiable, Hashable {
         self.totalPlaytime = TimeInterval(proto.totalPlaytimeSeconds)
         self.isFavorite = proto.isFavorite
         self.isInstalled = proto.isInstalled
+        self.playCount = Int(proto.playCount)
 
         // Cross-Platform News
         self.steamId = proto.steamID.isEmpty ? nil : proto.steamID
+    }
+}
+
+extension GameViewModel {
+    // Static mock for fallback in views
+    static var mock: GameViewModel {
+        GameViewModel(
+            id: "0",
+            title: "Unknown Game",
+            platform: "Unknown",
+            externalID: "",
+            installPath: "",
+            executablePath: "",
+            launchArguments: nil,
+            coverImageURL: nil,
+            backgroundImageURL: nil,
+            logoImageURL: nil,
+            screenshots: [],
+            videos: [],
+            description: "",
+            shortDescription: "",
+            genres: [],
+            tags: [],
+            categories: [],
+            developer: nil,
+            publisher: nil,
+            releaseDate: nil,
+            metacriticScore: nil,
+            userScore: nil,
+            reviewCount: 0,
+            hasAchievements: false,
+            achievementCount: 0,
+            hasMultiplayer: false,
+            hasSinglePlayer: false,
+            hasCloudSaves: false,
+            minimumRequirements: nil,
+            recommendedRequirements: nil,
+            supportedLanguages: [],
+            totalPlaytime: 0,
+            lastPlayed: nil,
+            isFavorite: false,
+            isInstalled: false,
+            playCount: 0,
+            steamId: nil
+                // state has default value
+
+        )
     }
 }
 
@@ -170,6 +227,9 @@ struct PluginViewModel: Identifiable {
     let version: String
     let author: String
     let isImporter: Bool
+    let isMetadataProvider: Bool
+    let isGameLauncher: Bool
+    let isNewsProvider: Bool
     let supportsManualAddition: Bool
     let supportedPlatforms: [String]
 
@@ -178,6 +238,9 @@ struct PluginViewModel: Identifiable {
         self.version = proto.version
         self.author = proto.author
         self.isImporter = proto.isImporter
+        self.isMetadataProvider = proto.isMetadataProvider
+        self.isGameLauncher = proto.isGameLauncher
+        self.isNewsProvider = proto.isNewsProvider
         self.supportsManualAddition = proto.supportsManualAddition
         self.supportedPlatforms = Array(proto.supportedPlatforms)
     }
@@ -305,9 +368,49 @@ class AppState: ObservableObject {
 
     private let grpcClient = GrpcClient()
 
+    // Buffer for real-time states in case updates arrive before library load
+    private var gameStates: [String: Aether_GameState] = [:]
+
     init() {
         AetherLogger.shared.info("AppState initialized")
         startAutoRefresh()
+        subscribeToGameState()
+    }
+
+    private func subscribeToGameState() {
+        Task {
+            await waitForBackend()
+            AetherLogger.shared.info("Subscribing to game state updates...")
+
+            do {
+                try await grpcClient.client.subscribeToGameState(Aether_Empty()) { response in
+                    for try await update in response.messages {
+                        await MainActor.run {
+                            // 1. Update Buffer (always)
+                            self.gameStates[update.gameID] = update.state
+
+                            // 2. Update ViewModel (if exists)
+                            if let index = self.games.firstIndex(where: { $0.id == update.gameID })
+                            {
+                                self.games[index].state = update.state
+                                AetherLogger.shared.info(
+                                    "Game \(update.gameID) state changed to \(update.state)")
+
+                                // Refresh library on stop to get updated stats
+                                if update.state == .stopped {
+                                    Task { await self.refreshLibrary() }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {
+                AetherLogger.shared.error("Game state subscription stream failed: \(error)")
+                // Simple retry
+                try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+                subscribeToGameState()
+            }
+        }
     }
 
     private func startAutoRefresh() {
@@ -346,7 +449,14 @@ class AppState: ObservableObject {
                 // Construct ViewModels on MainActor to avoid isolation issues
                 let gamesToMap = games
                 await MainActor.run {
-                    self.games = gamesToMap.map { GameViewModel(from: $0) }
+                    self.games = gamesToMap.map { proto in
+                        var vm = GameViewModel(from: proto)
+                        // Apply buffered state if available
+                        if let bufferedState = self.gameStates[vm.id] {
+                            vm.state = bufferedState
+                        }
+                        return vm
+                    }
                     Task {
                         AetherLogger.shared.info(
                             "Library refreshed. Total games: \(self.games.count)")
@@ -460,8 +570,22 @@ class AppState: ObservableObject {
                 } else {
                     AetherLogger.shared.error("Launch failed: \(response.message)")
                 }
+            }
+        }
+    }
+
+    func stopGame(id: String) {
+        Task {
+            AetherLogger.shared.info("Stopping game with ID: \(id)")
+            do {
+                var request = Aether_GameId()
+                request.id = id
+                let response = try await grpcClient.client.stopGame(request)
+                if !response.success {
+                    AetherLogger.shared.error("Failed to stop game: \(response.message)")
+                }
             } catch {
-                AetherLogger.shared.error("Launch error: \(error)")
+                AetherLogger.shared.error("Stop game error: \(error)")
             }
         }
     }
@@ -615,6 +739,15 @@ class AppState: ObservableObject {
             await fetchCarouselConfig()
         } catch {
             AetherLogger.shared.error("Failed to update carousel config: \(error)")
+        }
+    }
+
+    func getLibraryStats() async -> Aether_LibraryStatsResponse? {
+        do {
+            return try await grpcClient.client.getLibraryStats(Aether_Empty())
+        } catch {
+            AetherLogger.shared.error("Failed to fetch library stats: \(error)")
+            return nil
         }
     }
 
@@ -1050,7 +1183,8 @@ class AppState: ObservableObject {
             lastPlayed: Date?,
             isFavorite: Bool,
             isInstalled: Bool,
-            steamId: String?
+            steamId: String?,
+            playCount: Int = 0
         ) {
             self.id = id
             self.title = title
@@ -1088,18 +1222,25 @@ class AppState: ObservableObject {
             self.isFavorite = isFavorite
             self.isInstalled = isInstalled
             self.steamId = steamId
+            self.playCount = playCount
+            self.state = .stopped
         }
     }
 
     extension PluginViewModel {
         init(
             name: String, version: String, author: String, isImporter: Bool,
+            isMetadataProvider: Bool = false, isGameLauncher: Bool = false,
+            isNewsProvider: Bool = false,
             supportsManualAddition: Bool, supportedPlatforms: [String]
         ) {
             self.name = name
             self.version = version
             self.author = author
             self.isImporter = isImporter
+            self.isMetadataProvider = isMetadataProvider
+            self.isGameLauncher = isGameLauncher
+            self.isNewsProvider = isNewsProvider
             self.supportsManualAddition = supportsManualAddition
             self.supportedPlatforms = supportedPlatforms
         }

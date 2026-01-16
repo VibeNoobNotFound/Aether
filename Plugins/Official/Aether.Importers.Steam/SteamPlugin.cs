@@ -1,25 +1,37 @@
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 namespace Aether.Importers.Steam;
 
 /// <summary>
 /// Steam library importer and metadata provider
 /// </summary>
-public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsProvider, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.5.0";
+    public string Version => "1.6.0";
 
     // Logging
     private Serilog.ILogger? _logger;
+
+    // Session Management
+    private ISessionManager? _sessionManager;
 
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("SteamPlugin initialized");
+    }
+
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
@@ -357,29 +369,64 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
         try
         {
-            var startInfo = new ProcessStartInfo
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                FileName = uri,
-                UseShellExecute = true
-            };
+                var startInfo = new ProcessStartInfo("open");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) startInfo.FileName = "xdg-open";
 
-            if (OperatingSystem.IsMacOS())
-            {
-                startInfo = new ProcessStartInfo("open", uri) { UseShellExecute = true };
+                startInfo.ArgumentList.Add(uri);
+                startInfo.UseShellExecute = false;
+                Process.Start(startInfo);
             }
-            else if (OperatingSystem.IsLinux())
+            else
             {
-                startInfo = new ProcessStartInfo("xdg-open", uri) { UseShellExecute = true };
+                // Windows
+                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
             }
 
-            Process.Start(startInfo);
-            return Task.FromResult(LaunchResult.Succeeded(processId: 0, method: "steam_protocol"));
+            // Start session tracking
+            _sessionManager?.StartSession(context.GameId);
+
+            // Try to track if we have the executable path
+            if (!string.IsNullOrEmpty(context.ExecutablePath))
+            {
+                var exeName = Path.GetFileNameWithoutExtension(context.ExecutablePath);
+                _ = MonitorProcessAsync(context.GameId, exeName);
+            }
+            else
+            {
+                // No tracking possible via process name, stop after timeout
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(5000);
+                    if (_sessionManager?.IsSessionActive(context.GameId) == true)
+                    {
+                        // Session still active but we can't track - leave it for manual stop
+                    }
+                });
+            }
+
+            // Return success with no backend tracking (we handle it)
+            var result = LaunchResult.Succeeded(processId: 0, method: "steam_protocol");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, "Failed to launch Steam game {Id}", context.ExternalId);
             return Task.FromResult(LaunchResult.Failed(ex.Message));
         }
+    }
+
+    private async Task MonitorProcessAsync(string gameId, string processName)
+    {
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 5000 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)

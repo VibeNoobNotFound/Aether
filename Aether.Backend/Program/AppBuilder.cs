@@ -53,15 +53,18 @@ public static class AppBuilder
         services.AddSingleton<Serilog.ILogger>(Log.Logger);
 
         // Initialize database
-        var dbPath = LibraryDatabase.GetDefaultDatabasePath(out var Basedir);;
-        services.AddSingleton(sp =>
+        var dbPath = LibraryDatabase.GetDefaultDatabasePath(out var Basedir); ;
+        services.AddSingleton<LibraryDatabase>(sp =>
         {
-            var logger = sp.GetRequiredService<Serilog.ILogger>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<LibraryDatabase>>();
             var db = new LibraryDatabase(dbPath, logger);
             // Seeding deferred until plugins are loaded
             return db;
         });
         Log.Information("Database initialized at {Path}", dbPath);
+
+        // Add GameSessionManager
+        services.AddSingleton<GameSessionManager>();
 
         // Initialize plugin system
         var pluginPath = GetPluginPath();
@@ -70,6 +73,10 @@ public static class AppBuilder
             var logger = sp.GetRequiredService<Serilog.ILogger>();
             var manager = new PluginManager(pluginPath, logger);
             manager.LoadPlugins();
+
+            // Inject session manager into plugins that support it
+            var sessionManager = sp.GetRequiredService<GameSessionManager>();
+            manager.SetSessionManager(sessionManager);
 
             // Seed database with plugins now available
             var db = sp.GetRequiredService<LibraryDatabase>();

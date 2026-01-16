@@ -5,7 +5,7 @@ namespace Aether.PluginSDK;
 /// <summary>
 /// Interface for plugins that can launch games from their platform
 /// </summary>
-public interface IGameLauncher
+public interface IGameLauncher : IPlugin
 {
     /// <summary>
     /// Check if this launcher can launch the specified game
@@ -48,11 +48,27 @@ public class LaunchResult
     public int? ProcessId { get; set; }
     public string? LaunchMethod { get; set; } // "protocol", "direct", "bundle"
 
+    public LaunchTrackingMethod TrackingMethod { get; set; } = LaunchTrackingMethod.Pid;
+    public string? TrackingTarget { get; set; } // Process Name or empty (if Pid)
+
     public static LaunchResult Succeeded(int? processId = null, string method = "direct")
         => new() { Success = true, ProcessId = processId, LaunchMethod = method };
 
+    public static LaunchResult SucceededWithTracking(string trackingTarget, string method = "direct")
+        => new() { Success = true, TrackingMethod = LaunchTrackingMethod.ProcessName, TrackingTarget = trackingTarget, LaunchMethod = method };
+
     public static LaunchResult Failed(string error)
         => new() { Success = false, ErrorMessage = error };
+}
+
+/// <summary>
+/// Method used to track the game session
+/// </summary>
+public enum LaunchTrackingMethod
+{
+    Pid,           // Track specific Process ID
+    ProcessName,   // Track any process with specific name
+    None           // Do not track (Just mark as launched)
 }
 
 /// <summary>

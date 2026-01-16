@@ -59,6 +59,7 @@ public class GameEntity
     // User Stats
     public DateTime? LastPlayed { get; set; }
     public TimeSpan? TotalPlaytime { get; set; }
+    public int PlayCount { get; set; }
     public bool IsFavorite { get; set; }
     public bool IsInstalled { get; set; }
 
@@ -108,6 +109,7 @@ public class GameEntity
 
             LastPlayed = game.LastPlayed,
             TotalPlaytime = game.SecondsPlayed.HasValue ? TimeSpan.FromSeconds(game.SecondsPlayed.Value) : null,
+            PlayCount = game.PlayCount,
 
             // Auto-populate SteamId for Steam games
             SteamId = game.Platform == "Steam" ? game.ExternalId : null,
