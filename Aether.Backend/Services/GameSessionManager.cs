@@ -20,6 +20,8 @@ public class GameSessionManager : ISessionManager
     // Event for status updates (subscribed by gRPC)
     public event Action<int, GameState>? OnGameStateChanged;
 
+    public IEnumerable<int> GetActiveGameIds() => _activeSessions.Keys;
+
     public GameSessionManager(ILogger<GameSessionManager> logger, LibraryDatabase database)
     {
         _logger = logger;

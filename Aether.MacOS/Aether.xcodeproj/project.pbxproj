@@ -69,12 +69,8 @@
 				HelperTools/Newtonsoft.Json.dll,
 				HelperTools/Polly.dll,
 				HelperTools/Polly.Extensions.Http.dll,
-				"HelperTools/protobuf-net.Core.dll",
-				"HelperTools/protobuf-net.dll",
 				HelperTools/RestEase.dll,
 				HelperTools/SteamKit2.dll,
-				HelperTools/System.IO.Hashing.dll,
-				HelperTools/ZstdSharp.dll,
 				Info.plist,
 			);
 			target = 5D4BAE982EEA14430013C288 /* Aether */;
@@ -112,12 +108,8 @@
 				HelperTools/Newtonsoft.Json.dll,
 				HelperTools/Polly.dll,
 				HelperTools/Polly.Extensions.Http.dll,
-				"HelperTools/protobuf-net.Core.dll",
-				"HelperTools/protobuf-net.dll",
 				HelperTools/RestEase.dll,
 				HelperTools/SteamKit2.dll,
-				HelperTools/System.IO.Hashing.dll,
-				HelperTools/ZstdSharp.dll,
 			);
 		};
 		5DB706012EFC4FD100DED327 /* Exceptions for "Aether" folder in "Copy Backend Files" phase from "Aether" target */ = {

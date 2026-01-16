@@ -368,6 +368,9 @@ class AppState: ObservableObject {
 
     private let grpcClient = GrpcClient()
 
+    // Buffer for real-time states in case updates arrive before library load
+    private var gameStates: [String: Aether_GameState] = [:]
+
     init() {
         AetherLogger.shared.info("AppState initialized")
         startAutoRefresh()
@@ -383,6 +386,10 @@ class AppState: ObservableObject {
                 try await grpcClient.client.subscribeToGameState(Aether_Empty()) { response in
                     for try await update in response.messages {
                         await MainActor.run {
+                            // 1. Update Buffer (always)
+                            self.gameStates[update.gameID] = update.state
+
+                            // 2. Update ViewModel (if exists)
                             if let index = self.games.firstIndex(where: { $0.id == update.gameID })
                             {
                                 self.games[index].state = update.state
@@ -442,7 +449,14 @@ class AppState: ObservableObject {
                 // Construct ViewModels on MainActor to avoid isolation issues
                 let gamesToMap = games
                 await MainActor.run {
-                    self.games = gamesToMap.map { GameViewModel(from: $0) }
+                    self.games = gamesToMap.map { proto in
+                        var vm = GameViewModel(from: proto)
+                        // Apply buffered state if available
+                        if let bufferedState = self.gameStates[vm.id] {
+                            vm.state = bufferedState
+                        }
+                        return vm
+                    }
                     Task {
                         AetherLogger.shared.info(
                             "Library refreshed. Total games: \(self.games.count)")

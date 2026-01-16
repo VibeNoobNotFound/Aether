@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Aether.Protos;
 using Aether.PluginSDK;
 using Grpc.Core;
@@ -216,38 +217,58 @@ public partial class AetherGrpcService
         var peer = context.Peer;
         _logger.LogInformation("New GameState subscriber: {Peer}", peer);
 
-        // Local function to handle events
+        // Create an unbounded channel to buffer events
+        var channel = Channel.CreateUnbounded<GameStateUpdate>();
+
+        // Local function to handle events (Producer)
         void Handler(int gameId, GameState state)
         {
-            try
+            var update = new GameStateUpdate
             {
-                var update = new GameStateUpdate
-                {
-                    GameId = gameId.ToString(),
-                    State = state
-                };
-                responseStream.WriteAsync(update).GetAwaiter().GetResult();
-            }
-            catch
+                GameId = gameId.ToString(),
+                State = state
+            };
+
+            // TryWrite is non-blocking and thread-safe
+            if (!channel.Writer.TryWrite(update))
             {
-                // Stream likely closed
+                _logger.LogWarning("Failed to write GameState update to channel for {Peer}", peer);
             }
         }
 
-        // Subscribe
+        // Subscribe to events
         _sessionManager.OnGameStateChanged += Handler;
+
+        // Send initial state for all active games
+        try
+        {
+            var activeIds = _sessionManager.GetActiveGameIds();
+            foreach (var id in activeIds)
+            {
+                Handler(id, GameState.Running);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending initial game states to {Peer}", peer);
+        }
 
         try
         {
-            // Keep stream open until cancellation
-            while (!context.CancellationToken.IsCancellationRequested)
+            // Consumer Loop: Read from channel and write to gRPC stream
+            // This runs on the request thread, respecting async/await
+            await foreach (var update in channel.Reader.ReadAllAsync(context.CancellationToken))
             {
-                await Task.Delay(1000, context.CancellationToken);
+                await responseStream.WriteAsync(update);
             }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
-            // Expected
+            // Expected when client disconnects
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error streaming GameState updates to {Peer}", peer);
         }
         finally
         {
