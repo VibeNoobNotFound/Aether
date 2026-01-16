@@ -14,7 +14,7 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher, ISessionAware, Ae
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.1.0";
+    public string Version => "1.2.0";
 
     // App Store is only supported on MacOS
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS" };

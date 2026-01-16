@@ -14,7 +14,7 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 {
     public string Name => "Steam";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.6.0";
+    public string Version => "1.7.0";
 
     // Logging
     private Serilog.ILogger? _logger;

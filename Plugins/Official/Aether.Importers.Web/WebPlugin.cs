@@ -14,7 +14,7 @@ public class WebPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
 {
     public string Name => "Web";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.3.0";
+    public string Version => "1.3.1";
 
     // Logging
     private Serilog.ILogger? _logger;

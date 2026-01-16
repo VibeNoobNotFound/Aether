@@ -14,7 +14,7 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, ISessionAware, A
 {
     public string Name => "CrossOver";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.1.0";
+    public string Version => "1.2.0";
 
     // Logging
     private Serilog.ILogger? _logger;

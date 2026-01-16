@@ -12,7 +12,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.1.0";
+    public string Version => "1.2.0";
 
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
     public bool SupportsManualAddition => false;

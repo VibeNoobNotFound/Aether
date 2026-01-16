@@ -19,7 +19,7 @@ public class CustomPlugin : ILibraryImporter, Aether.PluginSDK.Logging.ILoggingA
 {
     public string Name => "Custom";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.4";
+    public string Version => "1.1.0";
 
     public static class Constants
     {

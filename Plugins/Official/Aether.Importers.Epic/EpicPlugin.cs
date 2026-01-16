@@ -15,7 +15,7 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether
 {
     public string Name => "Epic Games";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.1.0";
+    public string Version => "1.2.0";
 
     public IEnumerable<string> SupportedPlatforms => Enumerable.Empty<string>(); // All platforms
     public bool SupportsManualAddition => false;
