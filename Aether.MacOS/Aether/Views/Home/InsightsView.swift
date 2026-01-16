@@ -813,5 +813,7 @@ func calculateStats(games: [GameViewModel], serverStats: Aether_LibraryStatsResp
 
 // MARK: - Preview
 #Preview {
+    #if DEBUG
     InsightsView().environmentObject(MockData.appState)
+    #endif
 }
