@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var carouselHeight: CGFloat = 400
     @State private var showCollectionEditor = false
     @State private var showCarouselEditor = false
+    @State private var showInsights = false
 
     // Pick game for background based on Carousel index
     var backgroundGame: GameViewModel? {
@@ -99,6 +100,13 @@ struct HomeView: View {
                     Label("Scan Library", systemImage: "arrow.clockwise")
                 }
             }
+            
+            ToolbarSpacer(.fixed)
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showInsights = true }) {
+                    Label("Insights", systemImage: "sparkles")
+                }
+            }
         }
         .task {
             // Fetch aggregated news on load - deduplicate by id
@@ -122,6 +130,9 @@ struct HomeView: View {
         .sheet(isPresented: $showCarouselEditor) {
             CarouselEditorSheet()
                 .presentationBackground(.clear)
+        }
+        .sheet(isPresented: $showInsights) {
+            InsightsView()
         }
     }
 }

@@ -1,5 +1,5 @@
-import AppKit
 import AetherIPC
+import AppKit
 import Charts
 import SwiftUI
 
@@ -34,7 +34,7 @@ struct InsightsView: View {
             }
         }
         .background(Color.black)
-        .frame(width: 950, height: 700)
+        .frame(width: 950, height: 750)
     }
 
     func loadStats() {
@@ -138,9 +138,7 @@ struct InsightsView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
+                    .glassEffect()
                 }
                 .buttonStyle(.plain)
                 .opacity(selectedTab > 0 ? 1 : 0)
@@ -170,11 +168,13 @@ struct InsightsView: View {
                     .padding(.vertical, 10)
                     .background(
                         LinearGradient(
-                            colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)
+                            colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing
+                        ).opacity(0.1)
                     )
+                    .glassEffect()
                     .foregroundStyle(.white)
                     .clipShape(Capsule())
-                    .shadow(color: .blue.opacity(0.4), radius: 10, x: 0, y: 5)
+                    .shadow(color: .blue.opacity(0.1), radius: 10, x: 0, y: 5)
                 }
                 .buttonStyle(.plain)
             }
@@ -470,84 +470,214 @@ struct GenreSlide: View {
 struct SummarySlide: View {
     let stats: LibraryStats
     @State private var show = false
+    @State private var showRankHelp = false
 
-    // COMPACT CARD (320x400)
+    // Enhanced Share Card (320x450)
+    @State private var loadedCoverImage: NSImage? = nil
+
     var shareCard: some View {
         ZStack {
+            // Background
             LinearGradient(
                 colors: [
-                    Color(hue: 0.6, saturation: 0.7, brightness: 0.5),
-                    Color(hue: 0.05, saturation: 0.8, brightness: 0.6),
+                    Color(hue: 0.65, saturation: 0.8, brightness: 0.4),
+                    Color(hue: 0.85, saturation: 0.7, brightness: 0.3),
+                    Color(hue: 0.55, saturation: 0.9, brightness: 0.2),
                 ], startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: 15) {  // Compact spacing
+
+            VStack(spacing: 0) {
+                // Header
                 HStack {
-                    VStack(alignment: .leading) {
-                        Text("LIBRARY STATS").font(.caption).fontWeight(.black).foregroundStyle(
-                            .white.opacity(0.6)
-                        ).tracking(2)
-                        Text("AETHER").font(.system(size: 24, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AETHER INSIGHTS").font(.system(size: 10, weight: .black)).tracking(2)
+                            .foregroundStyle(.white.opacity(0.6))
+                        Text(Date().formatted(.dateTime.year())).font(
+                            .system(size: 16, weight: .bold)
+                        ).foregroundStyle(.white)
                     }
                     Spacer()
-                    Image(systemName: "gamecontroller.fill").font(.title).foregroundStyle(.white)
+                    Image(systemName: "sparkles").font(.title2).foregroundStyle(.yellow)
                 }
-                Divider().background(.white.opacity(0.3))
-                HStack(spacing: 15) {
-                    SummaryStatBox(title: "TOTAL HOURS", value: "\(stats.totalHours)")
-                    SummaryStatBox(title: "GAMES PLAYED", value: "\(stats.totalGames)")
+                .padding(.horizontal, 20).padding(.top, 24).padding(.bottom, 20)
+
+                // User Rank / Status
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [.yellow, .orange], startPoint: .top, endPoint: .bottom)
+                        ).frame(width: 48, height: 48)
+                        Image(systemName: "trophy.fill").foregroundStyle(.white).font(.title3)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("GAMER RANK").font(.caption).fontWeight(.bold).foregroundStyle(
+                            .white.opacity(0.6))
+                        Text(stats.gamerRank).font(
+                            .system(size: 18, weight: .heavy, design: .rounded)
+                        )
+                        .foregroundStyle(.white)
+                    }
+                    Spacer()
                 }
-                VStack(spacing: 10) {
-                    SummaryDetailRow(label: "Top Genre", value: stats.topGenres.first?.0 ?? "-")
-                    SummaryDetailRow(
-                        label: "Most Played", value: stats.topGames.first?.title ?? "-")
-                    SummaryDetailRow(label: "Total Sessions", value: "\(stats.totalSessions)")
+                .padding(.horizontal, 20).padding(.bottom, 20)
+
+                // Hero: Top Game
+                if let topGame = stats.topGames.first {
+                    HStack(spacing: 15) {
+                        if let img = loadedCoverImage {
+                            Image(nsImage: img)
+                                .resizable().aspectRatio(contentMode: .fill)
+                                .frame(width: 60, height: 80).clipShape(
+                                    RoundedRectangle(cornerRadius: 8)
+                                )
+                                .shadow(radius: 5)
+                        } else {
+                            Color.gray
+                                .frame(width: 60, height: 80).clipShape(
+                                    RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("MOST PLAYED").font(.caption).fontWeight(.bold).foregroundStyle(
+                                .white.opacity(0.6))
+                            Text(topGame.title).font(.headline).fontWeight(.bold).lineLimit(2)
+                                .foregroundStyle(.white)
+                            Text(topGame.formattedPlaytime).font(.subheadline).foregroundStyle(
+                                .white.opacity(0.8))
+                        }
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(.white.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding().background(.ultraThinMaterial).clipShape(
-                    RoundedRectangle(cornerRadius: 12))
-            }.padding(20)
+
+                // Stats Grid
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
+                    StatBoxCompact(
+                        label: "Total Hours", value: "\(stats.totalHours)", icon: "clock.fill",
+                        color: .blue)
+                    StatBoxCompact(
+                        label: "Active Days", value: "\(stats.activeDayCount)",
+                        icon: "calendar.badge.clock", color: .green)
+                    StatBoxCompact(
+                        label: "Games", value: "\(stats.totalGames)", icon: "gamecontroller.fill",
+                        color: .purple)
+                    StatBoxCompact(
+                        label: "Sessions", value: "\(stats.totalSessions)",
+                        icon: "play.circle.fill",
+                        color: .pink)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+            }
         }
-        .frame(width: 320, height: 400).clipShape(RoundedRectangle(cornerRadius: 24)).overlay(
-            RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.2), lineWidth: 1)
-        ).drawingGroup()
+        .frame(width: 320, height: 480).clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.2), lineWidth: 1))
+        .drawingGroup()  // Optimizes for export
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Ready to Share?").font(.system(size: 32, weight: .bold)).foregroundStyle(.white)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 20) {
+                Text("Ready to Share?").font(.system(size: 32, weight: .bold)).foregroundStyle(
+                    .white
+                )
                 .opacity(show ? 1 : 0).offset(y: show ? 0 : -20)
-            shareCard.scaleEffect(show ? 1 : 0.9).opacity(show ? 1 : 0).shadow(
-                color: .black.opacity(0.5), radius: 30, y: 10)
-            Button {
-                saveImage()
-            } label: {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Save Image")
-                }.padding().padding(.horizontal, 20).background(.white.opacity(0.2)).clipShape(
-                    Capsule()
-                ).overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
+                shareCard.scaleEffect(show ? 1 : 0.9).opacity(show ? 1 : 0)
+                    .shadow(color: .black.opacity(0.5), radius: 30, y: 10)
+                Button {
+                    shareImage()
+                } label: {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                        Text("Share")
+                    }.padding().padding(.horizontal, 20)
+                        .glassEffect()
+                }
+                .buttonStyle(.plain).opacity(show ? 1 : 0).offset(y: show ? 0 : 20)
             }
-            .buttonStyle(.plain).opacity(show ? 1 : 0).offset(y: show ? 0 : 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Help Button (Top Right)
+            Button {
+                showRankHelp = true
+            } label: {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding()
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showRankHelp) {
+                GamerRankHelpView()
+            }
+            .padding(20)
         }
-        .onAppear { withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { show = true } }
+        .onAppear {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { show = true }
+            loadTopGameImage()
+        }
+    }
+
+    private func loadTopGameImage() {
+        guard let url = stats.topGames.first?.coverImageURL else { return }
+        Task {
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+                let nsImage = NSImage(data: data)
+            {
+                await MainActor.run {
+                    self.loadedCoverImage = nsImage
+                }
+            }
+        }
     }
 
     @MainActor
-    private func saveImage() {
+    private func shareImage() {
         let renderer = ImageRenderer(content: shareCard)
-        renderer.scale = 3.0  // High quality export
+        renderer.scale = 3.0
         if let nsImage = renderer.nsImage {
-            let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[
-                0]
-            let fileURL = downloads.appendingPathComponent("Aether-Insight.png")
-            if let tiffData = nsImage.tiffRepresentation,
-                let bitmap = NSBitmapImageRep(data: tiffData),
-                let data = bitmap.representation(using: .png, properties: [:])
-            {
-                try? data.write(to: fileURL)
-                NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+            // macOS Sharing Service Picker
+            let picker = NSSharingServicePicker(items: [nsImage])
+
+            // Attempt to show relative to the mouse location (cursor) to simulate "popping up from there"
+            if let window = NSApp.keyWindow, let contentView = window.contentView {
+                let mouseLocation = window.mouseLocationOutsideOfEventStream
+                // Convert mouse location to view coordinates (no conversion needed if using window-relative, but show relative to view needs view-relative rect)
+                // Actually show(relativeTo:of:...) handles rect relative to view.
+
+                // Let's use a zero-size rect at the mouse location.
+                // mouseLocation is in window coordinates (bottom-left origin).
+                // contentView usually matches window content rect.
+
+                let rect = NSRect(origin: mouseLocation, size: .zero)
+                picker.show(relativeTo: rect, of: contentView, preferredEdge: .minY)
             }
         }
+    }
+}
+
+struct StatBoxCompact: View {
+    let label: String
+    let value: String
+    let icon: String
+    let color: Color
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon).font(.caption).foregroundStyle(color)
+                Spacer()
+            }
+            Text(value).font(.title2).fontWeight(.heavy).foregroundStyle(.white)
+            Text(label).font(.caption2).fontWeight(.bold).foregroundStyle(.white.opacity(0.5))
+                .textCase(.uppercase)
+        }
+        .padding(12)
+        .background(.white.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -587,6 +717,62 @@ struct LibraryStats {
     let allGamesSorted: [GameViewModel]
     let topGenres: [(String, Int)]
     let activeDayCount: Int
+
+    var gamerRank: String {
+        switch totalHours {
+        case 0..<10: return "Novice Explorer"
+        case 10..<25: return "Casual Gamer"
+        case 25..<50: return "Weekend Warrior"
+        case 50..<100: return "Dedicated Player"
+        case 100..<250: return "Seasoned Pro"
+        case 250..<500: return "Hardcore Gamer"
+        case 500..<1000: return "Legendary Collector"
+        case 1000..<2000: return "Mythic Hero"
+        default: return "Aether God"
+        }
+    }
+}
+
+struct GamerRankHelpView: View {
+    @Environment(\.dismiss) var dismiss
+
+    let ranks = [
+        ("Novice Explorer", "0-10 hours"),
+        ("Casual Gamer", "10-25 hours"),
+        ("Weekend Warrior", "25-50 hours"),
+        ("Dedicated Player", "50-100 hours"),
+        ("Seasoned Pro", "100-250 hours"),
+        ("Hardcore Gamer", "250-500 hours"),
+        ("Legendary Collector", "500-1,000 hours"),
+        ("Mythic Hero", "1,000-2,000 hours"),
+        ("Aether God", "2,000+ hours"),
+    ]
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Gamer Ranks").font(.title2).fontWeight(.bold).foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(ranks, id: \.0) { rank, range in
+                    HStack {
+                        Text(rank).fontWeight(.bold).foregroundStyle(.white)
+                        Spacer()
+                        Text(range).foregroundStyle(.white.opacity(0.6))
+                    }
+                }
+            }
+            .padding()
+            .background(.white.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Button("Close") { dismiss() }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+        }
+        .padding(24)
+        .frame(width: 350)
+        .background(.ultraThinMaterial)  // Popover background
+    }
 }
 
 func calculateStats(games: [GameViewModel], serverStats: Aether_LibraryStatsResponse?)
