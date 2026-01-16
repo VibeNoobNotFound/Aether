@@ -1,3 +1,4 @@
+import AetherIPC
 import SwiftUI
 
 struct HeroCarousel: View {
@@ -175,21 +176,60 @@ struct HeroCarousel: View {
 
                     // Big Play Button
                     if let game = game {
-                        Button {
-                            appState.launchGame(game)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "play.fill")
-                                Text("Play Now")
+                        Group {
+                            switch game.state {
+                            case .running:
+                                Button {
+                                    appState.stopGame(id: game.id)
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "stop.fill")
+                                        Text("Stop")
+                                    }
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.red)
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 16)
+                                    .glassEffect()
+                                }
+                                .buttonStyle(.plain)
+
+                            case .launching:
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                        .colorScheme(.dark)
+                                    Text("Launching...")
+                                }
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 16)
+                                .glassEffect()
+
+                            case .stopped:
+                                Button {
+                                    appState.launchGame(game)
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.fill")
+                                        Text("Play Now")
+                                    }
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 16)
+                                    .glassEffect()
+                                }
+                                .buttonStyle(.plain)
+
+                            case .UNRECOGNIZED:
+                                EmptyView()
                             }
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 32)  // Bigger padding
-                            .padding(.vertical, 16)  // Bigger vertical padding
-                            .glassEffect()  // Ensure glassEffect is available or use appropriate modifier
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .frame(maxWidth: size.width * 0.6, alignment: .leading)
