@@ -14,6 +14,7 @@ service AetherOrchestrator {
   // LIBRARY: Getting games into the UI
   rpc ScanLibrary (ScanRequest) returns (stream ScanProgress);
   rpc GetLibrary (Empty) returns (stream Game);
+  rpc GetLibraryStats (Empty) returns (LibraryStatsResponse);
   
   // LAUNCHING: The core function
   rpc LaunchGame (LaunchRequest) returns (LaunchResponse);
@@ -107,6 +108,19 @@ message LibrarySearchRequest {
 message LibrarySearchResponse {
   repeated Game games = 1;
   int32 total_matches = 2;
+}
+
+message LibraryStatsResponse {
+    int32 total_games = 1;
+    int64 total_playtime_seconds = 2;
+    int32 total_sessions = 3;
+    int32 active_day_count = 4;
+    repeated GenreStat top_genres = 5;
+}
+
+message GenreStat {
+    string genre = 1;
+    int32 count = 2;
 }
 
 

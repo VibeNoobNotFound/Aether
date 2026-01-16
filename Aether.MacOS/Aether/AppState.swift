@@ -742,6 +742,15 @@ class AppState: ObservableObject {
         }
     }
 
+    func getLibraryStats() async -> Aether_LibraryStatsResponse? {
+        do {
+            return try await grpcClient.client.getLibraryStats(Aether_Empty())
+        } catch {
+            AetherLogger.shared.error("Failed to fetch library stats: \(error)")
+            return nil
+        }
+    }
+
     // MARK: - QoL Actions
 
     func clearLibrary() async {

@@ -1,4 +1,5 @@
 import AppKit
+import AetherIPC
 import Charts
 import SwiftUI
 
@@ -38,8 +39,15 @@ struct InsightsView: View {
 
     func loadStats() {
         Task {
+            // Wait for backend
             try? await Task.sleep(nanoseconds: 300_000_000)
-            let calculated = calculateStats(games: appState.games)
+
+            // 1. Fetch Aggregates from Backend (RPC)
+            let serverStats = await appState.getLibraryStats()
+
+            // 2. Local fallback / enrichment for "Top Games" (since they are in memory)
+            let calculated = calculateStats(games: appState.games, serverStats: serverStats)
+
             await MainActor.run {
                 withAnimation {
                     self.stats = calculated
@@ -581,18 +589,40 @@ struct LibraryStats {
     let activeDayCount: Int
 }
 
-func calculateStats(games: [GameViewModel]) -> LibraryStats {
-    let totalHours = Int(games.reduce(0) { $0 + $1.totalPlaytime }) / 3600
-    let totalSessions = games.reduce(0) { $0 + $1.playCount }
+func calculateStats(games: [GameViewModel], serverStats: Aether_LibraryStatsResponse?)
+    -> LibraryStats
+{
     let sortedByTime = games.sorted { $0.totalPlaytime > $1.totalPlaytime }
     let topGames = Array(sortedByTime.prefix(3))
-    var genreCounts: [String: Int] = [:]
-    for game in games { for genre in game.genres { genreCounts[genre, default: 0] += 1 } }
-    let topGenres = genreCounts.sorted { $0.value > $1.value }.prefix(5).map { ($0.key, $0.value) }
+
+    // Default / Legacy calculation
+    var totalHours = Int(games.reduce(0) { $0 + $1.totalPlaytime }) / 3600
+    var totalSessions = games.reduce(0) { $0 + $1.playCount }
+    var activeDayCount = max(1, totalSessions / 2)  // Rough estimate fallback
+    var topGenres: [(String, Int)] = []
+
+    // Override with Server Stats if available
+    if let stats = serverStats {
+        totalHours = Int(stats.totalPlaytimeSeconds) / 3600
+        totalSessions = Int(stats.totalSessions)
+        activeDayCount = Int(stats.activeDayCount)
+        topGenres = stats.topGenres.map { ($0.genre, Int($0.count)) }
+    } else {
+        // Local calculation fallback for genres
+        var genreCounts: [String: Int] = [:]
+        for game in games { for genre in game.genres { genreCounts[genre, default: 0] += 1 } }
+        topGenres = genreCounts.sorted { $0.value > $1.value }.prefix(5).map { ($0.key, $0.value) }
+    }
+
     return LibraryStats(
-        totalGames: games.count, totalHours: totalHours, totalSessions: totalSessions,
-        topGames: topGames, allGamesSorted: sortedByTime, topGenres: topGenres,
-        activeDayCount: max(1, totalSessions / 2))
+        totalGames: games.count,
+        totalHours: totalHours,
+        totalSessions: totalSessions,
+        topGames: topGames,
+        allGamesSorted: sortedByTime,
+        topGenres: topGenres,
+        activeDayCount: activeDayCount
+    )
 }
 
 // MARK: - Preview

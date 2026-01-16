@@ -138,8 +138,12 @@ public class GameSessionManager : ISessionManager
                 gameId, session.TrackingMethod, session.TrackingTarget, session.ManagedByPlugin);
 
             // Increment Play Count immediately
+            // Increment Play Count immediately
             _database.UpdatePlayCount(gameId);
             _database.UpdateLastPlayed(gameId, DateTime.UtcNow);
+
+            // LOG SESSION START
+            session.DbSessionId = _database.LogSessionStart(gameId, session.StartTime);
 
             NotifyStateChange(gameId, GameState.Running);
         }
@@ -252,8 +256,15 @@ public class GameSessionManager : ISessionManager
 
         // Update DB stats (only if tracked for > 30 sec)
         if (duration.TotalSeconds > 30)
+            if (duration.TotalSeconds > 30)
+            {
+                _database.UpdatePlaytime(session.GameId, duration);
+            }
+
+        // LOG SESSION END
+        if (session.DbSessionId > 0)
         {
-            _database.UpdatePlaytime(session.GameId, duration);
+            _database.LogSessionEnd(session.DbSessionId, DateTime.UtcNow);
         }
 
         NotifyStateChange(session.GameId, GameState.Stopped);
@@ -273,7 +284,9 @@ public class GameSessionManager : ISessionManager
         public int? ProcessId { get; set; }
         public LaunchTrackingMethod TrackingMethod { get; set; }
         public string? TrackingTarget { get; set; }
+
         public bool ManagedByPlugin { get; set; }
+        public int DbSessionId { get; set; } // TRACK THE DB ID
     }
 }
 
