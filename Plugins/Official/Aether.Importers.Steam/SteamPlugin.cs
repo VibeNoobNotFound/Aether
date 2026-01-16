@@ -1,4 +1,5 @@
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 using System.Diagnostics;
@@ -419,24 +420,13 @@ public class SteamPlugin : IPlugin, ILibraryImporter, IMetadataProvider, INewsPr
 
     private async Task MonitorProcessAsync(string gameId, string processName)
     {
-        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
-
-        // Grace period for app to start
-        await Task.Delay(5000);
-
-        // Monitor until process exits
-        while (true)
-        {
-            var processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0)
-            {
-                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 5000 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)

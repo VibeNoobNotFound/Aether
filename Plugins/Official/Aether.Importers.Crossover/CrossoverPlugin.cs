@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 
@@ -258,38 +259,20 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, ISessionAware, A
 
     private async Task MonitorProcessAsync(string gameId, string processName)
     {
-        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
-
-        // Grace period for app to start (increased for CrossOver/Wine lag)
-        await Task.Delay(8000);
-
-        // Initial check: if process isn't found, assume we can't track it via name
-        // CrossOver apps frequently show up as 'wine', 'wineloader', or hidden subprocesses,
-        // so checking the .app name often fails.
-        // Fallback: Leave session running (Manual Stop).
-        if (Process.GetProcessesByName(processName).Length == 0)
-        {
-            _logger?.Warning(
-                "Process {Name} not found after launch. " +
-                "CrossOver process names are unpredictable. " +
-                "Switching to MANUAL tracking (User must click Stop).",
-                processName);
-            return;
-        }
-
-        // Monitor until process exits
-        while (true)
-        {
-            var processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0)
+        // Use SDK Helper with partial matching and launcher heuristic enabled
+        await ProcessMonitor.MonitorByPartialNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions
             {
-                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
+                GracePeriodMs = 4000,
+                EnableLauncherHeuristic = true,
+                LauncherThresholdMs = 15000,
+                MaxSearchTimeMs = 30000
             }
-
-            await Task.Delay(2000);
-        }
+        );
     }
 
     // IPlugin Stubs

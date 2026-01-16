@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 
 using Aether.PluginSDK.UI;
@@ -222,24 +223,13 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher, ISessionAware, Ae
 
     private async Task MonitorProcessAsync(string gameId, string processName)
     {
-        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
-
-        // Grace period for app to start
-        await Task.Delay(3000);
-
-        // Monitor until process exits
-        while (true)
-        {
-            var processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0)
-            {
-                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 3000 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 
@@ -24,7 +25,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
 
     // Logging
     private Serilog.ILogger? _logger;
-    
+
     // Session Management
     private ISessionManager? _sessionManager;
 
@@ -33,7 +34,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
         _logger = logger;
         _logger.Information("GogPlugin initialized");
     }
-    
+
     public void SetSessionManager(ISessionManager sessionManager)
     {
         _sessionManager = sessionManager;
@@ -317,10 +318,10 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
             }
 
             var process = Process.Start(startInfo);
-            
+
             // Start session tracking
             _sessionManager?.StartSession(context.GameId);
-            
+
             // Monitor the process
             if (process != null && !process.HasExited)
             {
@@ -336,7 +337,7 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
             {
                 // No reliable tracking, leave session for manual stop
             }
-            
+
             // Return success with no backend tracking (we handle it)
             var result = LaunchResult.Succeeded(process?.Id, "direct");
             result.TrackingMethod = LaunchTrackingMethod.None;
@@ -348,55 +349,27 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.
             return LaunchResult.Failed($"Failed to launch GOG game: {ex.Message}");
         }
     }
-    
+
     private async Task MonitorPidAsync(string gameId, int pid)
     {
-        _logger?.Debug("Starting PID monitor for {Pid} (GameId: {Id})", pid, gameId);
-        
-        while (true)
-        {
-            try
-            {
-                var process = Process.GetProcessById(pid);
-                if (process.HasExited)
-                {
-                    _logger?.Debug("Process {Pid} exited, stopping session for game {Id}", pid, gameId);
-                    _sessionManager?.StopSession(gameId);
-                    break;
-                }
-            }
-            catch (ArgumentException)
-            {
-                // Process not found = exited
-                _logger?.Debug("Process {Pid} not found, stopping session for game {Id}", pid, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-            
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByIdAsync(
+            gameId,
+            pid,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 0 }
+        );
     }
-    
+
     private async Task MonitorProcessAsync(string gameId, string processName)
     {
-        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
-        
-        // Grace period for app to start
-        await Task.Delay(3000);
-        
-        // Monitor until process exits
-        while (true)
-        {
-            var processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0)
-            {
-                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-            
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 3000 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)

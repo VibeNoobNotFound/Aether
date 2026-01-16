@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Aether.PluginSDK;
+using Aether.PluginSDK.Helpers;
 using Aether.PluginSDK.Library;
 using Aether.PluginSDK.UI;
 
@@ -256,52 +257,24 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether
 
     private async Task MonitorProcessAsync(string gameId, string processName)
     {
-        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
-
-        // Grace period for app to start
-        await Task.Delay(5000);
-
-        // Monitor until process exits
-        while (true)
-        {
-            var processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0)
-            {
-                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByNameAsync(
+            gameId,
+            processName,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 3000 }
+        );
     }
 
     private async Task MonitorPidAsync(string gameId, int pid)
     {
-        _logger?.Debug("Starting PID monitor for {Pid} (GameId: {Id})", pid, gameId);
-
-        while (true)
-        {
-            try
-            {
-                var process = Process.GetProcessById(pid);
-                if (process.HasExited)
-                {
-                    _logger?.Debug("Process {Pid} exited, stopping session for game {Id}", pid, gameId);
-                    _sessionManager?.StopSession(gameId);
-                    break;
-                }
-            }
-            catch (ArgumentException)
-            {
-                // Process not found = exited
-                _logger?.Debug("Process {Pid} not found, stopping session for game {Id}", pid, gameId);
-                _sessionManager?.StopSession(gameId);
-                break;
-            }
-
-            await Task.Delay(2000);
-        }
+        await ProcessMonitor.MonitorByIdAsync(
+            gameId,
+            pid,
+            _sessionManager!,
+            msg => _logger?.Debug(msg),
+            new ProcessMonitorOptions { GracePeriodMs = 0 }
+        );
     }
 
     public string? GetLaunchUri(string externalId)
@@ -320,4 +293,3 @@ public class EpicPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether
     public Task OnGameStopped(Game game, TimeSpan sessionDuration) => Task.CompletedTask;
     public List<Widget> GetPluginWidgets(WidgetLocation location) => new List<Widget>();
 }
-
