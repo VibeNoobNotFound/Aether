@@ -7,11 +7,11 @@ using Aether.PluginSDK.UI;
 
 namespace Aether.Importers.Gog;
 
-public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class GogPlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "GOG";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.1";
+    public string Version => "1.1.0";
 
     public IEnumerable<string> SupportedPlatforms => new[] { "Windows", "MacOS", "Linux" };
     public bool SupportsManualAddition => false;
@@ -24,11 +24,20 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Loggi
 
     // Logging
     private Serilog.ILogger? _logger;
+    
+    // Session Management
+    private ISessionManager? _sessionManager;
 
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("GogPlugin initialized");
+    }
+    
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public async IAsyncEnumerable<ImportedGame> ScanLibraryAsync(IProgress<ScanProgress>? progress = null)
@@ -308,12 +317,85 @@ public class GogPlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Loggi
             }
 
             var process = Process.Start(startInfo);
-            return LaunchResult.Succeeded(process?.Id, "direct");
+            
+            // Start session tracking
+            _sessionManager?.StartSession(context.GameId);
+            
+            // Monitor the process
+            if (process != null && !process.HasExited)
+            {
+                _ = MonitorPidAsync(context.GameId, process.Id);
+            }
+            else if (path.EndsWith(".app"))
+            {
+                // For macOS bundles, monitor by process name
+                var processName = Path.GetFileNameWithoutExtension(path);
+                _ = MonitorProcessAsync(context.GameId, processName);
+            }
+            else
+            {
+                // No reliable tracking, leave session for manual stop
+            }
+            
+            // Return success with no backend tracking (we handle it)
+            var result = LaunchResult.Succeeded(process?.Id, "direct");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return result;
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, "Failed to launch GOG game: {Title}", context.Title);
             return LaunchResult.Failed($"Failed to launch GOG game: {ex.Message}");
+        }
+    }
+    
+    private async Task MonitorPidAsync(string gameId, int pid)
+    {
+        _logger?.Debug("Starting PID monitor for {Pid} (GameId: {Id})", pid, gameId);
+        
+        while (true)
+        {
+            try
+            {
+                var process = Process.GetProcessById(pid);
+                if (process.HasExited)
+                {
+                    _logger?.Debug("Process {Pid} exited, stopping session for game {Id}", pid, gameId);
+                    _sessionManager?.StopSession(gameId);
+                    break;
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Process not found = exited
+                _logger?.Debug("Process {Pid} not found, stopping session for game {Id}", pid, gameId);
+                _sessionManager?.StopSession(gameId);
+                break;
+            }
+            
+            await Task.Delay(2000);
+        }
+    }
+    
+    private async Task MonitorProcessAsync(string gameId, string processName)
+    {
+        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
+        
+        // Grace period for app to start
+        await Task.Delay(3000);
+        
+        // Monitor until process exits
+        while (true)
+        {
+            var processes = Process.GetProcessesByName(processName);
+            if (processes.Length == 0)
+            {
+                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
+                _sessionManager?.StopSession(gameId);
+                break;
+            }
+            
+            await Task.Delay(2000);
         }
     }
 

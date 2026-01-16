@@ -1,10 +1,15 @@
 import AVKit
+import AetherIPC
 import SwiftUI
 
 struct GameDetailView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
-    let game: GameViewModel
+    let gameId: String
+
+    var game: GameViewModel {
+        appState.games.first(where: { $0.id == gameId }) ?? GameViewModel.mock
+    }
 
     @State private var showingMetadataEditor = false
     @State private var selectedMedia: MediaItem?
@@ -14,6 +19,10 @@ struct GameDetailView: View {
         false, nil, nil
     )
     @State private var isCheckingLaunch = true
+
+    init(game: GameViewModel) {
+        self.gameId = game.id
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -124,6 +133,32 @@ struct GameDetailView: View {
                     .padding(.vertical, 16)
                     .background(.ultraThinMaterial)
                     .clipShape(Capsule())
+            } else if game.state == .running {
+                Button(action: { appState.stopGame(id: game.id) }) {
+                    HStack {
+                        Image(systemName: "stop.fill")
+                        Text("Stop Playing")
+                            .fontWeight(.bold)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
+                    .background(Color.red.gradient)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: .red.opacity(0.5), radius: 20, x: 0, y: 10)
+                }
+                .buttonStyle(.plain)
+            } else if game.state == .launching {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Launching...")
+                        .fontWeight(.bold)
+                }
+                .padding(.horizontal, 32)
+                .padding(.vertical, 16)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
             } else if canLaunchInfo.canLaunch {
                 Button(action: { appState.launchGame(game) }) {
                     HStack {
@@ -417,6 +452,7 @@ struct InfoGridView: View {
             InfoItem(label: "Released", value: game.formattedReleaseDate)
             InfoItem(label: "Playtime", value: game.formattedPlaytime)
             InfoItem(label: "Last Played", value: game.formattedLastPlayed)
+            InfoItem(label: "Play Count", value: "\(game.playCount)")
         }
         .padding(20)
         .background(Color.black.opacity(0.2))
@@ -563,9 +599,9 @@ enum MediaType {
 }
 
 #Preview {
-#if DEBUG
-    GameDetailView(game: MockData.games[0])
-        .environmentObject(MockData.appState)
-        .frame(width: 1000, height: 800)
+    #if DEBUG
+        GameDetailView(game: MockData.games[0])
+            .environmentObject(MockData.appState)
+            .frame(width: 1000, height: 800)
     #endif
 }

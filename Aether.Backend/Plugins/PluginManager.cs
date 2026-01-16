@@ -13,11 +13,30 @@ public class PluginManager : IDisposable
     private readonly List<LoadedPlugin> _loadedPlugins = new();
     private readonly ILogger _logger;
     private readonly string _pluginDirectory;
+    private ISessionManager? _sessionManager;
 
     public PluginManager(string pluginDirectory, ILogger logger)
     {
         _pluginDirectory = pluginDirectory;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Set the session manager for injection into plugins that implement ISessionAware
+    /// </summary>
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+
+        // Inject into already-loaded plugins
+        foreach (var loaded in _loadedPlugins)
+        {
+            if (loaded.Plugin is ISessionAware sessionAware)
+            {
+                sessionAware.SetSessionManager(sessionManager);
+                _logger.Debug("Injected session manager for plugin: {Name}", loaded.Plugin.Name);
+            }
+        }
     }
 
     /// <summary>
@@ -85,6 +104,12 @@ public class PluginManager : IDisposable
                     var storage = new Aether.Backend.Services.PluginStorageService(instance.Name);
                     storageAware.SetStorage(storage);
                     _logger.Debug("Injected storage for plugin: {Name}", instance.Name);
+                }
+
+                if (instance is ISessionAware sessionAware && _sessionManager != null)
+                {
+                    sessionAware.SetSessionManager(_sessionManager);
+                    _logger.Debug("Injected session manager for plugin: {Name}", instance.Name);
                 }
 
                 // 3. Platform Check

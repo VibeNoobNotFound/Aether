@@ -1,5 +1,5 @@
 using LiteDB;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace Aether.Backend.Data;
 
@@ -10,9 +10,9 @@ public class LibraryDatabase : IDisposable
 {
     private readonly LiteDatabase _db;
     private readonly ILiteCollection<GameEntity> _games;
-    private readonly ILogger _logger;
+    private readonly ILogger<LibraryDatabase> _logger;
 
-    public LibraryDatabase(string databasePath, ILogger logger)
+    public LibraryDatabase(string databasePath, ILogger<LibraryDatabase> logger)
     {
         _logger = logger;
 
@@ -33,7 +33,7 @@ public class LibraryDatabase : IDisposable
         _games.EnsureIndex(x => x.IsInstalled);
         _games.EnsureIndex(x => x.IsFavorite);
 
-        _logger.Information("Database initialized at {Path}", databasePath);
+        _logger.LogInformation("Database initialized at {Path}", databasePath);
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public class LibraryDatabase : IDisposable
             game.IsFavorite = existing.IsFavorite;
 
             _games.Update(game);
-            _logger.Debug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
+            _logger.LogDebug("Updated game: {Title} ({Platform})", game.Title, game.Platform);
             return existing.Id;
         }
         else
@@ -106,7 +106,7 @@ public class LibraryDatabase : IDisposable
             game.UpdatedAt = DateTime.UtcNow;
 
             var id = _games.Insert(game);
-            _logger.Debug("Inserted game: {Title} ({Platform})", game.Title, game.Platform);
+            _logger.LogDebug("Inserted game: {Title} ({Platform})", game.Title, game.Platform);
             return id;
         }
     }
@@ -174,6 +174,29 @@ public class LibraryDatabase : IDisposable
         }
     }
 
+    public void UpdatePlayCount(int gameId)
+    {
+        var game = GetGameById(gameId);
+        if (game != null)
+        {
+            game.PlayCount++;
+            game.LastPlayed = DateTime.UtcNow; // Usually associated with a play
+            game.UpdatedAt = DateTime.UtcNow;
+            _games.Update(game);
+        }
+    }
+
+    public void UpdateLastPlayed(int gameId, DateTime time)
+    {
+        var game = GetGameById(gameId);
+        if (game != null)
+        {
+            game.LastPlayed = time;
+            game.UpdatedAt = DateTime.UtcNow;
+            _games.Update(game);
+        }
+    }
+
     /// <summary>
     /// Toggle favorite status
     /// </summary>
@@ -235,11 +258,11 @@ public class LibraryDatabase : IDisposable
                         try
                         {
                             File.Delete(file);
-                            _logger.Information("Deleted plugin storage: {File}", Path.GetFileName(file));
+                            _logger.LogInformation("Deleted plugin storage: {File}", Path.GetFileName(file));
                         }
                         catch (Exception ex)
                         {
-                            _logger.Error(ex, "Failed to delete plugin storage: {File}", Path.GetFileName(file));
+                            _logger.LogError(ex, "Failed to delete plugin storage: {File}", Path.GetFileName(file));
                         }
                     }
                 }
@@ -247,7 +270,7 @@ public class LibraryDatabase : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error clearing plugin storage");
+            _logger.LogError(ex, "Error clearing plugin storage");
         }
     }
 
@@ -279,7 +302,7 @@ public class LibraryDatabase : IDisposable
     {
         if (Collections.Count() > 0) return; // Already seeded
 
-        _logger.Information("Seeding default collections...");
+        _logger.LogInformation("Seeding default collections...");
 
         int order = 0;
         var defaults = new List<CollectionEntity>
@@ -328,7 +351,7 @@ public class LibraryDatabase : IDisposable
             Collections.Insert(col);
         }
 
-        _logger.Information("Seeded {Count} default collections", defaults.Count);
+        _logger.LogInformation("Seeded {Count} default collections", defaults.Count);
     }
 
     public IEnumerable<CollectionEntity> GetAllCollections()

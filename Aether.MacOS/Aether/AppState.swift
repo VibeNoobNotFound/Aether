@@ -55,9 +55,13 @@ struct GameViewModel: Identifiable, Hashable {
     let lastPlayed: Date?
     var isFavorite: Bool
     let isInstalled: Bool
+    let playCount: Int
 
     // Cross-Platform News
     let steamId: String?
+
+    // Real-time State
+    var state: Aether_GameState = .stopped
 
     // Computed Properties
     var formattedPlaytime: String {
@@ -99,6 +103,11 @@ struct GameViewModel: Identifiable, Hashable {
         return genres.prefix(3).joined(separator: ", ")
     }
 
+    // End of struct
+
+}
+
+extension GameViewModel {
     // Initializer from proto
     init(from proto: Aether_Game) {
         self.id = proto.id
@@ -158,9 +167,57 @@ struct GameViewModel: Identifiable, Hashable {
         self.totalPlaytime = TimeInterval(proto.totalPlaytimeSeconds)
         self.isFavorite = proto.isFavorite
         self.isInstalled = proto.isInstalled
+        self.playCount = Int(proto.playCount)
 
         // Cross-Platform News
         self.steamId = proto.steamID.isEmpty ? nil : proto.steamID
+    }
+}
+
+extension GameViewModel {
+    // Static mock for fallback in views
+    static var mock: GameViewModel {
+        GameViewModel(
+            id: "0",
+            title: "Unknown Game",
+            platform: "Unknown",
+            externalID: "",
+            installPath: "",
+            executablePath: "",
+            launchArguments: nil,
+            coverImageURL: nil,
+            backgroundImageURL: nil,
+            logoImageURL: nil,
+            screenshots: [],
+            videos: [],
+            description: "",
+            shortDescription: "",
+            genres: [],
+            tags: [],
+            categories: [],
+            developer: nil,
+            publisher: nil,
+            releaseDate: nil,
+            metacriticScore: nil,
+            userScore: nil,
+            reviewCount: 0,
+            hasAchievements: false,
+            achievementCount: 0,
+            hasMultiplayer: false,
+            hasSinglePlayer: false,
+            hasCloudSaves: false,
+            minimumRequirements: nil,
+            recommendedRequirements: nil,
+            supportedLanguages: [],
+            totalPlaytime: 0,
+            lastPlayed: nil,
+            isFavorite: false,
+            isInstalled: false,
+            playCount: 0,
+            steamId: nil
+                // state has default value
+
+        )
     }
 }
 
@@ -314,6 +371,39 @@ class AppState: ObservableObject {
     init() {
         AetherLogger.shared.info("AppState initialized")
         startAutoRefresh()
+        subscribeToGameState()
+    }
+
+    private func subscribeToGameState() {
+        Task {
+            await waitForBackend()
+            AetherLogger.shared.info("Subscribing to game state updates...")
+
+            do {
+                try await grpcClient.client.subscribeToGameState(Aether_Empty()) { response in
+                    for try await update in response.messages {
+                        await MainActor.run {
+                            if let index = self.games.firstIndex(where: { $0.id == update.gameID })
+                            {
+                                self.games[index].state = update.state
+                                AetherLogger.shared.info(
+                                    "Game \(update.gameID) state changed to \(update.state)")
+
+                                // Refresh library on stop to get updated stats
+                                if update.state == .stopped {
+                                    Task { await self.refreshLibrary() }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {
+                AetherLogger.shared.error("Game state subscription stream failed: \(error)")
+                // Simple retry
+                try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+                subscribeToGameState()
+            }
+        }
     }
 
     private func startAutoRefresh() {
@@ -466,8 +556,22 @@ class AppState: ObservableObject {
                 } else {
                     AetherLogger.shared.error("Launch failed: \(response.message)")
                 }
+            }
+        }
+    }
+
+    func stopGame(id: String) {
+        Task {
+            AetherLogger.shared.info("Stopping game with ID: \(id)")
+            do {
+                var request = Aether_GameId()
+                request.id = id
+                let response = try await grpcClient.client.stopGame(request)
+                if !response.success {
+                    AetherLogger.shared.error("Failed to stop game: \(response.message)")
+                }
             } catch {
-                AetherLogger.shared.error("Launch error: \(error)")
+                AetherLogger.shared.error("Stop game error: \(error)")
             }
         }
     }
@@ -1056,7 +1160,8 @@ class AppState: ObservableObject {
             lastPlayed: Date?,
             isFavorite: Bool,
             isInstalled: Bool,
-            steamId: String?
+            steamId: String?,
+            playCount: Int = 0
         ) {
             self.id = id
             self.title = title
@@ -1094,6 +1199,8 @@ class AppState: ObservableObject {
             self.isFavorite = isFavorite
             self.isInstalled = isInstalled
             self.steamId = steamId
+            self.playCount = playCount
+            self.state = .stopped
         }
     }
 

@@ -33,6 +33,7 @@ public record ImportedGame(
     string? ExecutablePath,
     DateTime? LastPlayed = null,
     long? SecondsPlayed = null,
+    int PlayCount = 0,
     string? LaunchArguments = null
 );
 

@@ -70,20 +70,15 @@ public partial class AetherGrpcService
 
             if (result.Success)
             {
-                // Update last played timestamp
+                // Update last played timestamp immediately
                 game.LastPlayed = DateTime.UtcNow;
                 game.UpdatedAt = DateTime.UtcNow;
                 _database.UpsertGame(game);
 
                 _logger.LogInformation("Successfully launched {Title} via {Method}", game.Title, result.LaunchMethod);
 
-                // Start playtime tracking if it's a direct launch and we have a PID
-                // "bundle" (macOS open -W) also supports tracking correctly now
-                if ((result.LaunchMethod == "direct" || result.LaunchMethod == "bundle")
-                    && result.ProcessId.HasValue)
-                {
-                    _ = TrackPlaytimeAsync(game.Id, result.ProcessId.Value);
-                }
+                // Start tracking session via GameSessionManager
+                _sessionManager.StartSession(game.Id, result);
 
                 // Notify lifecycle hooks
                 var gameInfo = new Aether.PluginSDK.Game
@@ -121,40 +116,8 @@ public partial class AetherGrpcService
         }
     }
 
-    private async Task TrackPlaytimeAsync(int gameId, int processId)
-    {
-        try
-        {
-            // Give the process a moment to start fully
-            await Task.Delay(1000);
-
-            var process = Process.GetProcessById(processId);
-            var startTime = DateTime.UtcNow;
-
-            _logger.LogInformation("Tracking playtime for game {GameId} (PID: {Pid})", gameId, processId);
-
-            await process.WaitForExitAsync();
-
-            var endTime = DateTime.UtcNow;
-            var duration = endTime - startTime;
-
-            // Only count if played for more than 1 minute (filters out crashes/failed starts)
-            if (duration.TotalMinutes > 0.5)
-            {
-                _database.UpdatePlaytime(gameId, duration);
-                _logger.LogInformation("Updated playtime for game {Id}: +{Minutes:F1} mins", gameId, duration.TotalMinutes);
-            }
-        }
-        catch (ArgumentException)
-        {
-            // Process already exited/invalid
-            _logger.LogWarning("Process {Pid} exited before tracking could start", processId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning("Failed to track playtime for process {Pid}: {Message}", processId, ex.Message);
-        }
-    }
+    // Deprecated: TrackPlaytimeAsync replaced by GameSessionManager
+    // Kept only if needed for legacy logic reference, but removed here for cleanliness
 
     public override Task<CanLaunchResponse> CanLaunchGame(GameId request, ServerCallContext context)
     {
@@ -239,14 +202,58 @@ public partial class AetherGrpcService
 
     public override Task<OperationStatus> StopGame(GameId request, ServerCallContext context)
     {
-        // TODO: Implement game stopping logic (platform-specific)
-        return Task.FromResult(new OperationStatus { Success = true, Message = "Stopped" });
+        if (int.TryParse(request.Id, out int dbId))
+        {
+            _sessionManager.StopSession(dbId);
+            return Task.FromResult(new OperationStatus { Success = true, Message = "Stop command sent" });
+        }
+
+        return Task.FromResult(new OperationStatus { Success = false, Message = "Invalid Game ID" });
     }
 
     public override async Task SubscribeToGameState(Empty request, IServerStreamWriter<GameStateUpdate> responseStream, ServerCallContext context)
     {
-        // TODO: Implement game state monitoring
-        await Task.Delay(100);
+        var peer = context.Peer;
+        _logger.LogInformation("New GameState subscriber: {Peer}", peer);
+
+        // Local function to handle events
+        void Handler(int gameId, GameState state)
+        {
+            try
+            {
+                var update = new GameStateUpdate
+                {
+                    GameId = gameId.ToString(),
+                    State = state
+                };
+                responseStream.WriteAsync(update).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                // Stream likely closed
+            }
+        }
+
+        // Subscribe
+        _sessionManager.OnGameStateChanged += Handler;
+
+        try
+        {
+            // Keep stream open until cancellation
+            while (!context.CancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000, context.CancellationToken);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Expected
+        }
+        finally
+        {
+            _sessionManager.OnGameStateChanged -= Handler;
+            _logger.LogInformation("GameState subscriber disconnected: {Peer}", peer);
+        }
     }
 }
 

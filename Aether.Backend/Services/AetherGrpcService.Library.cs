@@ -402,6 +402,7 @@ public partial class AetherGrpcService
             IsFavorite = entity.IsFavorite,
             IsInstalled = entity.IsInstalled,
             TotalPlaytimeSeconds = (long)(entity.TotalPlaytime?.TotalSeconds ?? 0),
+            PlayCount = entity.PlayCount,
             MetacriticScore = (int)(entity.MetacriticScore ?? 0),
 
             // Timestamps

@@ -12,17 +12,20 @@ public partial class AetherGrpcService : AetherOrchestrator.AetherOrchestratorBa
     private readonly PluginManager _pluginManager;
     private readonly LibraryDatabase _database;
     private readonly UpdateService _updateService;
+    private readonly GameSessionManager _sessionManager;
 
     public AetherGrpcService(
         ILogger<AetherGrpcService> logger,
         PluginManager pluginManager,
         LibraryDatabase database,
-        UpdateService updateService)
+        UpdateService updateService,
+        GameSessionManager sessionManager)
     {
         _logger = logger;
         _pluginManager = pluginManager;
         _database = database;
         _updateService = updateService;
+        _sessionManager = sessionManager;
     }
 
     // HEALTH CHECK

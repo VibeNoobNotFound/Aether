@@ -170,6 +170,9 @@ message Game {
 
   // Launch Configuration
   string launch_arguments = 36;
+  
+  // Stats
+  int32 play_count = 37;
 }
 
 
@@ -240,11 +243,20 @@ message CanLaunchResponse {
 message OperationStatus {
   bool success = 1;
   string message = 2;
+  int64 playtime_seconds = 16;
+  int64 last_played_unix = 17;
+  int32 play_count = 18;
 }
 
 message GameStateUpdate {
   string game_id = 1;
-  string state = 2; // "Running", "Stopped"
+  GameState state = 2;
+}
+
+enum GameState {
+  STOPPED = 0;
+  RUNNING = 1;
+  LAUNCHING = 2;
 }
 
 // Plugin UI Models

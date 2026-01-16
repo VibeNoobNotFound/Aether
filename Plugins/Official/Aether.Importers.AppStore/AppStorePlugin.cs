@@ -9,11 +9,11 @@ namespace Aether.Importers.AppStore;
 /// <summary>
 /// macOS App Store and .app bundle importer
 /// </summary>
-public class AppStorePlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.Logging.ILoggingAware
+public class AppStorePlugin : ILibraryImporter, IGameLauncher, ISessionAware, Aether.PluginSDK.Logging.ILoggingAware
 {
     public string Name => "App Store";
     public string Author => "VibeNoobNotFound";
-    public string Version => "1.0.2";
+    public string Version => "1.1.0";
 
     // App Store is only supported on MacOS
     public IEnumerable<string> SupportedPlatforms => new[] { "MacOS" };
@@ -22,10 +22,19 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.
     // Logging
     private Serilog.ILogger? _logger;
 
+    // Session Management
+    private ISessionManager? _sessionManager;
+
     public void SetLogger(Serilog.ILogger logger)
     {
         _logger = logger;
         _logger.Information("AppStorePlugin initialized");
+    }
+
+    public void SetSessionManager(ISessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+        _logger?.Debug("Session manager injected");
     }
 
     public async Task<bool> CanImportAsync()
@@ -190,13 +199,46 @@ public class AppStorePlugin : ILibraryImporter, IGameLauncher, Aether.PluginSDK.
 
             startInfo.UseShellExecute = false;
 
-            var process = Process.Start(startInfo);
-            return Task.FromResult(LaunchResult.Succeeded(processId: process?.Id ?? 0, method: "macos_open"));
+            Process.Start(startInfo);
+
+            // Start session tracking via session manager
+            var appName = Path.GetFileNameWithoutExtension(context.InstallPath);
+            _sessionManager?.StartSession(context.GameId);
+
+            // Start background monitoring for process exit
+            _ = MonitorProcessAsync(context.GameId, appName);
+
+            // Return success with no tracking (we handle it ourselves)
+            var result = LaunchResult.Succeeded(processId: 0, method: "bundle");
+            result.TrackingMethod = LaunchTrackingMethod.None;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, "Failed to launch App Store game {Name}", context.Title);
             return Task.FromResult(LaunchResult.Failed(ex.Message));
+        }
+    }
+
+    private async Task MonitorProcessAsync(string gameId, string processName)
+    {
+        _logger?.Debug("Starting process monitor for {Name} (GameId: {Id})", processName, gameId);
+
+        // Grace period for app to start
+        await Task.Delay(3000);
+
+        // Monitor until process exits
+        while (true)
+        {
+            var processes = Process.GetProcessesByName(processName);
+            if (processes.Length == 0)
+            {
+                _logger?.Debug("Process {Name} exited, stopping session for game {Id}", processName, gameId);
+                _sessionManager?.StopSession(gameId);
+                break;
+            }
+
+            await Task.Delay(2000);
         }
     }
 
