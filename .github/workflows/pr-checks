@@ -1,0 +1,44 @@
+name: PR Checks (Fast)
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Quick validation job - runs in parallel
+  quick-checks:
+    name: Quick Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore & Build
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Validate Protos
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          protoc --proto_path=Protos --descriptor_set_out=/dev/null Protos/*.proto
+          echo "✅ Proto files valid"
+
+  # macOS build check - only on macOS runner
+  macos-check:
+    name: macOS Build Check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Quick Build Test
+        run: ./build_all.sh --bundle
