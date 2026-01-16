@@ -73,7 +73,7 @@ public static class ProcessMonitor
         Action<string>? logAction = null,
         ProcessMonitorOptions? options = null)
     {
-        MonitorInternal(gameId, sessionManager, logAction, options, () => 
+        MonitorInternal(gameId, sessionManager, logAction, options, () =>
             Process.GetProcessesByName(processName));
     }
 
@@ -101,7 +101,7 @@ public static class ProcessMonitor
         Func<Process[]> findProcesses)
     {
         options ??= new ProcessMonitorOptions();
-        
+
         // Run on a separate thread to avoid blocking the caller
         Task.Run(async () =>
         {
@@ -114,7 +114,7 @@ public static class ProcessMonitor
             }
 
             var startTime = DateTime.UtcNow;
-            Process? targetProcess = null;
+            Process[]? targetProcesses = null;
 
             // 1. Search Phase
             while ((DateTime.UtcNow - startTime).TotalMilliseconds < options.MaxSearchTimeMs)
@@ -122,18 +122,18 @@ public static class ProcessMonitor
                 var processes = findProcesses();
                 if (processes.Length > 0)
                 {
-                    targetProcess = processes[0];
-                    Log(logAction, $"Process found: {targetProcess.ProcessName} (Id: {targetProcess.Id})");
+                    targetProcesses = processes;
+                    Log(logAction, $"Found {targetProcesses.Length} process(es). Monitoring all.");
                     break;
                 }
 
                 await Task.Delay(options.SearchIntervalMs);
             }
 
-            if (targetProcess == null)
+            if (targetProcesses == null || targetProcesses.Length == 0)
             {
                 Log(logAction, "Process not found within timeout.");
-                
+
                 if (options.EnableLauncherHeuristic)
                 {
                     Log(logAction, "Launcher Heuristic: Process never found. Switching to MANUAL tracking.");
@@ -146,25 +146,33 @@ public static class ProcessMonitor
                 return;
             }
 
-            // 2. Monitor Phase (WaitForExit)
+            // 2. Monitor Phase (WaitForExit for ALL processes)
             var monitoringStartTime = DateTime.UtcNow;
-            
-            try
+
+            var exitTasks = new List<Task>();
+
+            foreach (var process in targetProcesses)
             {
-                // We use WaitForExit() but on this background thread, so it blocks *this thread* only.
-                // This is more efficient than a polling loop.
-                if (!targetProcess.HasExited)
+                exitTasks.Add(Task.Run(() =>
                 {
-                    targetProcess.WaitForExit();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log(logAction, $"Error waiting for process exit: {ex.Message}");
-                // Fallback to polling if WaitForExit fails permissions?
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            process.WaitForExit();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log(logAction, $"Error monitoring process {process.Id}: {ex.Message}");
+                    }
+                }));
             }
 
-            Log(logAction, $"Process {targetProcess.Id} exited.");
+            // Wait for ALL processes to exit
+            await Task.WhenAll(exitTasks);
+
+            Log(logAction, "All tracked processes have exited.");
 
             // 3. Heuristic Check
             if (options.EnableLauncherHeuristic)
@@ -172,7 +180,7 @@ public static class ProcessMonitor
                 var duration = (DateTime.UtcNow - monitoringStartTime).TotalMilliseconds;
                 if (duration < options.LauncherThresholdMs)
                 {
-                    Log(logAction, $"Process exited quickly ({duration}ms). Assuming launcher behavior. Switching to MANUAL tracking.");
+                    Log(logAction, $"Process(es) exited quickly ({duration}ms). Assuming launcher behavior. Switching to MANUAL tracking.");
                     return; // Don't stop session
                 }
             }
