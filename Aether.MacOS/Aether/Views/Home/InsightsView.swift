@@ -1,3 +1,4 @@
+import AppKit
 import Charts
 import SwiftUI
 
@@ -7,343 +8,320 @@ struct InsightsView: View {
     @State private var selectedTab = 0
     @State private var stats: LibraryStats? = nil
 
+    // Animation States
+    @State private var direction: MoveTransitionDirection = .forward
+
+    enum MoveTransitionDirection {
+        case forward, backward
+    }
+
     var body: some View {
         ZStack {
+            // Background Layer
+            AuroraBackground()
+                .opacity(0.6)
+
             if let stats = stats {
-                content(stats: stats)
+                mainContent(stats: stats)
             } else {
                 ProgressView()
+                    .scaleEffect(1.5)
+                    .tint(.white)
                     .onAppear {
-                        // Calculate stats off the main thread to prevent UI locking, then animate in
-                        Task {
-                            let calculated = calculateStats(games: appState.games)
-                            await MainActor.run {
-                                withAnimation {
-                                    self.stats = calculated
-                                }
-                            }
-                        }
+                        loadStats()
                     }
             }
         }
-        .frame(width: 800, height: 600)
+        .background(Color.black)
+        .frame(width: 950, height: 700)
     }
 
-    func content(stats: LibraryStats) -> some View {
-        ZStack {
-            // Dark Atmospheric Background
+    func loadStats() {
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            let calculated = calculateStats(games: appState.games)
+            await MainActor.run {
+                withAnimation {
+                    self.stats = calculated
+                }
+            }
+        }
+    }
+
+    func mainContent(stats: LibraryStats) -> some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    ForEach(0..<6) { index in
+                        Capsule()
+                            .fill(selectedTab == index ? Color.white : Color.white.opacity(0.3))
+                            .frame(width: selectedTab == index ? 24 : 8, height: 8)
+                            .animation(.spring(response: 0.3), value: selectedTab)
+                    }
+                }
+            }
+            .padding(24)
+
+            // Content Area
             ZStack {
-                Color.black.ignoresSafeArea()
-
-                // Dynamic background gradient based on page
-                LinearGradient(
-                    colors: [
-                        pageColor(for: selectedTab).opacity(0.3),
-                        .black,
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                .animation(.easeInOut(duration: 0.5), value: selectedTab)
-
-                // Animated Bubbles
-                StatsBackgroundEffect(color: pageColor(for: selectedTab))
+                switch selectedTab {
+                case 0:
+                    IntroSlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                case 1:
+                    TimeSlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                case 2:
+                    TopGamesSlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                case 3:
+                    AllGamesSlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                case 4:
+                    GenreSlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                case 5:
+                    SummarySlide(stats: stats).transition(
+                        .asymmetric(
+                            insertion: .move(edge: direction == .forward ? .trailing : .leading),
+                            removal: .move(edge: direction == .forward ? .leading : .trailing)))
+                default: EmptyView()
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .id(selectedTab)
 
-            VStack {
-                // Toolbar
-                HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(.white.opacity(0.6))
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-
-                    // Page Indicator
-                    HStack(spacing: 6) {
-                        ForEach(0..<5) { index in
-                            Capsule()
-                                .fill(selectedTab == index ? Color.white : Color.white.opacity(0.3))
-                                .frame(width: selectedTab == index ? 20 : 6, height: 6)
-                                .animation(.spring(), value: selectedTab)
+            // Bottom Bar
+            HStack {
+                Button {
+                    if selectedTab > 0 {
+                        direction = .backward
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            selectedTab -= 1
                         }
                     }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.left")
+                        Text("Back")
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(.white.opacity(0.2), lineWidth: 1))
                 }
-                .padding()
+                .buttonStyle(.plain)
+                .opacity(selectedTab > 0 ? 1 : 0)
+                .disabled(selectedTab == 0)
 
-                // Slides
-                TabView(selection: $selectedTab) {
-                    IntroSlide(stats: stats)
-                        .tag(0)
+                Spacer()
 
-                    TimeSlide(stats: stats)
-                        .tag(1)
-
-                    TopGamesSlide(stats: stats)
-                        .tag(2)
-
-                    GenreSlide(stats: stats)
-                        .tag(3)
-
-                    SummarySlide(stats: stats)
-                        .tag(4)
+                Button {
+                    if selectedTab < 5 {
+                        direction = .forward
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            selectedTab += 1
+                        }
+                    } else {
+                        dismiss()
+                    }
+                } label: {
+                    HStack {
+                        Text(selectedTab < 5 ? "Next" : "Done")
+                        if selectedTab < 5 {
+                            Image(systemName: "arrow.right")
+                        } else {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .purple], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: .blue.opacity(0.4), radius: 10, x: 0, y: 5)
                 }
-                // .tabViewStyle(.page(indexDisplayMode: .never)) // iOS only, using default logic for macOS which works well with gestures or buttons managed above
-                .tabViewStyle(.automatic)
+                .buttonStyle(.plain)
             }
+            .padding(30)
         }
-        .frame(width: 800, height: 600)
-    }
-
-    func pageColor(for index: Int) -> Color {
-        switch index {
-        case 0: return .blue
-        case 1: return .orange
-        case 2: return .purple
-        case 3: return .green
-        case 4: return .pink
-        default: return .blue
-        }
-    }
-}
-
-// MARK: - Logic
-
-struct LibraryStats {
-    let totalGames: Int
-    let totalHours: Int
-    let totalSessions: Int
-    let topGames: [GameViewModel]
-    let topGenres: [(String, Int)]
-    let activeDayCount: Int  // Just a mock for "days active"
-}
-
-func calculateStats(games: [GameViewModel]) -> LibraryStats {
-    let totalHours = Int(games.reduce(0) { $0 + $1.totalPlaytime }) / 3600
-    let totalSessions = games.reduce(0) { $0 + $1.playCount }
-
-    let sortedByTime = games.sorted { $0.totalPlaytime > $1.totalPlaytime }
-    let topGames = Array(sortedByTime.prefix(3))
-
-    var genreCounts: [String: Int] = [:]
-    for game in games {
-        for genre in game.genres {
-            genreCounts[genre, default: 0] += 1
-        }
-    }
-    let topGenres = genreCounts.sorted { $0.value > $1.value }.prefix(5).map { ($0.key, $0.value) }
-
-    return LibraryStats(
-        totalGames: games.count,
-        totalHours: totalHours,
-        totalSessions: totalSessions,
-        topGames: topGames,
-        topGenres: topGenres,
-        activeDayCount: max(1, totalSessions / 2)  // Mock logic
-    )
-}
-
-// MARK: - Components
-
-struct StatsBackgroundEffect: View {
-    let color: Color
-    @State private var animate = false
-
-    var body: some View {
-        ZStack {
-            ForEach(0..<3) { i in
-                Circle()
-                    .fill(color.opacity(0.1))
-                    .frame(width: CGFloat.random(in: 200...400))
-                    .offset(
-                        x: animate ? CGFloat.random(in: -300...300) : 0,
-                        y: animate ? CGFloat.random(in: -200...200) : 0
-                    )
-                    .blur(radius: 60)
-                    .animation(
-                        .easeInOut(duration: Double.random(in: 10...20))
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(i) * 2),
-                        value: animate
-                    )
-            }
-        }
-        .onAppear { animate = true }
     }
 }
 
 // MARK: - Slide 1: Intro
-
 struct IntroSlide: View {
     let stats: LibraryStats
     @State private var show = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "sparkles")
+        VStack(spacing: 30) {
+            Spacer()
+            Image(systemName: "chart.bar.doc.horizontal.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.blue)
-                .shadow(color: .blue, radius: 20)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .shadow(color: .cyan.opacity(0.5), radius: 20)
                 .scaleEffect(show ? 1 : 0.5)
                 .opacity(show ? 1 : 0)
+                .rotationEffect(.degrees(show ? 0 : -20))
 
-            Text("Your Library Insights")
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .offset(y: show ? 0 : 20)
-                .opacity(show ? 1 : 0)
-
-            Text("You've built quite a collection.")
-                .font(.title2)
-                .foregroundStyle(.white.opacity(0.7))
-                .offset(y: show ? 0 : 20)
-                .opacity(show ? 1 : 0)
-
-            // Big Number
-            VStack {
-                Text("\(stats.totalGames)")
-                    .font(.system(size: 120, weight: .heavy, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.blue, .purple], startPoint: .top, endPoint: .bottom)
-                    )
-                    .shadow(color: .blue.opacity(0.5), radius: 30)
-
-                Text("GAMES COLLECTED")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white.opacity(0.5))
-                    .tracking(2)
+            VStack(spacing: 12) {
+                Text("Library Insights")
+                    .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("A quick look at your library stats")
+                    .font(.title2)
+                    .foregroundStyle(.white.opacity(0.7))
             }
-            .scaleEffect(show ? 1 : 0.8)
+            .offset(y: show ? 0 : 30)
             .opacity(show ? 1 : 0)
-            .padding(.top, 40)
+
+            Spacer()
+
+            VStack(spacing: 8) {
+                Text("\(stats.totalGames)")
+                    .font(.system(size: 90, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .shadow(color: .white.opacity(0.3), radius: 10)
+                Text("GAMES COLLECTED")
+                    .font(.headline).tracking(4).foregroundStyle(.white.opacity(0.5))
+            }
+            .scaleEffect(show ? 1 : 0.8).opacity(show ? 1 : 0)
+
+            Spacer()
         }
-        .onAppear {
-            withAnimation(.spring(duration: 1.0)) { show = true }
-        }
+        .onAppear { withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { show = true } }
     }
 }
 
 // MARK: - Slide 2: Time
-
 struct TimeSlide: View {
     let stats: LibraryStats
+    @State private var show = false
     @State private var progress: CGFloat = 0.0
 
     var body: some View {
         HStack(spacing: 60) {
-            // Circular Progress
             ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.1), lineWidth: 30)
-
-                Circle()
-                    .trim(from: 0, to: progress)
+                Circle().stroke(Color.white.opacity(0.1), lineWidth: 30)
+                Circle().trim(from: 0, to: progress)
                     .stroke(
                         AngularGradient(colors: [.orange, .pink, .orange], center: .center),
                         style: StrokeStyle(lineWidth: 30, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: .orange.opacity(0.5), radius: 20)
-
+                    .shadow(color: .orange.opacity(0.4), radius: 15)
                 VStack {
                     Text("\(stats.totalHours)")
                         .font(.system(size: 80, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                        .contentTransition(.numericText())
                     Text("HOURS")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .font(.title3).fontWeight(.bold).foregroundStyle(.white.opacity(0.6))
                 }
             }
             .frame(width: 300, height: 300)
+            .scaleEffect(show ? 1 : 0.8).opacity(show ? 1 : 0)
 
-            // Side Stats
             VStack(alignment: .leading, spacing: 40) {
-                StatRow(
+                StatRowAnimated(
                     icon: "play.circle.fill", value: "\(stats.totalSessions)",
-                    label: "Total Sessions", color: .green)
-                StatRow(
+                    label: "Total Sessions", color: .green, delay: 0.2)
+                StatRowAnimated(
                     icon: "calendar", value: "\(stats.activeDayCount)", label: "Active Days",
-                    color: .purple)
-                StatRow(
+                    color: .purple, delay: 0.3)
+                StatRowAnimated(
                     icon: "clock.badge.checkmark",
                     value: "\(stats.totalHours / max(1, stats.totalGames))h", label: "Avg per Game",
-                    color: .blue)
+                    color: .blue, delay: 0.4)
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.5)) {
-                progress = 0.75  // Mock fill, normally calculate based on goal
-            }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { show = true }
+            withAnimation(.easeInOut(duration: 2.0).delay(0.2)) { progress = 0.75 }
         }
     }
 }
 
-struct StatRow: View {
+struct StatRowAnimated: View {
     let icon: String
     let value: String
     let label: String
     let color: Color
-
+    let delay: Double
+    @State private var show = false
     var body: some View {
         HStack(spacing: 20) {
-            Image(systemName: icon)
-                .font(.system(size: 40))
-                .foregroundStyle(color)
-                .frame(width: 50)
-
+            Image(systemName: icon).font(.system(size: 40)).foregroundStyle(color).frame(width: 50)
+                .symbolEffect(.bounce, value: show)
             VStack(alignment: .leading) {
-                Text(value)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                Text(value).font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-                Text(label)
-                    .font(.headline)
-                    .foregroundStyle(.white.opacity(0.5))
+                Text(label).font(.headline).foregroundStyle(.white.opacity(0.5))
             }
+        }
+        .offset(x: show ? 0 : 50).opacity(show ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7).delay(delay)) { show = true }
         }
     }
 }
 
 // MARK: - Slide 3: Top Games
-
 struct TopGamesSlide: View {
     let stats: LibraryStats
     @State private var show = false
 
     var body: some View {
         VStack(spacing: 40) {
-            Text("Your Favorites")
-                .font(.system(size: 40, weight: .bold))
-                .foregroundStyle(.white)
-
+            Text("Top 3 Favorites").font(.system(size: 40, weight: .bold)).foregroundStyle(.white)
+                .opacity(show ? 1 : 0).offset(y: show ? 0 : -20)
             HStack(alignment: .bottom, spacing: 20) {
-                // #2
+                // Reduced heights for better fit: 200, 260, 160
                 if stats.topGames.count > 1 {
                     PodiumColumn(
-                        game: stats.topGames[1], rank: 2, height: 250, delay: 0.2, show: show)
+                        game: stats.topGames[1], rank: 2, height: 200, delay: 0.2, show: show)
                 }
-
-                // #1
                 if let game = stats.topGames.first {
-                    PodiumColumn(game: game, rank: 1, height: 320, delay: 0.0, show: show)
+                    PodiumColumn(game: game, rank: 1, height: 260, delay: 0.0, show: show)
                 }
-
-                // #3
                 if stats.topGames.count > 2 {
                     PodiumColumn(
-                        game: stats.topGames[2], rank: 3, height: 200, delay: 0.4, show: show)
+                        game: stats.topGames[2], rank: 3, height: 160, delay: 0.4, show: show)
                 }
             }
+            .padding(.bottom, 20)
         }
-        .onAppear { show = true }
+        .onAppear { withAnimation(.spring()) { show = true } }
     }
 }
 
@@ -353,87 +331,111 @@ struct PodiumColumn: View {
     let height: CGFloat
     let delay: Double
     let show: Bool
-
     var body: some View {
         VStack {
-            // Game Art
-            AsyncImage(url: game.coverImageURL) { text in
-                text.resizable().aspectRatio(contentMode: .fill)
+            AsyncImage(url: game.coverImageURL) { i in
+                i.resizable().aspectRatio(contentMode: .fill)
             } placeholder: {
                 Color.gray
             }
-            .frame(width: 100, height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(width: 100, height: 130).clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.5), radius: 10, y: 5)
-            .offset(y: show ? 0 : 50)
-            .opacity(show ? 1 : 0)
-
-            // Bar
+            .offset(y: show ? 0 : 50).opacity(show ? 1 : 0)
             VStack {
-                Text("#\(rank)")
-                    .font(.largeTitle)
-                    .fontWeight(.black)
-                    .foregroundStyle(.white.opacity(0.3))
-                    .padding(.top, 20)
-
+                Text("#\(rank)").font(.largeTitle).fontWeight(.black).foregroundStyle(
+                    .white.opacity(0.3)
+                ).padding(.top, 10)
                 Spacer()
-
-                Text(game.formattedPlaytime)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(.bottom, 20)
+                Text(game.formattedPlaytime).font(.headline).foregroundStyle(.white).padding(
+                    .bottom, 10)
             }
             .frame(width: 120, height: show ? height : 0)
             .background(
                 LinearGradient(
                     colors: [
-                        rank == 1 ? .yellow : (rank == 2 ? .gray : .brown), .black.opacity(0.5),
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                )
+                        rank == 1 ? .yellow : (rank == 2 ? .gray : .brown), .black.opacity(0.6),
+                    ], startPoint: .top, endPoint: .bottom)
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            Text(game.title)
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .frame(width: 120)
+            Text(game.title).font(.headline).foregroundStyle(.white).lineLimit(1).frame(width: 120)
+                .opacity(show ? 1 : 0)
         }
         .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(delay), value: show)
     }
 }
 
-// MARK: - Slide 4: Genres
+// MARK: - Slide 4: All Games
+struct AllGamesSlide: View {
+    let stats: LibraryStats
+    @State private var show = false
 
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Playtime Breakdown").font(.title).fontWeight(.bold).foregroundStyle(.white)
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(Array(stats.allGamesSorted.enumerated()), id: \.1.id) { index, game in
+                        HStack {
+                            Text(game.title).font(.body).fontWeight(.medium).lineLimit(1).frame(
+                                maxWidth: 200, alignment: .leading
+                            ).foregroundStyle(.white)
+                            GeometryReader { g in
+                                RoundedRectangle(cornerRadius: 4).fill(
+                                    LinearGradient(
+                                        colors: [.blue, .purple], startPoint: .leading,
+                                        endPoint: .trailing)
+                                )
+                                .frame(
+                                    width: show
+                                        ? max(
+                                            0,
+                                            g.size.width
+                                                * (CGFloat(game.totalPlaytime)
+                                                    / CGFloat(
+                                                        max(
+                                                            1.0,
+                                                            stats.allGamesSorted.first?
+                                                                .totalPlaytime ?? 1.0)))) : 0
+                                )
+                                .animation(
+                                    .spring(response: 0.8).delay(Double(index) * 0.05), value: show)
+                            }
+                            .frame(height: 12)
+
+                            Text(game.formattedPlaytime).font(.caption).monospacedDigit()
+                                .foregroundStyle(.white.opacity(0.7)).frame(
+                                    width: 80, alignment: .trailing)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(Color.black.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius: 12))
+            // Removed maxWidth, fixed height
+            .frame(maxHeight: 500)
+        }.padding().onAppear { show = true }
+    }
+}
+
+// MARK: - Slide 5: Genres
 struct GenreSlide: View {
     let stats: LibraryStats
     @State private var show = false
 
     var body: some View {
         VStack(spacing: 30) {
-            Text("What You Play")
-                .font(.system(size: 40, weight: .bold))
-                .foregroundStyle(.white)
-
-            VStack(spacing: 16) {
+            Text("Top Genres").font(.system(size: 40, weight: .bold)).foregroundStyle(.white)
+            VStack(spacing: 20) {
                 ForEach(Array(stats.topGenres.enumerated()), id: \.offset) { index, item in
                     HStack {
-                        Text(item.0)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                            .frame(width: 150, alignment: .leading)
-
+                        Text(item.0).font(.title3).fontWeight(.bold).foregroundStyle(.white).frame(
+                            width: 150, alignment: .leading)
                         GeometryReader { g in
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(
                                     Color(
-                                        hue: Double(index) * 0.1,
-                                        saturation: 0.8,
-                                        brightness: 1.0
-                                    )
+                                        hue: Double(index) * 0.15, saturation: 0.8, brightness: 1.0)
                                 )
                                 .frame(
                                     width: show
@@ -441,92 +443,159 @@ struct GenreSlide: View {
                                             * (CGFloat(item.1)
                                                 / CGFloat(max(1, stats.topGenres.first?.1 ?? 1)))
                                         : 0)
-                        }
-                        .frame(height: 24)
-
-                        Text("\(item.1)")
-                            .font(.headline)
-                            .foregroundStyle(.white.opacity(0.7))
+                        }.frame(height: 28)
+                        Text("\(item.1)").font(.headline).foregroundStyle(.white.opacity(0.7))
                     }
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 40).offset(x: show ? 0 : 100).opacity(show ? 1 : 0)
+                    .animation(
+                        .spring(response: 0.6, dampingFraction: 0.7).delay(Double(index) * 0.1),
+                        value: show)
                 }
             }
-            .padding(.top, 40)
-        }
-        .onAppear {
-            withAnimation(.spring(duration: 1.0)) { show = true }
-        }
+            .padding(.top, 20)
+            Spacer()
+        }.onAppear { show = true }
     }
 }
 
-// MARK: - Slide 5: Summary
-
+// MARK: - Slide 6: Summary & Share
 struct SummarySlide: View {
     let stats: LibraryStats
     @State private var show = false
 
+    // COMPACT CARD (320x400)
+    var shareCard: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(hue: 0.6, saturation: 0.7, brightness: 0.5),
+                    Color(hue: 0.05, saturation: 0.8, brightness: 0.6),
+                ], startPoint: .topLeading, endPoint: .bottomTrailing)
+            VStack(spacing: 15) {  // Compact spacing
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("LIBRARY STATS").font(.caption).fontWeight(.black).foregroundStyle(
+                            .white.opacity(0.6)
+                        ).tracking(2)
+                        Text("AETHER").font(.system(size: 24, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+                    Spacer()
+                    Image(systemName: "gamecontroller.fill").font(.title).foregroundStyle(.white)
+                }
+                Divider().background(.white.opacity(0.3))
+                HStack(spacing: 15) {
+                    SummaryStatBox(title: "TOTAL HOURS", value: "\(stats.totalHours)")
+                    SummaryStatBox(title: "GAMES PLAYED", value: "\(stats.totalGames)")
+                }
+                VStack(spacing: 10) {
+                    SummaryDetailRow(label: "Top Genre", value: stats.topGenres.first?.0 ?? "-")
+                    SummaryDetailRow(
+                        label: "Most Played", value: stats.topGames.first?.title ?? "-")
+                    SummaryDetailRow(label: "Total Sessions", value: "\(stats.totalSessions)")
+                }
+                .padding().background(.ultraThinMaterial).clipShape(
+                    RoundedRectangle(cornerRadius: 12))
+            }.padding(20)
+        }
+        .frame(width: 320, height: 400).clipShape(RoundedRectangle(cornerRadius: 24)).overlay(
+            RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.2), lineWidth: 1)
+        ).drawingGroup()
+    }
+
     var body: some View {
-        VStack(spacing: 40) {
-            Text("In Summary")
-                .font(.system(size: 40, weight: .bold))
-                .foregroundStyle(.white)
-
-            VStack(spacing: 30) {
-                HStack(spacing: 40) {
-                    SummaryCard(title: "Playtime", value: "\(stats.totalHours)h", color: .orange)
-                    SummaryCard(title: "Games", value: "\(stats.totalGames)", color: .blue)
-                }
-                HStack(spacing: 40) {
-                    SummaryCard(
-                        title: "Top Genre", value: stats.topGenres.first?.0 ?? "N/A", color: .purple
-                    )
-                    SummaryCard(title: "Sessions", value: "\(stats.totalSessions)", color: .green)
-                }
-            }
-            .scaleEffect(show ? 1 : 0.9)
-            .opacity(show ? 1 : 0)
-
+        VStack(spacing: 20) {
+            Text("Ready to Share?").font(.system(size: 32, weight: .bold)).foregroundStyle(.white)
+                .opacity(show ? 1 : 0).offset(y: show ? 0 : -20)
+            shareCard.scaleEffect(show ? 1 : 0.9).opacity(show ? 1 : 0).shadow(
+                color: .black.opacity(0.5), radius: 30, y: 10)
             Button {
-                // Simple placeholder for sharing
+                saveImage()
             } label: {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
-                    Text("Share Insights")
-                }
-                .padding()
-                .padding(.horizontal, 20)
-                .background(.white.opacity(0.2))
-                .clipShape(Capsule())
+                    Text("Save Image")
+                }.padding().padding(.horizontal, 20).background(.white.opacity(0.2)).clipShape(
+                    Capsule()
+                ).overlay(Capsule().stroke(.white.opacity(0.3), lineWidth: 1))
             }
-            .buttonStyle(.plain)
-            .padding(.top, 40)
+            .buttonStyle(.plain).opacity(show ? 1 : 0).offset(y: show ? 0 : 20)
         }
-        .onAppear {
-            withAnimation(.spring(duration: 0.8)) { show = true }
+        .onAppear { withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) { show = true } }
+    }
+
+    @MainActor
+    private func saveImage() {
+        let renderer = ImageRenderer(content: shareCard)
+        renderer.scale = 3.0  // High quality export
+        if let nsImage = renderer.nsImage {
+            let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[
+                0]
+            let fileURL = downloads.appendingPathComponent("Aether-Insight.png")
+            if let tiffData = nsImage.tiffRepresentation,
+                let bitmap = NSBitmapImageRep(data: tiffData),
+                let data = bitmap.representation(using: .png, properties: [:])
+            {
+                try? data.write(to: fileURL)
+                NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+            }
         }
     }
 }
 
-struct SummaryCard: View {
+struct SummaryStatBox: View {
     let title: String
     let value: String
-    let color: Color
-
     var body: some View {
         VStack {
-            Text(value)
-                .font(.system(size: 36, weight: .black, design: .rounded))
-                .foregroundStyle(color)
-            Text(title.uppercased())
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(.white.opacity(0.5))
+            Text(value).font(.system(size: 40, weight: .bold, design: .rounded)).foregroundStyle(
+                .white
+            ).minimumScaleFactor(0.5)
+            Text(title).font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6))
         }
-        .frame(width: 160, height: 120)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.1), lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity).padding().background(.white.opacity(0.1)).clipShape(
+            RoundedRectangle(cornerRadius: 12))
     }
+}
+
+struct SummaryDetailRow: View {
+    let label: String
+    let value: String
+    var body: some View {
+        HStack {
+            Text(label).foregroundStyle(.white.opacity(0.7))
+            Spacer()
+            Text(value).fontWeight(.bold).foregroundStyle(.white)
+        }
+    }
+}
+
+// MARK: - Logic & Models
+struct LibraryStats {
+    let totalGames: Int
+    let totalHours: Int
+    let totalSessions: Int
+    let topGames: [GameViewModel]
+    let allGamesSorted: [GameViewModel]
+    let topGenres: [(String, Int)]
+    let activeDayCount: Int
+}
+
+func calculateStats(games: [GameViewModel]) -> LibraryStats {
+    let totalHours = Int(games.reduce(0) { $0 + $1.totalPlaytime }) / 3600
+    let totalSessions = games.reduce(0) { $0 + $1.playCount }
+    let sortedByTime = games.sorted { $0.totalPlaytime > $1.totalPlaytime }
+    let topGames = Array(sortedByTime.prefix(3))
+    var genreCounts: [String: Int] = [:]
+    for game in games { for genre in game.genres { genreCounts[genre, default: 0] += 1 } }
+    let topGenres = genreCounts.sorted { $0.value > $1.value }.prefix(5).map { ($0.key, $0.value) }
+    return LibraryStats(
+        totalGames: games.count, totalHours: totalHours, totalSessions: totalSessions,
+        topGames: topGames, allGamesSorted: sortedByTime, topGenres: topGenres,
+        activeDayCount: max(1, totalSessions / 2))
+}
+
+// MARK: - Preview
+#Preview {
+    InsightsView().environmentObject(MockData.appState)
 }
