@@ -623,7 +623,6 @@ struct CapabilityBadge: View {
             .overlay(
                 Capsule()
                     .stroke(color.opacity(0.3))
-                    .glassEffect()
             )
     }
 }

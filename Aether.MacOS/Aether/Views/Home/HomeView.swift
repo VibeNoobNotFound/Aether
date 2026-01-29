@@ -104,7 +104,7 @@ struct HomeView: View {
             ToolbarSpacer(.fixed)
             ToolbarItem(placement: .navigation) {
                 Button(action: { showInsights = true }) {
-                    Label("Insights", systemImage: "sparkles")
+                    Label("Insights", systemImage: "sparkles").symbolEffect(.bounce.up.byLayer, value: showInsights)
                 }
             }
         }
