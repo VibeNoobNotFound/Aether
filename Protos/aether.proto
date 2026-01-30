@@ -20,6 +20,7 @@ service AetherOrchestrator {
   rpc LaunchGame (LaunchRequest) returns (LaunchResponse);
   rpc CanLaunchGame (GameId) returns (CanLaunchResponse);
   rpc StopGame (GameId) returns (OperationStatus);
+  rpc GetActiveProcesses (GameId) returns (ActiveProcessesResponse);
   // Streams updates (e.g., "Running", "Stopping") so the UI Play button changes color
   rpc SubscribeToGameState (Empty) returns (stream GameStateUpdate);
 
@@ -87,6 +88,17 @@ service AetherOrchestrator {
 // -----------------------------------------------------------
 
 message Empty {}
+
+// Tracked process info for StopGame confirmation dialog
+message TrackedProcessInfo {
+  int32 process_id = 1;
+  string process_name = 2;
+  string executable_path = 3;
+}
+
+message ActiveProcessesResponse {
+  repeated TrackedProcessInfo processes = 1;
+}
 
 message LibrarySearchRequest {
   string query = 1;

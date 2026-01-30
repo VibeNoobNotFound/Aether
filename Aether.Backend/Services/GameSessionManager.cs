@@ -90,6 +90,58 @@ public class GameSessionManager : ISessionManager
         return int.TryParse(gameId, out int id) && _activeSessions.ContainsKey(id);
     }
 
+    /// <summary>
+    /// Add a process to be tracked for this session.
+    /// Called by ProcessMonitor when it discovers game processes.
+    /// </summary>
+    public void AddTrackedProcess(string gameId, TrackedProcess process)
+    {
+        if (!int.TryParse(gameId, out int id))
+        {
+            _logger.LogWarning("[GameSessionManager] Invalid game ID format for AddTrackedProcess: {GameId}", gameId);
+            return;
+        }
+
+        if (_activeSessions.TryGetValue(id, out var session))
+        {
+            // Avoid duplicates
+            lock (session.TrackedProcesses)
+            {
+                if (!session.TrackedProcesses.Any(p => p.ProcessId == process.ProcessId))
+                {
+                    session.TrackedProcesses.Add(process);
+                    _logger.LogInformation("[GameSessionManager] Added tracked process: {Process} for game {GameId}",
+                        process, id);
+                }
+            }
+        }
+        else
+        {
+            _logger.LogWarning("[GameSessionManager] No active session found for game {GameId} when adding process", id);
+        }
+    }
+
+    /// <summary>
+    /// Get the cancellation token for a session's process monitoring.
+    /// When the session is stopped, this token will be cancelled.
+    /// </summary>
+    public CancellationToken GetSessionCancellationToken(string gameId)
+    {
+        if (!int.TryParse(gameId, out int id))
+        {
+            _logger.LogWarning("[GameSessionManager] Invalid game ID format for GetSessionCancellationToken: {GameId}", gameId);
+            return CancellationToken.None;
+        }
+
+        if (_activeSessions.TryGetValue(id, out var session))
+        {
+            return session.MonitorCts.Token;
+        }
+
+        _logger.LogWarning("[GameSessionManager] No active session found for game {GameId} when getting cancellation token", id);
+        return CancellationToken.None;
+    }
+
     #endregion
 
     #region Backend Methods (for gRPC service)
@@ -110,6 +162,23 @@ public class GameSessionManager : ISessionManager
         StopSessionInternal(gameId, killProcess: true);
     }
 
+    /// <summary>
+    /// Get all tracked processes for an active game session.
+    /// Called by gRPC service (GetActiveProcesses) for frontend confirmation dialog.
+    /// </summary>
+    public IReadOnlyList<TrackedProcess> GetTrackedProcesses(int gameId)
+    {
+        if (_activeSessions.TryGetValue(gameId, out var session))
+        {
+            lock (session.TrackedProcesses)
+            {
+                return session.TrackedProcesses.ToList().AsReadOnly();
+            }
+        }
+        _logger.LogDebug("[GameSessionManager] No active session found for game {GameId} when getting tracked processes", gameId);
+        return Array.Empty<TrackedProcess>();
+    }
+
     #endregion
 
     #region Internal Implementation
@@ -118,7 +187,7 @@ public class GameSessionManager : ISessionManager
     {
         if (_activeSessions.ContainsKey(gameId))
         {
-            _logger.LogWarning("Session already active for game {Id}", gameId);
+            _logger.LogWarning("[GameSessionManager] Session already active for game {Id}", gameId);
             return;
         }
 
@@ -126,15 +195,26 @@ public class GameSessionManager : ISessionManager
         {
             GameId = gameId,
             StartTime = DateTime.UtcNow,
-            ProcessId = result.ProcessId,
             TrackingMethod = result.TrackingMethod,
             TrackingTarget = result.TrackingTarget,
             ManagedByPlugin = result.TrackingMethod == LaunchTrackingMethod.None
         };
 
+        // If we have a process ID from launch result, add it as initial tracked process
+        if (result.ProcessId.HasValue && result.ProcessId.Value > 0)
+        {
+            session.TrackedProcesses.Add(new TrackedProcess
+            {
+                ProcessId = result.ProcessId.Value,
+                ProcessName = result.TrackingTarget,
+                ExecutablePath = null
+            });
+            _logger.LogDebug("[GameSessionManager] Added initial tracked process {Pid} from launch result", result.ProcessId.Value);
+        }
+
         if (_activeSessions.TryAdd(gameId, session))
         {
-            _logger.LogInformation("Started session for game {Id} (Method: {Method}, Target: {Target}, PluginManaged: {Managed})",
+            _logger.LogInformation("[GameSessionManager] Started session for game {Id} (Method: {Method}, Target: {Target}, PluginManaged: {Managed})",
                 gameId, session.TrackingMethod, session.TrackingTarget, session.ManagedByPlugin);
 
             // Increment Play Count immediately
@@ -152,24 +232,62 @@ public class GameSessionManager : ISessionManager
     {
         if (_activeSessions.TryRemove(gameId, out var session))
         {
+            _logger.LogInformation("[GameSessionManager] Stopping session for game {Id} (killProcess: {Kill}, trackedProcesses: {Count})",
+                gameId, killProcess, session.TrackedProcesses.Count);
+
+            // Cancel the monitoring task first
+            try
+            {
+                session.MonitorCts.Cancel();
+                _logger.LogDebug("[GameSessionManager] Cancelled monitoring task for game {Id}", gameId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("[GameSessionManager] Error cancelling monitoring: {Message}", ex.Message);
+            }
+
             FinalizeSession(session);
 
-            // Attempt to kill process if requested and valid PID
-            if (killProcess && session.TrackingMethod == LaunchTrackingMethod.Pid && session.ProcessId.HasValue)
+            // Kill all tracked processes if requested
+            if (killProcess && session.TrackedProcesses.Count > 0)
             {
-                try
+                _logger.LogInformation("[GameSessionManager] Killing {Count} tracked process(es) for game {Id}",
+                    session.TrackedProcesses.Count, gameId);
+
+                foreach (var tracked in session.TrackedProcesses)
                 {
-                    var process = Process.GetProcessById(session.ProcessId.Value);
-                    if (!process.HasExited)
+                    try
                     {
-                        process.Kill();
+                        var process = Process.GetProcessById(tracked.ProcessId);
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                            _logger.LogInformation("[GameSessionManager] Killed process {Pid} ({Name}) for game {Id}",
+                                tracked.ProcessId, tracked.ProcessName ?? "unknown", gameId);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("[GameSessionManager] Process {Pid} already exited", tracked.ProcessId);
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                        _logger.LogDebug("[GameSessionManager] Process {Pid} no longer exists", tracked.ProcessId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("[GameSessionManager] Failed to kill process {Pid}: {Message}",
+                            tracked.ProcessId, ex.Message);
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("Failed to kill process for game {Id}: {Message}", gameId, ex.Message);
-                }
             }
+
+            // Dispose the CancellationTokenSource
+            session.MonitorCts.Dispose();
+        }
+        else
+        {
+            _logger.LogDebug("[GameSessionManager] No active session found for game {Id} to stop", gameId);
         }
     }
 
@@ -208,20 +326,27 @@ public class GameSessionManager : ISessionManager
         switch (session.TrackingMethod)
         {
             case LaunchTrackingMethod.Pid:
-                if (session.ProcessId.HasValue)
+                // Check if any tracked processes are still running
+                if (session.TrackedProcesses.Count > 0)
                 {
-                    try
+                    foreach (var tracked in session.TrackedProcesses)
                     {
-                        var process = Process.GetProcessById(session.ProcessId.Value);
-                        return process.HasExited;
+                        try
+                        {
+                            var process = Process.GetProcessById(tracked.ProcessId);
+                            if (!process.HasExited)
+                            {
+                                return false; // At least one process still running
+                            }
+                        }
+                        catch (ArgumentException)
+                        {
+                            // Process ID not found = exited, continue checking others
+                        }
                     }
-                    catch (ArgumentException)
-                    {
-                        // Process ID not found = exited
-                        return true;
-                    }
+                    return true; // All tracked processes have exited
                 }
-                return true; // No PID = ended
+                return true; // No tracked processes = ended
 
             case LaunchTrackingMethod.ProcessName:
                 if (!string.IsNullOrEmpty(session.TrackingTarget))
@@ -280,7 +405,8 @@ public class GameSessionManager : ISessionManager
     {
         public int GameId { get; set; }
         public DateTime StartTime { get; set; }
-        public int? ProcessId { get; set; }
+        public List<TrackedProcess> TrackedProcesses { get; set; } = new();
+        public CancellationTokenSource MonitorCts { get; set; } = new();
         public LaunchTrackingMethod TrackingMethod { get; set; }
         public string? TrackingTarget { get; set; }
 

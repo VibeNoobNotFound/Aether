@@ -212,6 +212,35 @@ public partial class AetherGrpcService
         return Task.FromResult(new OperationStatus { Success = false, Message = "Invalid Game ID" });
     }
 
+    public override Task<ActiveProcessesResponse> GetActiveProcesses(GameId request, ServerCallContext context)
+    {
+        _logger.LogInformation("[gRPC] GetActiveProcesses request for Game ID: {GameId}", request.Id);
+
+        var response = new ActiveProcessesResponse();
+
+        if (int.TryParse(request.Id, out int dbId))
+        {
+            var processes = _sessionManager.GetTrackedProcesses(dbId);
+            _logger.LogDebug("[gRPC] Found {Count} tracked processes for game {Id}", processes.Count, dbId);
+
+            foreach (var p in processes)
+            {
+                response.Processes.Add(new TrackedProcessInfo
+                {
+                    ProcessId = p.ProcessId,
+                    ProcessName = p.ProcessName ?? "",
+                    ExecutablePath = p.ExecutablePath ?? ""
+                });
+            }
+        }
+        else
+        {
+            _logger.LogWarning("[gRPC] Invalid game ID format for GetActiveProcesses: {GameId}", request.Id);
+        }
+
+        return Task.FromResult(response);
+    }
+
     public override async Task SubscribeToGameState(Empty request, IServerStreamWriter<GameStateUpdate> responseStream, ServerCallContext context)
     {
         var peer = context.Peer;

@@ -24,6 +24,14 @@ struct ContentView: View {
                 OnboardingView()
                     .interactiveDismissDisabled()
             }
+            .sheet(isPresented: $appState.showStopGameConfirmation) {
+                StopGameConfirmationView(
+                    gameTitle: appState.pendingStopGameTitle ?? "Unknown Game",
+                    processes: appState.pendingStopProcesses,
+                    onConfirm: { appState.confirmStopGame() },
+                    onCancel: { appState.cancelStopGame() }
+                )
+            }
     }
 }
 

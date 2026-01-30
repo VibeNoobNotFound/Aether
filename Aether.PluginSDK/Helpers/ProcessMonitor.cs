@@ -204,14 +204,22 @@ public static class ProcessMonitor
         }
 
         options ??= new ProcessMonitorOptions();
+
+        // Link session cancellation token with any passed token
+        // This allows the session to be cancelled when StopGame is called
+        var sessionToken = sessionManager.GetSessionCancellationToken(gameId);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(sessionToken, cancellationToken);
+        var effectiveToken = linkedCts.Token;
+
         try
         {
-            Log(logAction, $"Starting process monitor for GameId: {gameId}");
+            Log(logAction, $"[ProcessMonitor] Starting monitoring for GameId: {gameId}");
 
             // Grace period (Wait only once at the very beginning)
             if (options.GracePeriodMs > 0)
             {
-                await Task.Delay(options.GracePeriodMs, cancellationToken);
+                Log(logAction, $"[ProcessMonitor] Grace period: {options.GracePeriodMs}ms");
+                await Task.Delay(options.GracePeriodMs, effectiveToken);
             }
 
             // --- REFACTOR START: Main Monitoring Loop ---
@@ -227,23 +235,58 @@ public static class ProcessMonitor
 
                 while ((DateTime.UtcNow - searchStartTime).TotalMilliseconds < options.MaxSearchTimeMs)
                 {
-                    if (cancellationToken.IsCancellationRequested) return;
+                    if (effectiveToken.IsCancellationRequested)
+                    {
+                        Log(logAction, $"[ProcessMonitor] Monitoring cancelled during search for GameId: {gameId}");
+                        return;
+                    }
 
                     var processes = findProcesses();
                     if (processes.Length > 0)
                     {
                         targetProcesses = processes;
-                        Log(logAction, $"Found {targetProcesses.Length} process(es). Monitoring all.");
+                        Log(logAction, $"[ProcessMonitor] Found {targetProcesses.Length} process(es) for GameId: {gameId}. Reporting to session.");
+
+                        // Report discovered processes to the session manager
+                        foreach (var p in targetProcesses)
+                        {
+                            try
+                            {
+                                var tracked = new TrackedProcess
+                                {
+                                    ProcessId = p.Id,
+                                    ProcessName = p.ProcessName
+                                };
+
+                                // Try to get executable path (may fail due to permissions)
+                                try
+                                {
+                                    tracked.ExecutablePath = p.MainModule?.FileName;
+                                }
+                                catch
+                                {
+                                    // Permission denied for MainModule access
+                                }
+
+                                sessionManager.AddTrackedProcess(gameId, tracked);
+                                Log(logAction, $"[ProcessMonitor] Reported process: {tracked}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Log(logAction, $"[ProcessMonitor] Failed to report process {p.Id}: {ex.Message}");
+                            }
+                        }
+
                         break;
                     }
 
-                    await Task.Delay(options.SearchIntervalMs, cancellationToken);
+                    await Task.Delay(options.SearchIntervalMs, effectiveToken);
                 }
 
                 // Handle Not Found
                 if (targetProcesses == null || targetProcesses.Length == 0)
                 {
-                    Log(logAction, "Process not found within timeout.");
+                    Log(logAction, $"[ProcessMonitor] Process not found within timeout for GameId: {gameId}");
                     // We stop here because if the launcher logic sent us back, 
                     // and we STILL didn't find the game, we should give up.
                     break;
@@ -253,16 +296,21 @@ public static class ProcessMonitor
                 var monitoringStartTime = DateTime.UtcNow;
                 try
                 {
-                    await MonitorProcessesAsync(targetProcesses, logAction, options, cancellationToken);
+                    Log(logAction, $"[ProcessMonitor] Entering monitoring phase for {targetProcesses.Length} process(es)");
+                    await MonitorProcessesAsync(targetProcesses, logAction, options, effectiveToken);
                 }
                 finally
                 {
                     foreach (var process in targetProcesses) process?.Dispose();
                 }
 
-                if (cancellationToken.IsCancellationRequested) return;
+                if (effectiveToken.IsCancellationRequested)
+                {
+                    Log(logAction, $"[ProcessMonitor] Monitoring cancelled during wait for GameId: {gameId}");
+                    return;
+                }
 
-                Log(logAction, "All tracked processes have exited.");
+                Log(logAction, $"[ProcessMonitor] All tracked processes have exited for GameId: {gameId}");
 
                 // 3. Heuristic Check
                 if (options.EnableLauncherHeuristic)
@@ -274,7 +322,7 @@ public static class ProcessMonitor
                     if (duration < options.LauncherThresholdMs)
                     {
                         Log(logAction,
-                            $"Process exited quickly ({duration:F0}ms). Launcher detected. Searching for main process...");
+                            $"[ProcessMonitor] Process exited quickly ({duration:F0}ms). Launcher detected. Searching for main process...");
                         continue; // <--- Replaces 'goto Search'
                     }
                 }
@@ -285,15 +333,15 @@ public static class ProcessMonitor
             // --- REFACTOR END ---
 
             sessionManager.StopSession(gameId);
-            Log(logAction, $"Session stopped for GameId: {gameId}");
+            Log(logAction, $"[ProcessMonitor] Session stopped for GameId: {gameId}");
         }
         catch (OperationCanceledException)
         {
-            Log(logAction, "Process monitoring was cancelled.");
+            Log(logAction, $"[ProcessMonitor] Monitoring was cancelled for GameId: {gameId}. Session will be finalized by caller.");
         }
         catch (Exception ex)
         {
-            Log(logAction, $"Unexpected error in process monitoring: {ex.Message}");
+            Log(logAction, $"[ProcessMonitor] Unexpected error for GameId {gameId}: {ex.Message}");
             // Optionally stop session on error
             try
             {
@@ -301,7 +349,7 @@ public static class ProcessMonitor
             }
             catch (Exception stopEx)
             {
-                Log(logAction, $"Error stopping session after monitoring failure: {stopEx.Message}");
+                Log(logAction, $"[ProcessMonitor] Error stopping session after monitoring failure: {stopEx.Message}");
             }
         }
     }

@@ -296,6 +296,12 @@ class AppState: ObservableObject {
     @Published var carouselConfig: CarouselConfig?
     @Published var currentScreen: AppScreen = .home
 
+    // Stop Game Confirmation
+    @Published var showStopGameConfirmation = false
+    @Published var pendingStopGameId: String?
+    @Published var pendingStopGameTitle: String?
+    @Published var pendingStopProcesses: [Aether_TrackedProcessInfo] = []
+
     // Computed Properties
 
     var visibleCollections: [CollectionViewModel] {
@@ -574,20 +580,79 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Request to stop a game - shows confirmation dialog if processes are tracked
     func stopGame(id: String) {
         Task {
-            AetherLogger.shared.info("Stopping game with ID: \(id)")
+            AetherLogger.shared.info("Stop game requested for ID: \(id)")
+
+            // Get game title for confirmation dialog
+            let gameTitle = games.first(where: { $0.id == id })?.title ?? "Unknown Game"
+
+            // First, fetch active processes
             do {
                 var request = Aether_GameId()
                 request.id = id
-                let response = try await grpcClient.client.stopGame(request)
-                if !response.success {
-                    AetherLogger.shared.error("Failed to stop game: \(response.message)")
+                let response = try await grpcClient.client.getActiveProcesses(request)
+
+                if !response.processes.isEmpty {
+                    // Show confirmation dialog with process list
+                    AetherLogger.shared.info(
+                        "Found \(response.processes.count) active processes, showing confirmation")
+                    pendingStopGameId = id
+                    pendingStopGameTitle = gameTitle
+                    pendingStopProcesses = Array(response.processes)
+                    showStopGameConfirmation = true
+                } else {
+                    // No tracked processes, stop immediately
+                    AetherLogger.shared.info("No tracked processes, stopping immediately")
+                    await forceStopGame(id: id)
                 }
             } catch {
-                AetherLogger.shared.error("Stop game error: \(error)")
+                AetherLogger.shared.error("Failed to get active processes: \(error)")
+                // On error, stop immediately
+                await forceStopGame(id: id)
             }
         }
+    }
+
+    /// Force stop a game without confirmation
+    func forceStopGame(id: String) async {
+        AetherLogger.shared.info("Force stopping game with ID: \(id)")
+        do {
+            var request = Aether_GameId()
+            request.id = id
+            let response = try await grpcClient.client.stopGame(request)
+            if response.success {
+                AetherLogger.shared.info("Successfully stopped game \(id)")
+            } else {
+                AetherLogger.shared.error("Failed to stop game: \(response.message)")
+            }
+        } catch {
+            AetherLogger.shared.error("Stop game error: \(error)")
+        }
+    }
+
+    /// Called when user confirms stop in the confirmation dialog
+    func confirmStopGame() {
+        guard let gameId = pendingStopGameId else { return }
+
+        Task {
+            await forceStopGame(id: gameId)
+
+            // Clear confirmation state
+            pendingStopGameId = nil
+            pendingStopGameTitle = nil
+            pendingStopProcesses = []
+            showStopGameConfirmation = false
+        }
+    }
+
+    /// Called when user cancels the stop confirmation dialog
+    func cancelStopGame() {
+        pendingStopGameId = nil
+        pendingStopGameTitle = nil
+        pendingStopProcesses = []
+        showStopGameConfirmation = false
     }
 
     func canLaunchGame(_ gameId: String) async -> (

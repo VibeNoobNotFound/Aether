@@ -28,6 +28,19 @@ public interface ISessionManager
     /// Check if a game session is currently active.
     /// </summary>
     bool IsSessionActive(string gameId);
+
+    /// <summary>
+    /// Add a process to be tracked for this session.
+    /// Called by ProcessMonitor when it discovers game processes.
+    /// The TrackedProcess includes PID, executable path, and process name.
+    /// </summary>
+    void AddTrackedProcess(string gameId, TrackedProcess process);
+
+    /// <summary>
+    /// Get the cancellation token for a session's process monitoring.
+    /// When the session is stopped, this token will be cancelled.
+    /// </summary>
+    CancellationToken GetSessionCancellationToken(string gameId);
 }
 
 /// <summary>
