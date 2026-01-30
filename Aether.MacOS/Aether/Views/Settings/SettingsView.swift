@@ -74,7 +74,35 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary.opacity(0.7))
                                 }
                             }
+
                             Spacer()
+
+                            // Social Links
+                            HStack(spacing: 12) {
+                                Link(destination: URL(string: "https://discord.gg/NzJmjvvEgP")!) {
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.indigo)
+                                        .frame(width: 32, height: 32)
+                                        .clipShape(Circle())
+                                }
+                                .help("Join Discord Community")
+                                .padding(6)
+                                .glassEffect()
+
+                                Link(
+                                    destination: URL(
+                                        string: "https://github.com/VibeNoobNotFound/Aether")!
+                                ) {
+                                    Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                        .font(.system(size: 16))
+                                        .frame(width: 32, height: 32)
+                                        .clipShape(Circle())
+                                }
+                                .padding(6)
+                                .glassEffect()
+                                .help("View Source on GitHub")
+                            }
                         }
                     }
 

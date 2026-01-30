@@ -93,6 +93,18 @@ public class LibraryDatabase : IDisposable
             else if (existing.TotalPlaytime.HasValue && existing.TotalPlaytime > game.TotalPlaytime)
                 game.TotalPlaytime = existing.TotalPlaytime; // Keep highest playtime
 
+            // Merge PlayCount - Keep existing if new is 0 or less (Importers often return 0)
+            if (game.PlayCount == 0 && existing.PlayCount > 0)
+            {
+                game.PlayCount = existing.PlayCount;
+            }
+            else if (existing.PlayCount > game.PlayCount)
+            {
+                // If existing is higher, trust our local tracking over the importer
+                // unless the importer jumped significantly? No, safe assumption is local DB is master for stats.
+                game.PlayCount = existing.PlayCount;
+            }
+
             // Merge Favorites (don't overwrite favorite status on re-scan unless explicitly changed? Scan doesn't set Favorite usually)
             // GameEntity.FromImportedGame copies IsFavorite from metadata if available, but usually it's user-set locally.
             // Let's assume user local favorite status overrides import unless we have a reason.

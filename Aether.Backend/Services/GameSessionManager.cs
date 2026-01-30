@@ -138,7 +138,6 @@ public class GameSessionManager : ISessionManager
                 gameId, session.TrackingMethod, session.TrackingTarget, session.ManagedByPlugin);
 
             // Increment Play Count immediately
-            // Increment Play Count immediately
             _database.UpdatePlayCount(gameId);
             _database.UpdateLastPlayed(gameId, DateTime.UtcNow);
 

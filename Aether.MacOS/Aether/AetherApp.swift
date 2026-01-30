@@ -78,7 +78,28 @@ struct AetherApp: App {
                 .keyboardShortcut("C", modifiers: [.command, .shift])
             }
 
-            CommandGroup(replacing: .help) {}
+            CommandGroup(replacing: .help) {
+                Button("Join Discord Community") {
+                    if let url = URL(string: "https://discord.gg/NzJmjvvEgP") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+
+                Button("View Source on GitHub") {
+                    if let url = URL(string: "https://github.com/VibeNoobNotFound/Aether") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+
+                Divider()
+
+                Button("Aether Help") {
+                    if let url = URL(string: "https://github.com/VibeNoobNotFound/Aether") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .keyboardShortcut("?", modifiers: [.command])
+            }
         }
     }
 }
