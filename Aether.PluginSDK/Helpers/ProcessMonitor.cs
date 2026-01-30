@@ -125,39 +125,63 @@ public static class ProcessMonitor
 
         return MonitorInternalAsync(gameId, sessionManager, logAction, options, cancellationToken, () =>
         {
-            try
-            {
-                var allProcesses = Process.GetProcesses();
-                var matchingProcesses = new List<Process>();
+            var allProcesses = Process.GetProcesses();
+            var matchingProcesses = new List<Process>();
 
-                foreach (var process in allProcesses)
+            foreach (var process in allProcesses)
+            {
+                bool isMatch = false;
+
+                try
                 {
-                    try
+                    // 1. Check Process Name (Fastest)
+                    if (process.ProcessName.Contains(processNameFragment, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (process.ProcessName.Contains(processNameFragment, StringComparison.OrdinalIgnoreCase))
+                        isMatch = true;
+                    }
+                    // 2. Check Window Title (Good for standard apps, flaky for Wine)
+                    else if (!string.IsNullOrEmpty(process.MainWindowTitle) &&
+                             process.MainWindowTitle.Contains(processNameFragment, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isMatch = true;
+                    }
+                    // 3. Check File Path (The Fix for Crossover/Wine)
+                    // We wrap this in its own try/catch because accessing MainModule 
+                    // requires permissions and throws heavily on macOS system processes.
+                    else
+                    {
+                        try
                         {
-                            matchingProcesses.Add(process);
+                            if (process.MainModule != null &&
+                                process.MainModule.FileName.Contains(processNameFragment,
+                                    StringComparison.OrdinalIgnoreCase))
+                            {
+                                isMatch = true;
+                            }
                         }
-                        else
+                        catch
                         {
-                            // Dispose processes we don't need
-                            process.Dispose();
+                            // Ignore permission errors (Access Denied) for MainModule
                         }
                     }
-                    catch
+
+                    if (isMatch)
                     {
-                        // Process may have exited or access denied
+                        matchingProcesses.Add(process);
+                    }
+                    else
+                    {
                         process.Dispose();
                     }
                 }
+                catch
+                {
+                    // Catch-all for the process exiting mid-check
+                    process.Dispose();
+                }
+            }
 
-                return matchingProcesses.ToArray();
-            }
-            catch (Exception ex)
-            {
-                Log(logAction, $"Error getting processes by partial name '{processNameFragment}': {ex.Message}");
-                return Array.Empty<Process>();
-            }
+            return matchingProcesses.ToArray();
         });
     }
 
@@ -180,97 +204,86 @@ public static class ProcessMonitor
         }
 
         options ??= new ProcessMonitorOptions();
-
         try
         {
             Log(logAction, $"Starting process monitor for GameId: {gameId}");
 
-            // Grace period
+            // Grace period (Wait only once at the very beginning)
             if (options.GracePeriodMs > 0)
             {
                 await Task.Delay(options.GracePeriodMs, cancellationToken);
             }
 
-            var startTime = DateTime.UtcNow;
-            Process[]? targetProcesses = null;
+            // --- REFACTOR START: Main Monitoring Loop ---
+            bool keepMonitoring = true;
 
-            // 1. Search Phase
-            while ((DateTime.UtcNow - startTime).TotalMilliseconds < options.MaxSearchTimeMs)
+            while (keepMonitoring)
             {
-                if (cancellationToken.IsCancellationRequested)
+                // 1. Search Phase
+                // We reset the StartTime here so the search timeout applies FRESH 
+                // to the new search (if we just came from a launcher exit).
+                var searchStartTime = DateTime.UtcNow;
+                Process[]? targetProcesses = null;
+
+                while ((DateTime.UtcNow - searchStartTime).TotalMilliseconds < options.MaxSearchTimeMs)
                 {
-                    Log(logAction, "Process monitoring cancelled during search phase.");
-                    return;
+                    if (cancellationToken.IsCancellationRequested) return;
+
+                    var processes = findProcesses();
+                    if (processes.Length > 0)
+                    {
+                        targetProcesses = processes;
+                        Log(logAction, $"Found {targetProcesses.Length} process(es). Monitoring all.");
+                        break;
+                    }
+
+                    await Task.Delay(options.SearchIntervalMs, cancellationToken);
                 }
 
-                var processes = findProcesses();
-                if (processes.Length > 0)
+                // Handle Not Found
+                if (targetProcesses == null || targetProcesses.Length == 0)
                 {
-                    targetProcesses = processes;
-                    Log(logAction, $"Found {targetProcesses.Length} process(es). Monitoring all.");
+                    Log(logAction, "Process not found within timeout.");
+                    // We stop here because if the launcher logic sent us back, 
+                    // and we STILL didn't find the game, we should give up.
                     break;
                 }
 
-                await Task.Delay(options.SearchIntervalMs, cancellationToken);
-            }
+                // 2. Monitor Phase
+                var monitoringStartTime = DateTime.UtcNow;
+                try
+                {
+                    await MonitorProcessesAsync(targetProcesses, logAction, options, cancellationToken);
+                }
+                finally
+                {
+                    foreach (var process in targetProcesses) process?.Dispose();
+                }
 
-            if (targetProcesses == null || targetProcesses.Length == 0)
-            {
-                Log(logAction, "Process not found within timeout.");
+                if (cancellationToken.IsCancellationRequested) return;
 
+                Log(logAction, "All tracked processes have exited.");
+
+                // 3. Heuristic Check
                 if (options.EnableLauncherHeuristic)
                 {
-                    Log(logAction, "Launcher Heuristic: Process never found. Switching to MANUAL tracking.");
-                    return;
-                }
+                    var duration = (DateTime.UtcNow - monitoringStartTime).TotalMilliseconds;
 
-                sessionManager.StopSession(gameId);
-                return;
-            }
-
-            // 2. Monitor Phase (WaitForExit for ALL processes)
-            var monitoringStartTime = DateTime.UtcNow;
-
-            try
-            {
-                await MonitorProcessesAsync(targetProcesses, logAction, options, cancellationToken);
-            }
-            finally
-            {
-                // Always dispose processes
-                foreach (var process in targetProcesses)
-                {
-                    try
+                    // If the process closed quickly, we assume it was a launcher
+                    // and we CONTINUE the loop to search again.
+                    if (duration < options.LauncherThresholdMs)
                     {
-                        process?.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log(logAction, $"Error disposing process: {ex.Message}");
+                        Log(logAction,
+                            $"Process exited quickly ({duration:F0}ms). Launcher detected. Searching for main process...");
+                        continue; // <--- Replaces 'goto Search'
                     }
                 }
+
+                // If we get here, it was a valid session, so we are done.
+                keepMonitoring = false;
             }
+            // --- REFACTOR END ---
 
-            if (cancellationToken.IsCancellationRequested)
-            {
-                Log(logAction, "Process monitoring cancelled.");
-                return;
-            }
-
-            Log(logAction, "All tracked processes have exited.");
-
-            // 3. Heuristic Check
-            if (options.EnableLauncherHeuristic)
-            {
-                var duration = (DateTime.UtcNow - monitoringStartTime).TotalMilliseconds;
-                if (duration < options.LauncherThresholdMs)
-                {
-                    Log(logAction, $"Process(es) exited quickly ({duration:F0}ms). Assuming launcher behavior. Switching to MANUAL tracking.");
-                    return;
-                }
-            }
-
-            // Stop session
             sessionManager.StopSession(gameId);
             Log(logAction, $"Session stopped for GameId: {gameId}");
         }

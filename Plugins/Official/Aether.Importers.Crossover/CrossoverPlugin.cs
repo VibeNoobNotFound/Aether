@@ -267,10 +267,10 @@ public class CrossoverPlugin : ILibraryImporter, IGameLauncher, ISessionAware, A
             msg => _logger?.Debug(msg),
             new ProcessMonitorOptions
             {
-                GracePeriodMs = 4000,
+                GracePeriodMs = 4*1000,
                 EnableLauncherHeuristic = true,
-                LauncherThresholdMs = 15000,
-                MaxSearchTimeMs = 30000
+                LauncherThresholdMs = 15*1000,
+                MaxSearchTimeMs = 30*1000
             }
         );
     }
