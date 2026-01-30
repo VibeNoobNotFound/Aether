@@ -5,7 +5,11 @@
 Aether is an open-source, next-generation game library manager. It exists to solve one problem: **fragmentation**. Your games are scattered across Steam, Epic, GOG, App Store, and disc images. Aether brings them home.
 
 > *Designed by VibeNoobNotFound.*
-> *Powered by .NET 10 & Swift.*
+> *Powered by .NET 10 & Swift with gRPC.*
+
+[![Join our Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/NzJmjvvEgP) 
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/VibeNoobNotFound/Aether/nightly.yml?style=for-the-badge&label=Nightly%20Build)](https://github.com/VibeNoobNotFound/Aether/actions/workflows/nightly.yml) 
+[![GitHub Release](https://img.shields.io/github/v/release/VibeNoobNotFound/Aether?include_prereleases&sort=date&display_name=release&style=for-the-badge)](https://github.com/VibeNoobNotFound/Aether/releases)
 
 <img width="670" alt="Aether Library View" src="https://github.com/user-attachments/assets/de3f5bc4-5c59-49e2-8b24-c049d484228a" />
 
