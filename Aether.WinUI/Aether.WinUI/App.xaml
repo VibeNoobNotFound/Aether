@@ -21,6 +21,13 @@
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <converters:PlatformToColorConverter x:Key="PlatformToColorConverter" />
             <ThemeShadow x:Key="SharedShadow" />
+            
+            <!-- Custom Acrylic Brushes -->
+            <AcrylicBrush x:Key="DarkAcrylicBackgroundBrush"
+                          TintColor="#000000"
+                          TintOpacity="0.6"
+                          TintLuminosityOpacity="0.3"
+                          FallbackColor="#1A1A1A" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

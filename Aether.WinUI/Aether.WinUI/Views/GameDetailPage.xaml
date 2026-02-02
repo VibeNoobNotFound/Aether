@@ -17,10 +17,12 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Image x:Name="BackgroundImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="400" Grid.RowSpan="2"
-               attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.BackgroundImageUrl, Mode=OneWay}"/>
-        
-        <Border Grid.RowSpan="2" Background="#B3000000"/> <!-- Dark overlay -->
+        <Grid x:Name="BackgroundLayer" Grid.RowSpan="2" Height="400" VerticalAlignment="Top">
+            <Image x:Name="BackgroundImage" Stretch="UniformToFill" Opacity="0.5"
+                   attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.DisplayBackgroundImageUrl, Mode=OneWay}"/>
+            <!-- Acrylic overlay -->
+            <Rectangle Fill="{ThemeResource DarkAcrylicBackgroundBrush}"/>
+        </Grid>
 
         <!-- Content -->
         <ScrollViewer Grid.RowSpan="2">
@@ -69,8 +71,8 @@
                             <Button Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
                                     CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE734;"/> <!-- OutlineStar -->
-                                    <TextBlock Text="Favorite"/>
+                                    <FontIcon x:Name="FavoriteIcon" Glyph="&#xE734;"/> <!-- Will be updated dynamically -->
+                                    <TextBlock x:Name="FavoriteText" Text="Favorite"/>
                                 </StackPanel>
                             </Button>
                                     

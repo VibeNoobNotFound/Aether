@@ -6,9 +6,29 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Aether.WinUI.Controls"
     xmlns:models="using:Aether.WinUI.Models"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d">
 
     <Grid>
+        <!-- Blurred Background Layer -->
+        <Grid x:Name="BackgroundLayer">
+            <Image x:Name="BackgroundImage" 
+                   Stretch="UniformToFill" 
+                   Opacity="0.5"/>
+            <!-- Acrylic overlay for depth -->
+            <Rectangle Fill="{ThemeResource DarkAcrylicBackgroundBrush}"/>
+        </Grid>
+
+        <!-- Editing Toolbar -->
+        <CommandBar VerticalAlignment="Top" Background="Transparent" IsOpen="False" DefaultLabelPosition="Right" Margin="0,10,20,0">
+            <CommandBar.Content>
+                <TextBlock Text="Home" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,12,0,0" Opacity="0.8"/>
+            </CommandBar.Content>
+            <AppBarButton Icon="Pictures" Label="Edit Carousel" Click="EditCarousel_Click"/>
+            <AppBarButton Icon="List" Label="Collections" Click="ManageCollections_Click"/>
+            <AppBarButton Icon="Refresh" Label="Scan Library" Command="{x:Bind ViewModel.ScanLibraryCommand}"/>
+        </CommandBar>
+        
         <!-- Empty State -->
         <Grid Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
               HorizontalAlignment="Center" 
@@ -38,7 +58,8 @@
         <ScrollViewer Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
             <StackPanel Spacing="24" Padding="0,0,0,24">
                 <!-- Hero Carousel -->
-                <FlipView Height="400" ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}">
+                <FlipView x:Name="HeroCarousel" Height="400" ItemsSource="{x:Bind ViewModel.CarouselGames, Mode=OneWay}"
+                          SelectionChanged="HeroCarousel_SelectionChanged">
                     <FlipView.ItemTemplate>
                         <DataTemplate x:DataType="models:GameViewModel">
                             <controls:HeroCarouselCard Game="{x:Bind}" />

@@ -221,6 +221,7 @@ public partial class MetadataEditorViewModel : ObservableObject
         Publisher = result.Publisher;
         Description = result.Description;
         CoverImageUrl = result.CoverImageUrl;
+        BackgroundImageUrl = result.BackgroundImageUrl;
 
         if (!string.IsNullOrEmpty(result.LogoImageUrl))
         {
@@ -242,11 +243,6 @@ public partial class MetadataEditorViewModel : ObservableObject
             foreach (var screenshot in result.Screenshots)
             {
                 Screenshots.Add(screenshot);
-            }
-            // Use first screenshot as background if available
-            if (!string.IsNullOrEmpty(result.Screenshots[0]))
-            {
-                BackgroundImageUrl = result.Screenshots[0];
             }
         }
 

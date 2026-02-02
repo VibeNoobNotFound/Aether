@@ -52,6 +52,8 @@ public partial class GameViewModel : ObservableObject
     public Uri? BackgroundImageUri => !string.IsNullOrEmpty(BackgroundImageUrl) && Uri.TryCreate(BackgroundImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
     public Uri? LogoImageUri => !string.IsNullOrEmpty(LogoImageUrl) && Uri.TryCreate(LogoImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
 
+    public string? DisplayBackgroundImageUrl => !string.IsNullOrEmpty(BackgroundImageUrl) ? BackgroundImageUrl : CoverImageUrl;
+
     public static GameViewModel FromProto(Game proto)
     {
         return new GameViewModel

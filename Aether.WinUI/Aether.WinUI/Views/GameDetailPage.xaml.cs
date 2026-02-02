@@ -17,6 +17,28 @@ public sealed partial class GameDetailPage : Page
     public GameDetailPage()
     {
         this.InitializeComponent();
+        this.Loaded += GameDetailPage_Loaded;
+    }
+
+    private void GameDetailPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        UpdateFavoriteButton();
+    }
+
+    private void UpdateFavoriteButton()
+    {
+        if (ViewModel?.SelectedGame == null || FavoriteIcon == null || FavoriteText == null) return;
+
+        if (ViewModel.SelectedGame.IsFavorite)
+        {
+            FavoriteIcon.Glyph = "\uE735"; // Filled star
+            FavoriteText.Text = "Unfavorite";
+        }
+        else
+        {
+            FavoriteIcon.Glyph = "\uE734"; // Outline star
+            FavoriteText.Text = "Favorite";
+        }
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -28,7 +50,20 @@ public sealed partial class GameDetailPage : Page
             System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
             await ViewModel.LoadGameAsync(gameId);
             Bindings.Update(); // Force x:Bind to refresh after SelectedGame is set
-            UpdateImages();
+
+            // Subscribe to property changes
+            if (ViewModel.SelectedGame != null)
+            {
+                ViewModel.SelectedGame.PropertyChanged += (s, args) =>
+                {
+                    if (args.PropertyName == nameof(GameViewModel.IsFavorite))
+                    {
+                        DispatcherQueue.TryEnqueue(UpdateFavoriteButton);
+                    }
+                };
+            }
+
+            UpdateFavoriteButton();
         }
         else
         {
@@ -36,29 +71,7 @@ public sealed partial class GameDetailPage : Page
         }
     }
 
-    private async void UpdateImages()
-    {
-        if (ViewModel.SelectedGame == null) return;
 
-        try
-        {
-            if (ViewModel.SelectedGame.BackgroundImageUrl != null)
-            {
-                var bg = await ImageCache.GetImageAsync(ViewModel.SelectedGame.BackgroundImageUrl);
-                if (bg != null) BackgroundImage.Source = bg;
-            }
-
-            if (ViewModel.SelectedGame.CoverImageUrl != null)
-            {
-                var cover = await ImageCache.GetImageAsync(ViewModel.SelectedGame.CoverImageUrl);
-                if (cover != null) CoverImage.Source = cover;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Failed to load images: {ex.Message}");
-        }
-    }
 
     private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
     {

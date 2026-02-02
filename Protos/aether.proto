@@ -469,6 +469,7 @@ message MetadataSearchResult {
   string logo_image_url = 11;
   repeated string genres = 12;
   int32 metacritic_score = 13;
+  string background_image_url = 14;
 }
 
 message MetadataSettings {

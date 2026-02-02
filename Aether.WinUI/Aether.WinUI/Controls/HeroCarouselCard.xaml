@@ -9,7 +9,7 @@
 
     <Grid CornerRadius="12" Margin="4,0">
         <Image x:Name="HeroImage" Stretch="UniformToFill"
-               attached:ImageCache.Source="{x:Bind Game.CoverImageUrl, Mode=OneWay}"/>
+               attached:ImageCache.Source="{x:Bind Game.BackgroundImageUrl, Mode=OneWay}"/>
         
         <!-- Gradient Overlay -->
         <Border VerticalAlignment="Bottom" Height="140">

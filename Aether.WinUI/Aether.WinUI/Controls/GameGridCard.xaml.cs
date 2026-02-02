@@ -13,13 +13,50 @@ namespace Aether.WinUI.Controls;
 public sealed partial class GameGridCard : UserControl
 {
     public GameViewModel Game { get { return (GameViewModel)GetValue(GameProperty); } set { SetValue(GameProperty, value); } }
-    public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(GameGridCard), new PropertyMetadata(null));
+    public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(GameGridCard), new PropertyMetadata(null, OnGameChanged));
 
     public MainViewModel MainViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
 
     public GameGridCard()
     {
         this.InitializeComponent();
+        this.Loaded += GameGridCard_Loaded;
+    }
+
+    private static void OnGameChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is GameGridCard card && e.NewValue is GameViewModel game)
+        {
+            card.UpdateFavoriteButton();
+            game.PropertyChanged += (s, args) =>
+            {
+                if (args.PropertyName == nameof(GameViewModel.IsFavorite))
+                {
+                    card.UpdateFavoriteButton();
+                }
+            };
+        }
+    }
+
+    private void GameGridCard_Loaded(object sender, RoutedEventArgs e)
+    {
+        UpdateFavoriteButton();
+    }
+
+    private void UpdateFavoriteButton()
+    {
+        if (Game == null || FavoriteMenuItem == null) return;
+
+        if (Game.IsFavorite)
+        {
+            FavoriteMenuItem.Text = "Remove from Favorites";
+            FavoriteMenuItem.Icon = new FontIcon { Glyph = "\uE735" }; // Filled star
+        }
+        else
+        {
+            FavoriteMenuItem.Text = "Add to Favorites";
+            FavoriteMenuItem.Icon = new FontIcon { Glyph = "\uE734" }; // Outline star
+        }
     }
 
     private async void MenuFlyoutItem_Click(object sender, RoutedEventArgs e)

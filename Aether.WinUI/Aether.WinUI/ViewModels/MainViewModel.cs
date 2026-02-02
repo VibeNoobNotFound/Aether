@@ -40,6 +40,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [ObservableProperty] private ObservableCollection<GameViewModel> games = new();
+    [ObservableProperty] private ObservableCollection<GameViewModel> carouselGames = new();
     public bool IsLibraryEmpty => Games.Count == 0;
 
     [ObservableProperty] private ObservableCollection<CollectionViewModel> collections = new();
@@ -93,6 +94,7 @@ public partial class MainViewModel : ObservableObject
     private async Task InitializeDataAsync()
     {
         await RefreshLibraryAsync();
+        _ = LoadCarouselGamesAsync();
         _ = FetchPluginsAsync();
         _ = SubscribeToGameStateAsync();
     }
@@ -123,6 +125,55 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    public async Task LoadCarouselGamesAsync()
+    {
+        try
+        {
+            var call = _grpc.Client.GetCarouselGames(new Empty());
+            var tempCarousel = new ObservableCollection<GameViewModel>();
+
+            await foreach (var gameProto in call.ResponseStream.ReadAllAsync())
+            {
+                tempCarousel.Add(GameViewModel.FromProto(gameProto));
+            }
+
+            _dispatcherQueue.TryEnqueue(() =>
+           {
+               CarouselGames = tempCarousel;
+           });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading carousel games: {ex.Message}");
+        }
+    }
+
+    public async Task<CarouselConfig?> LoadCarouselConfigAsync()
+    {
+        try
+        {
+            return await _grpc.Client.GetCarouselConfigAsync(new Empty());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading carousel config: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task SaveCarouselConfigAsync(CarouselConfig config)
+    {
+        try
+        {
+            await _grpc.Client.SetCarouselConfigAsync(config);
+            await LoadCarouselGamesAsync(); // Refresh locally
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving carousel config: {ex.Message}");
         }
     }
 

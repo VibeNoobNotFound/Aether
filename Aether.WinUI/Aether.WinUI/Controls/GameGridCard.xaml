@@ -13,7 +13,7 @@
             <MenuFlyoutItem Text="Play" Icon="Play" Tag="Launch" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutItem Text="Stop" Icon="Stop" Tag="Stop" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutSeparator />
-            <MenuFlyoutItem Text="Add to Favorites" Icon="OutlineStar" Tag="Favorite" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutItem x:Name="FavoriteMenuItem" Tag="Favorite" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutItem Text="Show in Explorer" Icon="Folder" Tag="ShowInExplorer" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutItem Text="Properties" Icon="Setting" Tag="Properties" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutSeparator />
