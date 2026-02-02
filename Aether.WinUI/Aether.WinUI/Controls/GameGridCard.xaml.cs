@@ -23,6 +23,8 @@ public sealed partial class GameGridCard : UserControl
         this.Loaded += GameGridCard_Loaded;
     }
 
+    public Image CoverImageElement => CoverImage;
+
     private static void OnGameChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is GameGridCard card && e.NewValue is GameViewModel game)

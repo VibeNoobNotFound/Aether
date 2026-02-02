@@ -50,6 +50,14 @@ public sealed partial class GameDetailPage : Page
         if (e.Parameter is string gameId)
         {
             System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
+
+            // Connected Animation
+            var anim = Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().GetAnimation("CoverAnimation");
+            if (anim != null)
+            {
+                anim.TryStart(CoverImage);
+            }
+
             await ViewModel.LoadGameAsync(gameId);
             Bindings.Update();
 

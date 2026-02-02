@@ -42,68 +42,88 @@
         <ScrollViewer x:Name="MainScrollViewer" ViewChanged="MainScrollViewer_ViewChanged">
             <StackPanel>
                 <!-- Ghost Header Space + Title/Actions -->
-                <Grid Height="500" VerticalAlignment="Top">
-                    <StackPanel VerticalAlignment="Bottom" Margin="40,0,40,40" Spacing="24">
-                        <!-- Logo or Title -->
-                        <Grid HorizontalAlignment="Left" Margin="0,0,0,8">
-                            <Image x:Name="LogoImage" 
-                                   attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.LogoImageUrl, Mode=OneWay}"
-                                   MaxHeight="140"
-                                   Stretch="Uniform"
-                                   HorizontalAlignment="Left"
-                                   Visibility="Collapsed"
-                                   ImageOpened="LogoImage_ImageOpened">
-                                <Image.Shadow>
-                                    <ThemeShadow/>
-                                </Image.Shadow>
-                            </Image>
+                <Grid Height="500" VerticalAlignment="Top"> 
+                    <Grid VerticalAlignment="Bottom" Margin="40,0,40,40" ColumnSpacing="24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Cover Image (Target for Connected Animation) -->
+                        <Border CornerRadius="8" Width="160" Height="240" VerticalAlignment="Bottom">
+                            <!-- Could add shadow if desired, but keep simple for smooth animation -->
+                            <Image x:Name="CoverImage" Stretch="UniformToFill"
+                                   attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.CoverImageUrl, Mode=OneWay}"/>
+                        </Border>
+
+                        <!-- Text Content -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="24">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
+                            <!-- Logo or Title -->
+                            <Grid HorizontalAlignment="Left" Margin="0,0,0,8">
+                                <Image x:Name="LogoImage" 
+                                       attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.LogoImageUrl, Mode=OneWay}"
+                                       MaxHeight="140"
+                                       Stretch="Uniform"
+                                       HorizontalAlignment="Left"
+                                       Visibility="Collapsed"
+                                       ImageOpened="LogoImage_ImageOpened">
+                                    <Image.Shadow>
+                                        <ThemeShadow/>
+                                    </Image.Shadow>
+                                </Image>
+                                
+                                <TextBlock x:Name="TitleText" 
+                                           Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
+                                           Style="{StaticResource DisplayTextBlockStyle}" 
+                                           Foreground="White">
+                                    <TextBlock.Shadow>
+                                        <ThemeShadow/>
+                                    </TextBlock.Shadow>
+                                </TextBlock>
+                            </Grid>
                             
-                            <TextBlock x:Name="TitleText" 
-                                       Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
-                                       Style="{StaticResource DisplayTextBlockStyle}" 
-                                       Foreground="White">
-                                <TextBlock.Shadow>
-                                    <ThemeShadow/>
-                                </TextBlock.Shadow>
-                            </TextBlock>
-                        </Grid>
+                            <!-- Metadata Row -->
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                 <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
+                                </Border>
+                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#FFFFFFFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
 
-                        <!-- Metadata Row -->
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                             <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
-                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
-                            </Border>
-                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#FFFFFFFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <!-- Action Buttons -->
+                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                <Button Style="{StaticResource AccentButtonStyle}" 
+                                        Command="{x:Bind ViewModel.LaunchGameCommand}" 
+                                        CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
+                                        Width="140" Height="48" CornerRadius="24">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE768;" FontSize="18"/> <!-- Play -->
+                                        <TextBlock Text="Play" FontSize="16" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                        CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
+                                        Height="48" CornerRadius="24" Padding="16,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon x:Name="FavoriteIcon" Glyph="&#xE734;"/>
+                                        <TextBlock x:Name="FavoriteText" Text="Favorite"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Click="PropertiesButton_Click" Height="48" CornerRadius="24" Padding="16,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE713;"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
-
-                        <!-- Action Buttons -->
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <Button Style="{StaticResource AccentButtonStyle}" 
-                                    Command="{x:Bind ViewModel.LaunchGameCommand}" 
-                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
-                                    Width="140" Height="48" CornerRadius="24">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE768;" FontSize="18"/> <!-- Play -->
-                                    <TextBlock Text="Play" FontSize="16" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
-                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
-                                    Height="48" CornerRadius="24" Padding="16,0">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon x:Name="FavoriteIcon" Glyph="&#xE734;"/>
-                                    <TextBlock x:Name="FavoriteText" Text="Favorite"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Click="PropertiesButton_Click" Height="48" CornerRadius="24" Padding="16,0">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE713;"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
                 
                 <!-- Details Body -->
@@ -115,6 +135,11 @@
                         </Grid.ColumnDefinitions>
                         
                         <StackPanel Spacing="32">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
                             <!-- Media Carousel -->
                              <FlipView Height="400" ItemsSource="{x:Bind ViewModel.SelectedGame.Screenshots, Mode=OneWay}" 
                                        Visibility="Visible" CornerRadius="12">
@@ -149,6 +174,11 @@
                         </StackPanel>
                         
                         <StackPanel Grid.Column="1" Spacing="12">
+                            <StackPanel.ChildrenTransitions>
+                                <TransitionCollection>
+                                    <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
+                                </TransitionCollection>
+                            </StackPanel.ChildrenTransitions>
                             <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
                             
                             <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">

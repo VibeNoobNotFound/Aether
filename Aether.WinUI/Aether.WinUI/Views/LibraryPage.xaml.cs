@@ -19,6 +19,15 @@ public sealed partial class LibraryPage : Page
     {
         if (e.ClickedItem is GameViewModel game)
         {
+            // Prepare Connected Animation
+            if (sender is GridView gridView && gridView.ContainerFromItem(e.ClickedItem) is GridViewItem container)
+            {
+                if (container.ContentTemplateRoot is Controls.GameGridCard card && card.CoverImageElement != null)
+                {
+                    Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
+                }
+            }
+
             ViewModel.GoToGameDetailCommand.Execute(game.Id);
         }
     }

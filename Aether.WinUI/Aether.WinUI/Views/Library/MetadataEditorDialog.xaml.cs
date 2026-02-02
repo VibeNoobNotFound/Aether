@@ -87,7 +87,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
     {
         if (e.Key == Windows.System.VirtualKey.Enter)
         {
-            SearchButton_Click(sender, null);
+            SearchButton_Click(sender, new RoutedEventArgs());
         }
     }
 

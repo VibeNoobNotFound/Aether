@@ -40,7 +40,13 @@
                 <AutoSuggestBox PlaceholderText="Search library..." QueryIcon="Find"/>
             </NavigationView.AutoSuggestBox>
 
-            <Frame x:Name="ContentFrame"/>
+            <Frame x:Name="ContentFrame">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition/>
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
         </NavigationView>
 
         <!-- Status Bar Overlay (Bottom Center) -->

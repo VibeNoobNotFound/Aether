@@ -38,4 +38,6 @@ public sealed partial class HeroCarouselCard : UserControl
     {
         this.InitializeComponent();
     }
+
+    public Image HeroImageElement => HeroImage;
 }
