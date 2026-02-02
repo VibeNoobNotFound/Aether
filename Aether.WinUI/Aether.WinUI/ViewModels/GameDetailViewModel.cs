@@ -25,9 +25,19 @@ public partial class GameDetailViewModel : ObservableObject
 
     public async Task LoadGameAsync(string gameId)
     {
-        // For now, load from MainViewModel cache
-        // In future, fetch fresh details from gRPC
+        System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Loading game: {gameId}");
+        System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] MainViewModel.Games count: {_mainViewModel.Games.Count}");
+
         SelectedGame = _mainViewModel.Games.FirstOrDefault(g => g.Id == gameId);
+
+        if (SelectedGame == null)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Game NOT FOUND in cache!");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Game loaded: {SelectedGame.Title}");
+        }
         await Task.CompletedTask;
     }
 

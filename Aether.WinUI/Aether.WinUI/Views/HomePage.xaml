@@ -55,7 +55,7 @@
                           Padding="24,0">
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="models:GameViewModel">
-                                <controls:GameGridCard Game="{x:Bind}" Width="160" Height="240" Margin="0,0,8,8"/>
+                                <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Width="160" Height="240" Margin="0,0,8,8"/>
                         </DataTemplate>
                     </GridView.ItemTemplate>
                 </GridView>

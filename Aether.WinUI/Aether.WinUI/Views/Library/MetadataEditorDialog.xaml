@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:Aether.WinUI.Models"
+    xmlns:protos="using:Aether.Protos"
     mc:Ignorable="d"
     Title="Edit Metadata"
     PrimaryButtonText="Save"
@@ -21,10 +22,10 @@
         </Style>
     </ContentDialog.Resources>
 
-    <ScrollViewer MaxHeight="600" MinWidth="450">
+    <ScrollViewer MaxHeight="700" MinWidth="500">
         <StackPanel Spacing="12">
-            <!-- Auto-Fill (Future) -->
-            <StackPanel Spacing="8" Visibility="Collapsed"> 
+            <!-- Auto-Fill -->
+            <StackPanel Spacing="8">
                 <TextBlock Text="Auto-Fill" Style="{StaticResource SectionHeaderStyle}" Margin="0,0,0,8"/>
                 <Button ToolTipService.ToolTip="Search Metadata Providers" HorizontalAlignment="Stretch">
                     <Button.Content>
@@ -33,8 +34,63 @@
                             <TextBlock Text="Search Steam, IGDB..."/>
                         </StackPanel>
                     </Button.Content>
+                    <Button.Flyout>
+                        <Flyout x:Name="SearchFlyout" Placement="Bottom">
+                            <StackPanel Width="450" MaxHeight="500" Spacing="12">
+                                <TextBlock Text="Search Metadata Providers" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SearchBox" PlaceholderText="Enter game title..." KeyDown="SearchBox_KeyDown"/>
+                                    <ComboBox x:Name="ProviderComboBox" Grid.Column="1" SelectedIndex="0" MinWidth="120">
+                                        <ComboBoxItem Content="All Providers"/>
+                                        <ComboBoxItem Content="Steam"/>
+                                        <ComboBoxItem Content="IGDB"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Button Content="Search" HorizontalAlignment="Stretch" Click="SearchButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                                <ProgressRing x:Name="SearchProgress" IsActive="False"/>
+                                
+                                <ScrollViewer MaxHeight="300" Visibility="{x:Bind ViewModel.HasSearchResults, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.SearchResults, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="protos:MetadataSearchResult">
+                                                <Button Click="SearchResult_Click" Tag="{x:Bind}" HorizontalAlignment="Stretch" Padding="12" Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="60"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Width="50" Height="70" CornerRadius="4" Background="#20FFFFFF">
+                                                            <Image Source="{x:Bind CoverImageUrl, Mode=OneWay}" Stretch="UniformToFill"/>
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="4">
+                                                            <TextBlock Text="{x:Bind Title, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{x:Bind Developer, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <TextBlock Text="{x:Bind Provider, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                                                <TextBlock Text="{x:Bind ReleaseYear, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock x:Name="SearchStatus" Text="" 
+                                          TextWrapping="Wrap"
+                                          Style="{StaticResource CaptionTextBlockStyle}"
+                                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
                 </Button>
-                <TextBlock Text="Search providers to automatically fill metadata" 
+                <TextBlock Text="Search Steam, IGDB and other providers to automatically fill metadata" 
                            Style="{StaticResource CaptionTextBlockStyle}" 
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             </StackPanel>
@@ -46,21 +102,96 @@
             <TextBox Header="Publisher" Text="{x:Bind ViewModel.Publisher, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             <TextBox Header="Launch Arguments" Text="{x:Bind ViewModel.LaunchArguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             <TextBox Header="Genres (comma separated)" Text="{x:Bind ViewModel.GenresText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-            <NumberBox Header="Metacritic Score" Value="{x:Bind ViewModel.MetacriticScore, Mode=TwoWay}" Minimum="0" Maximum="100"/>
+            <NumberBox Header="Metacritic Score (0-100)" Value="{x:Bind ViewModel.MetacriticScore, Mode=TwoWay}" Minimum="0" Maximum="100"/>
 
             <!-- Images -->
             <TextBlock Text="Images" Style="{StaticResource SectionHeaderStyle}"/>
             <TextBox Header="Cover Image URL" Text="{x:Bind ViewModel.CoverImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-            <!-- Simple preview could go here -->
+            
+            <!-- Cover Image Preview -->
+            <Border Height="150" CornerRadius="8" Background="#10FFFFFF">
+                <Image Source="{x:Bind ViewModel.CoverImageUrl, Mode=OneWay}" Stretch="Uniform"/>
+            </Border>
+
             <TextBox Header="Background Image URL" Text="{x:Bind ViewModel.BackgroundImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             <TextBox Header="Logo Image URL" Text="{x:Bind ViewModel.LogoImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
-            <!-- Cross-Platform -->
-            <TextBlock Text="Cross-Platform News" Style="{StaticResource SectionHeaderStyle}"/>
+            <!-- Cross-Platform News -->
+            <TextBlock Text="Cross-Platform News (Steam ID)" Style="{StaticResource SectionHeaderStyle}"/>
             <TextBox Header="Steam App ID" Text="{x:Bind ViewModel.SteamId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="123450"/>
             <TextBlock Text="Enter a Steam App ID to fetch news for non-Steam games" 
                        Style="{StaticResource CaptionTextBlockStyle}" 
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+            <!-- Videos -->
+            <TextBlock Text="Videos" Style="{StaticResource SectionHeaderStyle}"/>
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Videos, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Grid Margin="0,0,0,8" Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind Mode=OneWay}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Click="RemoveVideo_Click" Tag="{x:Bind Mode=OneWay}" Padding="8">
+                                <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="Red"/>
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="NewVideoUrl" PlaceholderText="Add Video URL"/>
+                <Button Grid.Column="1" Click="AddVideo_Click" Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;"/>
+                        <TextBlock Text="Add"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Screenshots -->
+            <TextBlock Text="Screenshots" Style="{StaticResource SectionHeaderStyle}"/>
+            <ItemsControl ItemsSource="{x:Bind ViewModel.Screenshots, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <StackPanel Margin="0,0,0,12" Spacing="8">
+                            <Grid Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Bind Mode=OneWay}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Click="RemoveScreenshot_Click" Tag="{x:Bind Mode=OneWay}" Padding="8">
+                                    <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="Red"/>
+                                </Button>
+                            </Grid>
+                            <!-- Screenshot Preview -->
+                            <Border Height="100" CornerRadius="8" Background="#10FFFFFF">
+                                <Image Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
+                            </Border>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="NewScreenshotUrl" PlaceholderText="Add Screenshot URL"/>
+                <Button Grid.Column="1" Click="AddScreenshot_Click" Padding="12,8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;"/>
+                        <TextBlock Text="Add"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
 
             <!-- Description -->
             <TextBlock Text="Description" Style="{StaticResource SectionHeaderStyle}"/>

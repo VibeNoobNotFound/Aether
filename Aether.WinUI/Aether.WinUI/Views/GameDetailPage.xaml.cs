@@ -10,7 +10,8 @@ namespace Aether.WinUI.Views;
 
 public sealed partial class GameDetailPage : Page
 {
-    public GameDetailViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<GameDetailViewModel>();
+    private GameDetailViewModel? _viewModel;
+    public GameDetailViewModel ViewModel => _viewModel ??= (Application.Current as App)!.Services.GetRequiredService<GameDetailViewModel>();
     private ImageCacheService ImageCache => (Application.Current as App)!.Services.GetRequiredService<ImageCacheService>();
 
     public GameDetailPage()
@@ -24,8 +25,14 @@ public sealed partial class GameDetailPage : Page
 
         if (e.Parameter is string gameId)
         {
+            System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
             await ViewModel.LoadGameAsync(gameId);
+            Bindings.Update(); // Force x:Bind to refresh after SelectedGame is set
             UpdateImages();
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated without string parameter. Type: {e.Parameter?.GetType()}");
         }
     }
 

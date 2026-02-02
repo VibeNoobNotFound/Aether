@@ -48,9 +48,16 @@ public sealed partial class GameGridCard : UserControl
                     _ = MainViewModel.StopGameCommand.ExecuteAsync(Game.Id);
                     break;
                 case "Properties":
-                    var dialog = new MetadataEditorDialog(Game);
-                    dialog.XamlRoot = this.XamlRoot;
-                    await dialog.ShowAsync();
+                    try
+                    {
+                        var dialog = new MetadataEditorDialog(Game);
+                        dialog.XamlRoot = this.XamlRoot;
+                        await dialog.ShowAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error showing properties: {ex}");
+                    }
                     break;
                 case "Favorite":
                     _ = MainViewModel.ToggleFavoriteCommand.ExecuteAsync(Game.Id);

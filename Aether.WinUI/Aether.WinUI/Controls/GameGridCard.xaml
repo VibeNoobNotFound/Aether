@@ -45,7 +45,7 @@
                         Background="{x:Bind Game.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}"
                         CornerRadius="4" Padding="6,2" Opacity="0.95"
                         Shadow="{StaticResource SharedShadow}">
-                    <TextBlock Text="{x:Bind Game.Platform}" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                    <TextBlock Text="{x:Bind Game.Platform, Mode=OneWay}" FontSize="10" Foreground="White" FontWeight="Bold"/>
                 </Border>
             </Grid>
         </Border>
@@ -69,11 +69,11 @@
 
         <!-- Title & Genres -->
         <StackPanel VerticalAlignment="Bottom" Margin="12,12,12,16">
-            <TextBlock Text="{x:Bind Game.Title}" 
+            <TextBlock Text="{x:Bind Game.Title, Mode=OneWay}" 
                        Foreground="White" 
                        Style="{StaticResource BodyStrongTextBlockStyle}"
                        TextTrimming="CharacterEllipsis"/>
-            <TextBlock Text="{x:Bind Game.GenresText}" 
+            <TextBlock Text="{x:Bind Game.GenresText, Mode=OneWay}" 
                        Style="{StaticResource CaptionTextBlockStyle}"
                        Foreground="White" Opacity="0.75"
                        TextTrimming="CharacterEllipsis" MaxLines="1"/>

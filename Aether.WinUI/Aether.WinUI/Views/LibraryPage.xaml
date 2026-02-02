@@ -80,7 +80,7 @@
                   Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="data:GameViewModel">
-                    <controls:GameGridCard Game="{x:Bind}" Margin="0,0,12,12"/>
+                    <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Margin="0,0,12,12"/>
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
