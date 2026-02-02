@@ -7,32 +7,123 @@
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d">
 
-    <Grid Padding="24">
-        <StackPanel Spacing="12" MaxWidth="800" HorizontalAlignment="Left">
-            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,12"/>
-            
-            <TextBlock Text="General" Style="{StaticResource SubtitleTextBlockStyle}"/>
-            
-            <controls:SettingsCard Header="Appearance" Description="Choose your preferred theme">
-                <ComboBox SelectedIndex="0">
-                    <ComboBoxItem Content="System Default"/>
-                    <ComboBoxItem Content="Dark"/>
-                    <ComboBoxItem Content="Light"/>
-                </ComboBox>
-            </controls:SettingsCard>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <ScrollViewer>
+            <StackPanel Spacing="24" Padding="36" MaxWidth="1000" HorizontalAlignment="Stretch">
+                <!-- Header -->
+                <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,12"/>
 
-            <controls:SettingsCard Header="Backend Connection" Description="Configure how Aether connects to the backend service">
-                <controls:SettingsCard.HeaderIcon>
-                    <FontIcon Glyph="&#xE713;"/>
-                </controls:SettingsCard.HeaderIcon>
-                 <Button Content="Restart Backend"/>
-            </controls:SettingsCard>
-            
-            <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0"/>
+                <!-- About -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Aether" Description="{x:Bind ViewModel.Version}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE70F;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <HyperlinkButton Content="Discord" NavigateUri="https://discord.gg/"/>
+                            <HyperlinkButton Content="GitHub" NavigateUri="https://github.com/"/>
+                            <Button Content="Check for Updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}"/>
+                        </StackPanel>
+                    </controls:SettingsCard>
+                </StackPanel>
 
-            <controls:SettingsCard Header="Aether for Windows" Description="Version 1.0.0-alpha">
-                <HyperlinkButton Content="Check for Updates"/>
-            </controls:SettingsCard>
-        </StackPanel>
+                <!-- Appearance -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Theme" Description="Choose application theme">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE790;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedThemeIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="System Default"/>
+                            <ComboBoxItem Content="Dark"/>
+                            <ComboBoxItem Content="Light"/>
+                        </ComboBox>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- Updates -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Updates" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Automatic Updates" Description="Check for updates automatically on startup">
+                         <controls:SettingsCard.HeaderIcon>
+                             <FontIcon Glyph="&#xE895;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch IsOn="{x:Bind ViewModel.IsAutoUpdateEnabled, Mode=TwoWay}"/>
+                    </controls:SettingsCard>
+                    <controls:SettingsCard Header="Beta Updates" Description="Receive beta builds and experimental features">
+                         <controls:SettingsCard.HeaderIcon>
+                             <FontIcon Glyph="&#xE736;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch IsOn="{x:Bind ViewModel.IncludeBetaUpdates, Mode=TwoWay}"/>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- Library -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Library" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Metadata Sources" Description="Configure where game data is fetched from" IsClickEnabled="True" Command="{x:Bind ViewModel.OpenMetadataSourcesCommand}">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE721;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE76C;"/> 
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                    <controls:SettingsCard Header="Rescan Library" Description="Scan all configured paths for new games" IsClickEnabled="True" Command="{x:Bind ViewModel.RescanLibraryCommand}">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8F3;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                         <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE72C;"/> <!-- Refresh -->
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                    <controls:SettingsCard Header="Clear Library" Description="Remove all games and metadata (Requires rescan)" IsClickEnabled="True" Command="{x:Bind ViewModel.ClearLibraryCommand}">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE74D;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                         <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE74D;"/> <!-- Delete -->
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- Plugins -->
+                 <StackPanel Spacing="8">
+                    <TextBlock Text="Plugins" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Manage Plugins" Description="Open plugin directory to add/remove plugins" IsClickEnabled="True" Command="{x:Bind ViewModel.OpenLogsFolderCommand}">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE74C;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE8B7;"/> <!-- Folder -->
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- Advanced -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Advanced" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <controls:SettingsCard Header="Logs" Description="Open application logs directory" IsClickEnabled="True" Command="{x:Bind ViewModel.OpenLogsFolderCommand}">
+                         <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8F4;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE8B7;"/>
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                     <controls:SettingsCard Header="Factory Reset" Description="Reset all settings and data to default" IsClickEnabled="True" Command="{x:Bind ViewModel.FactoryResetCommand}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7BA;"/>
+                        </controls:SettingsCard.HeaderIcon>
+                        <controls:SettingsCard.ActionIcon>
+                             <FontIcon Glyph="&#xE74D;"/>
+                        </controls:SettingsCard.ActionIcon>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

@@ -21,7 +21,7 @@ public sealed partial class GameDetailPage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        
+
         if (e.Parameter is string gameId)
         {
             await ViewModel.LoadGameAsync(gameId);
@@ -33,16 +33,32 @@ public sealed partial class GameDetailPage : Page
     {
         if (ViewModel.SelectedGame == null) return;
 
-        if (ViewModel.SelectedGame.BackgroundImageUrl != null)
+        try
         {
-            var bg = await ImageCache.GetImageAsync(ViewModel.SelectedGame.BackgroundImageUrl);
-            if (bg != null) BackgroundImage.Source = bg;
-        }
+            if (ViewModel.SelectedGame.BackgroundImageUrl != null)
+            {
+                var bg = await ImageCache.GetImageAsync(ViewModel.SelectedGame.BackgroundImageUrl);
+                if (bg != null) BackgroundImage.Source = bg;
+            }
 
-        if (ViewModel.SelectedGame.CoverImageUrl != null)
-        {
-            var cover = await ImageCache.GetImageAsync(ViewModel.SelectedGame.CoverImageUrl);
-            if (cover != null) CoverImage.Source = cover;
+            if (ViewModel.SelectedGame.CoverImageUrl != null)
+            {
+                var cover = await ImageCache.GetImageAsync(ViewModel.SelectedGame.CoverImageUrl);
+                if (cover != null) CoverImage.Source = cover;
+            }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load images: {ex.Message}");
+        }
+    }
+
+    private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.SelectedGame == null) return;
+
+        var dialog = new Aether.WinUI.Views.Library.MetadataEditorDialog(ViewModel.SelectedGame);
+        dialog.XamlRoot = this.XamlRoot;
+        await dialog.ShowAsync();
     }
 }

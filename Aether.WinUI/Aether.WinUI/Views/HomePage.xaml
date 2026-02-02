@@ -9,7 +9,33 @@
     mc:Ignorable="d">
 
     <Grid>
-        <ScrollViewer>
+        <!-- Empty State -->
+        <Grid Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+              HorizontalAlignment="Center" 
+              VerticalAlignment="Center">
+            <StackPanel Spacing="20" HorizontalAlignment="Center" MaxWidth="500">
+                <FontIcon Glyph="&#xE80F;" FontSize="80" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                
+                <TextBlock Text="Welcome to Aether" 
+                           Style="{StaticResource TitleTextBlockStyle}" 
+                           HorizontalAlignment="Center"/>
+                
+                <TextBlock Text="Your unified game launcher. Head to the Library to scan for games from Steam, Epic Games, and more." 
+                           Style="{StaticResource BodyTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+                
+                <Button Content="Go to Library" 
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.GoToLibraryCommand}"
+                        HorizontalAlignment="Center"
+                        Padding="24,12"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content -->
+        <ScrollViewer Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
             <StackPanel Spacing="24" Padding="0,0,0,24">
                 <!-- Hero Carousel -->
                 <FlipView Height="400" ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}">
@@ -22,20 +48,17 @@
 
                 <TextBlock Text="Recent Games" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,0,0,0"/>
 
-                <!-- Ideally this would be a horizontal list, reusing Library logic or a specific ItemsRepeater -->
-                <!-- For now, just a placeholder or simple ItemsControl with horizontal stack panel -->
-                 <ItemsControl ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="24,0"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
+                <GridView ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}"
+                          SelectionMode="None"
+                          IsItemClickEnabled="True"
+                          ItemClick="GridView_ItemClick"
+                          Padding="24,0">
+                    <GridView.ItemTemplate>
                         <DataTemplate x:DataType="models:GameViewModel">
-                             <controls:GameGridCard Game="{x:Bind}" Width="160" Height="240"/>
+                                <controls:GameGridCard Game="{x:Bind}" Width="160" Height="240" Margin="0,0,8,8"/>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </GridView.ItemTemplate>
+                </GridView>
             </StackPanel>
         </ScrollViewer>
     </Grid>

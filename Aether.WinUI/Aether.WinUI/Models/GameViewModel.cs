@@ -30,15 +30,27 @@ public partial class GameViewModel : ObservableObject
     [ObservableProperty] private string? coverImageUrl;
     [ObservableProperty] private string? backgroundImageUrl;
     [ObservableProperty] private string? logoImageUrl;
+    [ObservableProperty] private string[] screenshots = Array.Empty<string>();
+    [ObservableProperty] private string[] videos = Array.Empty<string>();
 
     // Collections
     [ObservableProperty] private string[] genres = Array.Empty<string>();
 
+    // Advanced Metadata
+    [ObservableProperty] private string? steamId;
+    [ObservableProperty] private string? launchArguments;
+    [ObservableProperty] private int playCount;
+    [ObservableProperty] private long releaseDateUnix;
+
     // Computed Properties
     public string FormattedPlaytime => TimeSpan.FromSeconds(TotalPlaytimeSeconds).ToString(@"hh\:mm");
-    public Uri? CoverImageUri => !string.IsNullOrEmpty(CoverImageUrl) ? new Uri(CoverImageUrl) : null;
-    public Uri? BackgroundImageUri => !string.IsNullOrEmpty(BackgroundImageUrl) ? new Uri(BackgroundImageUrl) : null;
-    public Uri? LogoImageUri => !string.IsNullOrEmpty(LogoImageUrl) ? new Uri(LogoImageUrl) : null;
+    public string FormattedReleaseDate => ReleaseDateUnix > 0 ? DateTimeOffset.FromUnixTimeSeconds(ReleaseDateUnix).ToString("MMM dd, yyyy") : "Unknown";
+    public string FormattedLastPlayed => LastPlayed?.ToString("MMM dd, yyyy") ?? "Never";
+    public string GenresText => string.Join(", ", Genres ?? Array.Empty<string>());
+
+    public Uri? CoverImageUri => !string.IsNullOrEmpty(CoverImageUrl) && Uri.TryCreate(CoverImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
+    public Uri? BackgroundImageUri => !string.IsNullOrEmpty(BackgroundImageUrl) && Uri.TryCreate(BackgroundImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
+    public Uri? LogoImageUri => !string.IsNullOrEmpty(LogoImageUrl) && Uri.TryCreate(LogoImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
 
     public static GameViewModel FromProto(Game proto)
     {
@@ -61,7 +73,13 @@ public partial class GameViewModel : ObservableObject
             CoverImageUrl = proto.CoverImageUrl,
             BackgroundImageUrl = proto.BackgroundImageUrl,
             LogoImageUrl = proto.LogoImageUrl,
-            Genres = proto.Genres.ToArray()
+            Genres = proto.Genres.ToArray(),
+            Screenshots = proto.Screenshots.ToArray(),
+            Videos = proto.Videos.ToArray(),
+            SteamId = proto.SteamId,
+            LaunchArguments = proto.LaunchArguments,
+            PlayCount = proto.PlayCount,
+            ReleaseDateUnix = proto.ReleaseDateUnix
         };
     }
 }

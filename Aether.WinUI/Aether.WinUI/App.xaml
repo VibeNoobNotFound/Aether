@@ -18,6 +18,9 @@
             <converters:StringFormatConverter x:Key="StringFormatConverter" />
             <converters:GameStateToVisibilityConverter x:Key="GameStateToVisibilityConverter" />
             <converters:GameStateToBoolConverter x:Key="GameStateToBoolConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:PlatformToColorConverter x:Key="PlatformToColorConverter" />
+            <ThemeShadow x:Key="SharedShadow" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

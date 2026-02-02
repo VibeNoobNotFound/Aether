@@ -13,4 +13,12 @@ public sealed partial class HomePage : Page
     {
         this.InitializeComponent();
     }
+
+    private void GridView_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Models.GameViewModel game)
+        {
+            ViewModel.GoToGameDetail(game.Id);
+        }
+    }
 }

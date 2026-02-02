@@ -11,6 +11,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
 namespace Aether.WinUI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -19,8 +22,9 @@ public partial class MainViewModel : ObservableObject
     private readonly BackendManager _backend;
     private readonly DispatcherQueue _dispatcherQueue;
 
-    // Navigation Event
+    // Navigation Events
     public event EventHandler<string>? NavigateToGameDetailRequested;
+    public event EventHandler? NavigateToLibraryRequested;
 
     [RelayCommand]
     public void GoToGameDetail(string gameId)
@@ -28,7 +32,16 @@ public partial class MainViewModel : ObservableObject
         NavigateToGameDetailRequested?.Invoke(this, gameId);
     }
 
+    [RelayCommand]
+    public void GoToLibrary()
+    {
+        CurrentScreen = AppScreen.Library;
+        NavigateToLibraryRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     [ObservableProperty] private ObservableCollection<GameViewModel> games = new();
+    public bool IsLibraryEmpty => Games.Count == 0;
+
     [ObservableProperty] private ObservableCollection<CollectionViewModel> collections = new();
     [ObservableProperty] private ObservableCollection<PluginViewModel> plugins = new();
 
@@ -45,11 +58,16 @@ public partial class MainViewModel : ObservableObject
     // Streaming Cancellation Tokens
     private CancellationTokenSource? _gameStateCts;
 
-    public MainViewModel(GrpcClientService grpc, BackendManager backend)
+    private readonly ILogger<MainViewModel> _logger;
+
+    public MainViewModel(GrpcClientService grpc, BackendManager backend, ILogger<MainViewModel> logger)
     {
         _grpc = grpc;
         _backend = backend;
+        _logger = logger;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+
+        _logger.LogInformation("MainViewModel initialized");
 
         // Bind backend state
         _backend.PropertyChanged += (s, e) =>
@@ -75,6 +93,7 @@ public partial class MainViewModel : ObservableObject
     private async Task InitializeDataAsync()
     {
         await RefreshLibraryAsync();
+        _ = FetchPluginsAsync();
         _ = SubscribeToGameStateAsync();
     }
 
@@ -97,12 +116,83 @@ public partial class MainViewModel : ObservableObject
             _dispatcherQueue.TryEnqueue(() =>
             {
                 Games = tempGames;
+                OnPropertyChanged(nameof(IsLibraryEmpty));
                 StatusMessage = "Ready";
             });
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task ToggleFavorite(string gameId)
+    {
+        try
+        {
+            await _grpc.Client.ToggleFavoriteAsync(new GameId { Id = gameId });
+            // Update local state
+            var game = Games.FirstOrDefault(g => g.Id == gameId);
+            if (game != null)
+            {
+                game.IsFavorite = !game.IsFavorite;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to toggle favorite");
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenGameLocation(string gameId)
+    {
+        try
+        {
+            await _grpc.Client.OpenGameLocationAsync(new GameId { Id = gameId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to open game location");
+        }
+    }
+
+    [RelayCommand]
+    public async Task RemoveGame(string gameId)
+    {
+        try
+        {
+            await _grpc.Client.RemoveGameAsync(new GameId { Id = gameId });
+            var game = Games.FirstOrDefault(g => g.Id == gameId);
+            if (game != null)
+            {
+                Games.Remove(game);
+                OnPropertyChanged(nameof(IsLibraryEmpty));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove game");
+        }
+    }
+
+    private async Task FetchPluginsAsync()
+    {
+        try
+        {
+            var response = await _grpc.Client.GetPluginsAsync(new Empty());
+            var list = response.Plugins.Select(PluginViewModel.FromProto).ToList();
+
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                Plugins = new ObservableCollection<PluginViewModel>(list);
+            });
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            System.Diagnostics.Debug.WriteLine($"Failed to fetch plugins: {ex.Message}");
         }
     }
 

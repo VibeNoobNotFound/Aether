@@ -40,10 +40,17 @@
                                    Foreground="White"/>
                         
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#CCFFFFFF"/>
-                            <TextBlock Text="•" Foreground="#CCFFFFFF"/>
-                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter='{}{0} played'}" Foreground="#CCFFFFFF"/>
+                            <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
+                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
+                            </Border>
+                            <TextBlock Text="•" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock Text="•" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
+                             <TextBlock Text="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter='{}{0} played'}" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
                         </StackPanel>
+                        
+                        <!-- Genres Flow -->
+                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.GenresText, Mode=OneWay}" Foreground="#99FFFFFF" Margin="0,4,0,0"/>
 
                         <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,16,0,0">
                             <Button Style="{StaticResource AccentButtonStyle}" 
@@ -64,7 +71,7 @@
                                 </StackPanel>
                             </Button>
                                     
-                            <Button>
+                            <Button Click="PropertiesButton_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE713;"/> <!-- Setting -->
                                     <TextBlock Text="Properties"/>
@@ -82,15 +89,42 @@
                     </Grid.ColumnDefinitions>
                     
                     <StackPanel Spacing="24">
+                        <!-- Media Carousel -->
+                         <FlipView Height="400" ItemsSource="{x:Bind ViewModel.SelectedGame.Screenshots, Mode=OneWay}" 
+                                   Visibility="Visible" CornerRadius="8">
+                            <FlipView.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Image Source="{x:Bind}" Stretch="Uniform"/>
+                                </DataTemplate>
+                            </FlipView.ItemTemplate>
+                        </FlipView>
+
                         <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
                         <TextBlock Text="{x:Bind ViewModel.SelectedGame.Description, Mode=OneWay}" 
-                                   TextWrapping="Wrap" Foreground="#E6FFFFFF"/>
+                                   TextWrapping="Wrap" Foreground="#E6FFFFFF" FontSize="14" LineHeight="24"/>
                     </StackPanel>
                     
-                    <StackPanel Grid.Column="1" Spacing="24">
-                        <uc:UpdateStatusPill Visibility="Collapsed"/> 
-                        <!-- Reusing components if needed -->
+                    <StackPanel Grid.Column="1" Spacing="12">
+                        <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
                         
+                        <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">
+                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE787;"/></controls:SettingsCard.HeaderIcon>
+                        </controls:SettingsCard>
+                        
+                        <controls:SettingsCard Header="Playtime" Description="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay}">
+                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE916;"/></controls:SettingsCard.HeaderIcon>
+                        </controls:SettingsCard>
+                        
+                         <controls:SettingsCard Header="Last Played" Description="{x:Bind ViewModel.SelectedGame.FormattedLastPlayed, Mode=OneWay}">
+                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE81C;"/></controls:SettingsCard.HeaderIcon>
+                        </controls:SettingsCard>
+                        
+                        <controls:SettingsCard Header="Play Count" Description="{x:Bind ViewModel.SelectedGame.PlayCount, Mode=OneWay}">
+                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE9D2;"/></controls:SettingsCard.HeaderIcon>
+                        </controls:SettingsCard>
+
+                        <MenuFlyoutSeparator Margin="0,12"/>
+
                         <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
                         <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
                         <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>

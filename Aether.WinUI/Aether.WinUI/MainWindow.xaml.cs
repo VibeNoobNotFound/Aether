@@ -26,6 +26,20 @@ public sealed partial class MainWindow : Window
             NavView.IsBackButtonVisible = NavigationViewBackButtonVisible.Visible;
         };
 
+        ViewModel.NavigateToLibraryRequested += (s, e) =>
+        {
+            ContentFrame.Navigate(typeof(LibraryPage));
+            // Update nav selection to Library
+            foreach (var item in NavView.MenuItems.OfType<NavigationViewItem>())
+            {
+                if (item.Tag?.ToString() == "Library")
+                {
+                    NavView.SelectedItem = item;
+                    break;
+                }
+            }
+        };
+
         NavView.BackRequested += (s, e) =>
         {
             if (ContentFrame.CanGoBack)

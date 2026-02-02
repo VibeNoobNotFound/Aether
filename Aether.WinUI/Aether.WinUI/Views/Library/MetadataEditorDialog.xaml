@@ -1,0 +1,72 @@
+<ContentDialog
+    x:Class="Aether.WinUI.Views.Library.MetadataEditorDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Aether.WinUI.Models"
+    mc:Ignorable="d"
+    Title="Edit Metadata"
+    PrimaryButtonText="Save"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    Style="{StaticResource DefaultContentDialogStyle}">
+
+    <ContentDialog.Resources>
+        <Style TargetType="TextBlock" x:Key="SectionHeaderStyle">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,24,0,8"/>
+        </Style>
+    </ContentDialog.Resources>
+
+    <ScrollViewer MaxHeight="600" MinWidth="450">
+        <StackPanel Spacing="12">
+            <!-- Auto-Fill (Future) -->
+            <StackPanel Spacing="8" Visibility="Collapsed"> 
+                <TextBlock Text="Auto-Fill" Style="{StaticResource SectionHeaderStyle}" Margin="0,0,0,8"/>
+                <Button ToolTipService.ToolTip="Search Metadata Providers" HorizontalAlignment="Stretch">
+                    <Button.Content>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE721;"/>
+                            <TextBlock Text="Search Steam, IGDB..."/>
+                        </StackPanel>
+                    </Button.Content>
+                </Button>
+                <TextBlock Text="Search providers to automatically fill metadata" 
+                           Style="{StaticResource CaptionTextBlockStyle}" 
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+
+            <!-- Basic Info -->
+            <TextBlock Text="Basic Info" Style="{StaticResource SectionHeaderStyle}" Margin="0,0,0,8"/>
+            <TextBox Header="Title" Text="{x:Bind ViewModel.Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Header="Developer" Text="{x:Bind ViewModel.Developer, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Header="Publisher" Text="{x:Bind ViewModel.Publisher, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Header="Launch Arguments" Text="{x:Bind ViewModel.LaunchArguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Header="Genres (comma separated)" Text="{x:Bind ViewModel.GenresText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <NumberBox Header="Metacritic Score" Value="{x:Bind ViewModel.MetacriticScore, Mode=TwoWay}" Minimum="0" Maximum="100"/>
+
+            <!-- Images -->
+            <TextBlock Text="Images" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBox Header="Cover Image URL" Text="{x:Bind ViewModel.CoverImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <!-- Simple preview could go here -->
+            <TextBox Header="Background Image URL" Text="{x:Bind ViewModel.BackgroundImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBox Header="Logo Image URL" Text="{x:Bind ViewModel.LogoImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <!-- Cross-Platform -->
+            <TextBlock Text="Cross-Platform News" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBox Header="Steam App ID" Text="{x:Bind ViewModel.SteamId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="123450"/>
+            <TextBlock Text="Enter a Steam App ID to fetch news for non-Steam games" 
+                       Style="{StaticResource CaptionTextBlockStyle}" 
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+            <!-- Description -->
+            <TextBlock Text="Description" Style="{StaticResource SectionHeaderStyle}"/>
+            <TextBox Text="{x:Bind ViewModel.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
