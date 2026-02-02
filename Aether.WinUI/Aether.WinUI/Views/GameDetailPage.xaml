@@ -11,132 +11,179 @@
     mc:Ignorable="d">
 
     <Grid>
-        <!-- Background Image with Blur/Parallax effect -->
-        <Grid.RowDefinitions>
-            <RowDefinition Height="300"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <Grid x:Name="BackgroundLayer" Grid.RowSpan="2" Height="400" VerticalAlignment="Top">
-            <Image x:Name="BackgroundImage" Stretch="UniformToFill" Opacity="0.5"
+        <!-- 1. Liquid Background (Fixed) -->
+        <Grid x:Name="BackgroundLayer">
+            <Image Stretch="UniformToFill" Opacity="0.4"
                    attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.DisplayBackgroundImageUrl, Mode=OneWay}"/>
-            <!-- Acrylic overlay -->
-            <Rectangle Fill="{ThemeResource DarkAcrylicBackgroundBrush}"/>
+            <!-- Dark Overlay for readability -->
+            <Rectangle Fill="#99000000"/>
         </Grid>
 
-        <!-- Content -->
-        <ScrollViewer Grid.RowSpan="2">
-            <StackPanel Padding="40,200,40,40"> 
-                <!-- Header Section -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+        <!-- 2. Parallax Header Image -->
+        <ParallaxView Source="{x:Bind MainScrollViewer}" VerticalShift="100">
+            <Grid Height="600" VerticalAlignment="Top">
+                <Image x:Name="HeaderImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="600"
+                       attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.DisplayBackgroundImageUrl, Mode=OneWay}"/>
+                
+                <!-- Bottom Gradient Fade -->
+                <Border VerticalAlignment="Bottom" Height="300">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                            <GradientStop Color="#00000000" Offset="0"/>
+                            <GradientStop Color="#CC000000" Offset="0.8"/>
+                            <GradientStop Color="#FF000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+            </Grid>
+        </ParallaxView>
 
-                    <Image x:Name="CoverImage" Width="160" Height="240" Stretch="UniformToFill" 
-                           VerticalAlignment="Bottom" Margin="0,0,24,0"
-                           attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.CoverImageUrl, Mode=OneWay}"/>
-                    
-                    <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="8">
-                         <!-- Logo or Title -->
-                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
-                                   Style="{StaticResource DisplayTextBlockStyle}" 
-                                   Foreground="White"/>
-                        
+        <!-- 3. Scrollable Content -->
+        <ScrollViewer x:Name="MainScrollViewer" ViewChanged="MainScrollViewer_ViewChanged">
+            <StackPanel>
+                <!-- Ghost Header Space + Title/Actions -->
+                <Grid Height="500" VerticalAlignment="Top">
+                    <StackPanel VerticalAlignment="Bottom" Margin="40,0,40,40" Spacing="24">
+                        <!-- Logo or Title -->
+                        <Grid HorizontalAlignment="Left" Margin="0,0,0,8">
+                            <Image x:Name="LogoImage" 
+                                   attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.LogoImageUrl, Mode=OneWay}"
+                                   MaxHeight="140"
+                                   Stretch="Uniform"
+                                   HorizontalAlignment="Left"
+                                   Visibility="Collapsed"
+                                   ImageOpened="LogoImage_ImageOpened">
+                                <Image.Shadow>
+                                    <ThemeShadow/>
+                                </Image.Shadow>
+                            </Image>
+                            
+                            <TextBlock x:Name="TitleText" 
+                                       Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
+                                       Style="{StaticResource DisplayTextBlockStyle}" 
+                                       Foreground="White">
+                                <TextBlock.Shadow>
+                                    <ThemeShadow/>
+                                </TextBlock.Shadow>
+                            </TextBlock>
+                        </Grid>
+
+                        <!-- Metadata Row -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
+                             <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
                                 <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
                             </Border>
-                            <TextBlock Text="•" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
-                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
-                            <TextBlock Text="•" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
-                             <TextBlock Text="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter='{}{0} played'}" Foreground="#CCFFFFFF" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#FFFFFFFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </StackPanel>
-                        
-                        <!-- Genres Flow -->
-                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.GenresText, Mode=OneWay}" Foreground="#99FFFFFF" Margin="0,4,0,0"/>
 
-                        <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,16,0,0">
+                        <!-- Action Buttons -->
+                        <StackPanel Orientation="Horizontal" Spacing="16">
                             <Button Style="{StaticResource AccentButtonStyle}" 
                                     Command="{x:Bind ViewModel.LaunchGameCommand}" 
                                     CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
-                                    Width="120" Height="40">
+                                    Width="140" Height="48" CornerRadius="24">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE768;" FontSize="16"/> <!-- Play -->
-                                    <TextBlock Text="Play"/>
+                                    <FontIcon Glyph="&#xE768;" FontSize="18"/> <!-- Play -->
+                                    <TextBlock Text="Play" FontSize="16" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Button>
-                            
-                            <Button Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
-                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}">
+
+                            <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
+                                    Height="48" CornerRadius="24" Padding="16,0">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon x:Name="FavoriteIcon" Glyph="&#xE734;"/> <!-- Will be updated dynamically -->
+                                    <FontIcon x:Name="FavoriteIcon" Glyph="&#xE734;"/>
                                     <TextBlock x:Name="FavoriteText" Text="Favorite"/>
                                 </StackPanel>
                             </Button>
-                                    
-                            <Button Click="PropertiesButton_Click">
+
+                            <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Click="PropertiesButton_Click" Height="48" CornerRadius="24" Padding="16,0">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE713;"/> <!-- Setting -->
-                                    <TextBlock Text="Properties"/>
+                                    <FontIcon Glyph="&#xE713;"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
                 
-                <!-- Details Section -->
-                <Grid Margin="0,40,0,0" ColumnSpacing="24">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="1*"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Spacing="24">
-                        <!-- Media Carousel -->
-                         <FlipView Height="400" ItemsSource="{x:Bind ViewModel.SelectedGame.Screenshots, Mode=OneWay}" 
-                                   Visibility="Visible" CornerRadius="8">
-                            <FlipView.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <Image attached:ImageCache.Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
-                                </DataTemplate>
-                            </FlipView.ItemTemplate>
-                        </FlipView>
+                <!-- Details Body -->
+                <Grid BorderThickness="1" BorderBrush="{ThemeResource AppBarBorderThemeBrush}" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="24" Padding="40" Margin="20,-20,20,0">
+                     <Grid ColumnSpacing="40">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Spacing="32">
+                            <!-- Media Carousel -->
+                             <FlipView Height="400" ItemsSource="{x:Bind ViewModel.SelectedGame.Screenshots, Mode=OneWay}" 
+                                       Visibility="Visible" CornerRadius="12">
+                                <FlipView.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Image attached:ImageCache.Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
+                                    </DataTemplate>
+                                </FlipView.ItemTemplate>
+                            </FlipView>
 
-                        <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.Description, Mode=OneWay}" 
-                                   TextWrapping="Wrap" Foreground="#E6FFFFFF" FontSize="14" LineHeight="24"/>
-                    </StackPanel>
-                    
-                    <StackPanel Grid.Column="1" Spacing="12">
-                        <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.Description, Mode=OneWay}" 
+                                           TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
+                                           FontSize="15" LineHeight="26"/>
+                            </StackPanel>
+                            
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Genres, Mode=OneWay}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapGrid Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="12,6" Margin="0,0,8,8">
+                                            <TextBlock Text="{x:Bind Mode=OneWay}" FontSize="12"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                         
-                        <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">
-                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE787;"/></controls:SettingsCard.HeaderIcon>
-                        </controls:SettingsCard>
-                        
-                        <controls:SettingsCard Header="Playtime" Description="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay}">
-                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE916;"/></controls:SettingsCard.HeaderIcon>
-                        </controls:SettingsCard>
-                        
-                         <controls:SettingsCard Header="Last Played" Description="{x:Bind ViewModel.SelectedGame.FormattedLastPlayed, Mode=OneWay}">
-                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE81C;"/></controls:SettingsCard.HeaderIcon>
-                        </controls:SettingsCard>
-                        
-                        <controls:SettingsCard Header="Play Count" Description="{x:Bind ViewModel.SelectedGame.PlayCount, Mode=OneWay}">
-                             <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE9D2;"/></controls:SettingsCard.HeaderIcon>
-                        </controls:SettingsCard>
+                        <StackPanel Grid.Column="1" Spacing="12">
+                            <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
+                            
+                            <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">
+                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE787;"/></controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+                            
+                            <controls:SettingsCard Header="Playtime" Description="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay}">
+                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE916;"/></controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+                            
+                             <controls:SettingsCard Header="Last Played" Description="{x:Bind ViewModel.SelectedGame.FormattedLastPlayed, Mode=OneWay}">
+                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE81C;"/></controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
+                            
+                            <controls:SettingsCard Header="Play Count" Description="{x:Bind ViewModel.SelectedGame.PlayCount, Mode=OneWay}">
+                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE9D2;"/></controls:SettingsCard.HeaderIcon>
+                            </controls:SettingsCard>
 
-                        <MenuFlyoutSeparator Margin="0,12"/>
+                            <MenuFlyoutSeparator Margin="0,12"/>
 
-                        <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
-                        <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
-                        <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
-                        
-                    </StackPanel>
+                            <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
+                            <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
+                            <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
+                
+                <!-- Bottom Spacer -->
+                <Grid Height="100"/>
             </StackPanel>
         </ScrollViewer>
+
+        <!-- 4. Sticky Header (Acrylic when scrolled) -->
+        <Grid x:Name="StickyHeader" Height="80" VerticalAlignment="Top" Background="Transparent">
+             <!-- Could add Back button here if navigating deeper, for now just empty or could have title fade in -->
+        </Grid>
     </Grid>
 </Page>

@@ -7,6 +7,7 @@
     xmlns:controls="using:Aether.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ctkc="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d"
     Title="Aether">
 
@@ -15,8 +16,17 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <NavigationView x:Name="NavView"
-                        PaneDisplayMode="Left"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <ctkc:TitleBar Margin="6,12" AutoConfigureCustomTitleBar="True" IsPaneButtonVisible="True" x:Name="title" VerticalAlignment="Top" Title="Aether"/>
+        <!-- Custom Title Bar -->
+        <NavigationView
+            Grid.Row="1"
+            x:Name="NavView"
+            IsPaneToggleButtonVisible="False"
+                        PaneDisplayMode="Top"
                         IsBackButtonVisible="Collapsed"
                         SelectionChanged="NavView_SelectionChanged"
                         Loaded="NavView_Loaded">
@@ -25,10 +35,6 @@
                 <NavigationViewItem Tag="Library" Content="Library" Icon="Library"/>
                 <NavigationViewItem Tag="Store" Content="Store" Icon="Shop"/>
             </NavigationView.MenuItems>
-
-            <NavigationView.FooterMenuItems>
-                <NavigationViewItem Tag="Settings" Content="Settings" Icon="Setting"/>
-            </NavigationView.FooterMenuItems>
 
             <NavigationView.AutoSuggestBox>
                 <AutoSuggestBox PlaceholderText="Search library..." QueryIcon="Find"/>

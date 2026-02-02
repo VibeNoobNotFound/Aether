@@ -29,7 +29,7 @@ public sealed partial class SettingsActionCard : UserControl
     public static readonly DependencyProperty IconGlyphProperty =
         DependencyProperty.Register("IconGlyph", typeof(string), typeof(SettingsActionCard), new PropertyMetadata("\uE700")); // Default icon
 
-    public event RoutedEventHandler Click;
+    public event RoutedEventHandler? Click;
 
     public SettingsActionCard()
     {

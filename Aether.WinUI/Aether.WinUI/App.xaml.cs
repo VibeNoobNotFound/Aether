@@ -26,7 +26,6 @@ public partial class App : Application
             .CreateLogger();
 
         Log.Information("Starting Aether.WinUI...");
-
         // Global Exception Handlers
         this.UnhandledException += App_UnhandledException;
 
@@ -68,6 +67,8 @@ public partial class App : Application
             MainWindow = new MainWindow();
             MainWindow.Activate();
 
+            MainWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+            MainWindow.AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
             // Start Backend
             var backend = Services.GetRequiredService<BackendManager>();
             await backend.StartAsync();

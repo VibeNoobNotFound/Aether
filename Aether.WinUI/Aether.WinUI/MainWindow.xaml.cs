@@ -23,7 +23,7 @@ public sealed partial class MainWindow : Window
             ContentFrame.Navigate(typeof(GameDetailPage), gameId);
             NavView.SelectedItem = null; // Clear selection as we are in detail view
             // Optionally enable back button
-            NavView.IsBackButtonVisible = NavigationViewBackButtonVisible.Visible;
+            title.IsBackButtonVisible = true;
         };
 
         ViewModel.NavigateToLibraryRequested += (s, e) =>
@@ -38,16 +38,28 @@ public sealed partial class MainWindow : Window
                     break;
                 }
             }
+            title.IsBackButtonVisible = false;
         };
 
-        NavView.BackRequested += (s, e) =>
+        title.BackButtonClick += (_, _) =>
         {
             if (ContentFrame.CanGoBack)
-            {
                 ContentFrame.GoBack();
-                NavView.IsBackButtonVisible = ContentFrame.CanGoBack ? NavigationViewBackButtonVisible.Visible : NavigationViewBackButtonVisible.Collapsed;
-            }
+            
+            title.IsBackButtonVisible = false; // Hide back button after going back once
+
         };
+
+
+        title.PaneButtonClick += (_, _) =>
+        {
+            if (NavView.PaneDisplayMode == NavigationViewPaneDisplayMode.Left)
+                NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftCompact;
+            else if (NavView.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftCompact)
+                NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
+            // No action for Top mode
+        };
+
     }
 
     private void NavView_Loaded(object sender, RoutedEventArgs e)
@@ -84,6 +96,7 @@ public sealed partial class MainWindow : Window
                     ViewModel.CurrentScreen = AppScreen.Store;
                     break;
             }
+            title.IsBackButtonVisible = false;
         }
     }
 }

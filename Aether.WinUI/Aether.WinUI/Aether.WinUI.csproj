@@ -15,7 +15,9 @@
 
   <ItemGroup>
     <!-- MVVM Toolkit -->
+    <PackageReference Include="CommunityToolkit.Labs.WinUI.TitleBar" Version="0.0.1-build.2212" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.Primitives" Version="8.2.251219" />
     
     <!-- WinUI Community Toolkit Controls -->
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />

@@ -9,11 +9,11 @@
     xmlns:models="using:Aether.WinUI.Models"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid>
         <!-- Subtle Background Blobs (Optional - can be done with specialized controls but stick to simple for now) -->
         
         <ScrollViewer>
-            <StackPanel Spacing="32" Padding="40" MaxWidth="900" HorizontalAlignment="Stretch">
+            <StackPanel Spacing="32" Padding="40" HorizontalAlignment="Stretch">
                 
                 <!-- Header -->
                 <StackPanel Spacing="8" Margin="0,20,0,0">

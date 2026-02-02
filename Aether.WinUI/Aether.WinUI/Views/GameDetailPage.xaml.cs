@@ -32,7 +32,7 @@ public sealed partial class GameDetailPage : Page
         if (ViewModel.SelectedGame.IsFavorite)
         {
             FavoriteIcon.Glyph = "\uE735"; // Filled star
-            FavoriteText.Text = "Unfavorite";
+            FavoriteText.Text = "Unfavorite"; // Could bind this too
         }
         else
         {
@@ -45,13 +45,14 @@ public sealed partial class GameDetailPage : Page
     {
         base.OnNavigatedTo(e);
 
+        ResetLogoState();
+
         if (e.Parameter is string gameId)
         {
             System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
             await ViewModel.LoadGameAsync(gameId);
-            Bindings.Update(); // Force x:Bind to refresh after SelectedGame is set
+            Bindings.Update();
 
-            // Subscribe to property changes
             if (ViewModel.SelectedGame != null)
             {
                 ViewModel.SelectedGame.PropertyChanged += (s, args) =>
@@ -65,13 +66,34 @@ public sealed partial class GameDetailPage : Page
 
             UpdateFavoriteButton();
         }
+    }
+
+    private void MainScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (StickyHeader == null) return;
+
+        // Simple threshold for sticky header acrylic
+        if (MainScrollViewer.VerticalOffset > 10)
+        {
+            StickyHeader.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["DarkAcrylicBackgroundBrush"];
+        }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated without string parameter. Type: {e.Parameter?.GetType()}");
+            StickyHeader.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
         }
     }
 
+    private void LogoImage_ImageOpened(object sender, RoutedEventArgs e)
+    {
+        if (LogoImage != null) LogoImage.Visibility = Visibility.Visible;
+        if (TitleText != null) TitleText.Visibility = Visibility.Collapsed;
+    }
 
+    private void ResetLogoState()
+    {
+        if (LogoImage != null) LogoImage.Visibility = Visibility.Collapsed;
+        if (TitleText != null) TitleText.Visibility = Visibility.Visible;
+    }
 
     private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
     {

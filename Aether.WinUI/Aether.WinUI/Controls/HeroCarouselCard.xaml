@@ -22,7 +22,13 @@
         </Border>
 
         <StackPanel VerticalAlignment="Bottom" Margin="24,0,24,24" Spacing="8">
-            <TextBlock Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"/>
+            <Image x:Name="LogoImage" 
+                   attached:ImageCache.Source="{x:Bind Game.LogoImageUrl, Mode=OneWay}"
+                   MaxHeight="80"
+                   HorizontalAlignment="Left"
+                   Visibility="Collapsed"
+                   ImageOpened="LogoImage_ImageOpened"/>
+            <TextBlock x:Name="TitleText" Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"/>
             <Button Content="Play Now" 
                     Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}" 
                     CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
