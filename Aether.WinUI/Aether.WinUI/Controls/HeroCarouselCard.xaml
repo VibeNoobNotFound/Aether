@@ -1,0 +1,32 @@
+<UserControl
+    x:Class="Aether.WinUI.Controls.HeroCarouselCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid CornerRadius="12" Margin="4,0">
+        <Image x:Name="HeroImage" Stretch="UniformToFill"/>
+        
+        <!-- Gradient Overlay -->
+        <Border VerticalAlignment="Bottom" Height="140">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                    <GradientStop Color="#00000000" Offset="0"/>
+                    <GradientStop Color="#CC000000" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <StackPanel VerticalAlignment="Bottom" Margin="24,0,24,24" Spacing="8">
+            <TextBlock Text="{x:Bind Game.Title}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"/>
+            <Button Content="Play Now" 
+                    Command="{x:Bind ((vm:MainViewModel)DataContext).LaunchGameCommand, Mode=OneWay}" 
+                    CommandParameter="{x:Bind Game.Id}"
+                    Style="{StaticResource AccentButtonStyle}"
+                    xmlns:vm="using:Aether.WinUI.ViewModels"/> 
+            <!-- Needs proper DataContext binding, this is a bit shorthand -->
+        </StackPanel>
+    </Grid>
+</UserControl>

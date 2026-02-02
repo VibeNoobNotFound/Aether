@@ -1,0 +1,103 @@
+<Page
+    x:Class="Aether.WinUI.Views.GameDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:uc="using:Aether.WinUI.Controls"
+    xmlns:models="using:Aether.WinUI.Models"
+    mc:Ignorable="d">
+
+    <Grid>
+        <!-- Background Image with Blur/Parallax effect -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="300"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Image x:Name="BackgroundImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="400" Grid.RowSpan="2"/>
+        
+        <Border Grid.RowSpan="2" Background="#B3000000"/> <!-- Dark overlay -->
+
+        <!-- Content -->
+        <ScrollViewer Grid.RowSpan="2">
+            <StackPanel Padding="40,200,40,40"> 
+                <!-- Header Section -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image x:Name="CoverImage" Width="160" Height="240" Stretch="UniformToFill" 
+                           VerticalAlignment="Bottom" Margin="0,0,24,0"/>
+                    
+                    <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="8">
+                         <!-- Logo or Title -->
+                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
+                                   Style="{StaticResource DisplayTextBlockStyle}" 
+                                   Foreground="White"/>
+                        
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#CCFFFFFF"/>
+                            <TextBlock Text="•" Foreground="#CCFFFFFF"/>
+                            <TextBlock Text="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter='{}{0} played'}" Foreground="#CCFFFFFF"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,16,0,0">
+                            <Button Style="{StaticResource AccentButtonStyle}" 
+                                    Command="{x:Bind ViewModel.LaunchGameCommand}" 
+                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
+                                    Width="120" Height="40">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;" FontSize="16"/> <!-- Play -->
+                                    <TextBlock Text="Play"/>
+                                </StackPanel>
+                            </Button>
+                            
+                            <Button Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                    CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE734;"/> <!-- OutlineStar -->
+                                    <TextBlock Text="Favorite"/>
+                                </StackPanel>
+                            </Button>
+                                    
+                            <Button>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE713;"/> <!-- Setting -->
+                                    <TextBlock Text="Properties"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Details Section -->
+                <Grid Margin="0,40,0,0" ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Spacing="24">
+                        <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                        <TextBlock Text="{x:Bind ViewModel.SelectedGame.Description, Mode=OneWay}" 
+                                   TextWrapping="Wrap" Foreground="#E6FFFFFF"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Spacing="24">
+                        <uc:UpdateStatusPill Visibility="Collapsed"/> 
+                        <!-- Reusing components if needed -->
+                        
+                        <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
+                        <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
+                        <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
+                        
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

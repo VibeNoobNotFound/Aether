@@ -1,0 +1,42 @@
+<Page
+    x:Class="Aether.WinUI.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Aether.WinUI.Controls"
+    xmlns:models="using:Aether.WinUI.Models"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="24" Padding="0,0,0,24">
+                <!-- Hero Carousel -->
+                <FlipView Height="400" ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}">
+                    <FlipView.ItemTemplate>
+                        <DataTemplate x:DataType="models:GameViewModel">
+                            <controls:HeroCarouselCard Game="{x:Bind}" />
+                        </DataTemplate>
+                    </FlipView.ItemTemplate>
+                </FlipView>
+
+                <TextBlock Text="Recent Games" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,0,0,0"/>
+
+                <!-- Ideally this would be a horizontal list, reusing Library logic or a specific ItemsRepeater -->
+                <!-- For now, just a placeholder or simple ItemsControl with horizontal stack panel -->
+                 <ItemsControl ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="24,0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:GameViewModel">
+                             <controls:GameGridCard Game="{x:Bind}" Width="160" Height="240"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

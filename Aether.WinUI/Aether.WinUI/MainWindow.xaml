@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Aether.WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Aether.WinUI"
+    xmlns:controls="using:Aether.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Aether">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <NavigationView x:Name="NavView"
+                        PaneDisplayMode="Left"
+                        IsBackButtonVisible="Collapsed"
+                        SelectionChanged="NavView_SelectionChanged"
+                        Loaded="NavView_Loaded">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Tag="Home" Content="Home" Icon="Home"/>
+                <NavigationViewItem Tag="Library" Content="Library" Icon="Library"/>
+                <NavigationViewItem Tag="Store" Content="Store" Icon="Shop"/>
+            </NavigationView.MenuItems>
+
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Tag="Settings" Content="Settings" Icon="Setting"/>
+            </NavigationView.FooterMenuItems>
+
+            <NavigationView.AutoSuggestBox>
+                <AutoSuggestBox PlaceholderText="Search library..." QueryIcon="Find"/>
+            </NavigationView.AutoSuggestBox>
+
+            <Frame x:Name="ContentFrame"/>
+        </NavigationView>
+
+        <!-- Status Bar Overlay (Bottom Center) -->
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20">
+            <controls:UpdateStatusPill/>
+            <controls:ConnectionStatusBar/>
+        </StackPanel>
+    </Grid>
+</Window>

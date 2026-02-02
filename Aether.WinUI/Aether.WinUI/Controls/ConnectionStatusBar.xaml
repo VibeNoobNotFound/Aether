@@ -1,0 +1,35 @@
+<UserControl
+    x:Class="Aether.WinUI.Controls.ConnectionStatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Aether.WinUI.ViewModels"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" 
+          Padding="12,4" 
+          CornerRadius="8" 
+          Margin="12"
+          Opacity="0.9"
+          Visibility="{x:Bind ViewModel.ConnectionState, Mode=OneWay, Converter={StaticResource ConnectionStateToVisibilityConverter}}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <ProgressRing IsActive="{x:Bind ViewModel.ConnectionState, Mode=OneWay, Converter={StaticResource ConnectionStateToBoolConverter}}" 
+                      Height="16" Width="16" Margin="0,0,8,0"/>
+
+        <TextBlock Grid.Column="1" 
+                   Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" 
+                   VerticalAlignment="Center" 
+                   Style="{StaticResource CaptionTextBlockStyle}"/>
+        
+        <Button Grid.Column="2" Content="Retry" 
+                Command="{x:Bind ViewModel.RefreshLibraryCommand}" 
+                Visibility="{x:Bind ViewModel.ConnectionState, Mode=OneWay, Converter={StaticResource ErrorStateToVisibilityConverter}}"
+                Margin="8,0,0,0" Padding="8,4" FontSize="10"/>
+    </Grid>
+</UserControl>
