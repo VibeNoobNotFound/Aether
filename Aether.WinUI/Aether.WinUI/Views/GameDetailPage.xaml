@@ -7,6 +7,7 @@
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:uc="using:Aether.WinUI.Controls"
     xmlns:models="using:Aether.WinUI.Models"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d">
 
     <Grid>
@@ -16,7 +17,8 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Image x:Name="BackgroundImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="400" Grid.RowSpan="2"/>
+        <Image x:Name="BackgroundImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="400" Grid.RowSpan="2"
+               attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.BackgroundImageUrl, Mode=OneWay}"/>
         
         <Border Grid.RowSpan="2" Background="#B3000000"/> <!-- Dark overlay -->
 
@@ -31,7 +33,8 @@
                     </Grid.ColumnDefinitions>
 
                     <Image x:Name="CoverImage" Width="160" Height="240" Stretch="UniformToFill" 
-                           VerticalAlignment="Bottom" Margin="0,0,24,0"/>
+                           VerticalAlignment="Bottom" Margin="0,0,24,0"
+                           attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.CoverImageUrl, Mode=OneWay}"/>
                     
                     <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="8">
                          <!-- Logo or Title -->
@@ -94,7 +97,7 @@
                                    Visibility="Visible" CornerRadius="8">
                             <FlipView.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
-                                    <Image Source="{x:Bind}" Stretch="Uniform"/>
+                                    <Image attached:ImageCache.Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
                                 </DataTemplate>
                             </FlipView.ItemTemplate>
                         </FlipView>

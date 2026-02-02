@@ -13,22 +13,9 @@ public sealed partial class HeroCarouselCard : UserControl
     public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(HeroCarouselCard), new PropertyMetadata(null));
 
     public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
-    private ImageCacheService ImageCache => (Application.Current as App)!.Services.GetRequiredService<ImageCacheService>();
 
     public HeroCarouselCard()
     {
         this.InitializeComponent();
-    }
-
-    private async void UserControl_Loaded(object sender, RoutedEventArgs e)
-    {
-        if (Game?.BackgroundImageUrl != null)
-        {
-            var bitmap = await ImageCache.GetImageAsync(Game.BackgroundImageUrl);
-            if (bitmap != null)
-            {
-                HeroImage.Source = bitmap;
-            }
-        }
     }
 }

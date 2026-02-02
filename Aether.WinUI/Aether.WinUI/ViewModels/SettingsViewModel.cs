@@ -1,4 +1,5 @@
 using Aether.Protos;
+using Aether.WinUI.Models;
 using Aether.WinUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -6,6 +7,7 @@ using Grpc.Core;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -22,12 +24,15 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool isAutoUpdateEnabled = true;
     [ObservableProperty] private bool includeBetaUpdates = false;
 
+    [ObservableProperty] private ObservableCollection<PluginViewModel> plugins = new();
+
     public SettingsViewModel(GrpcClientService grpc, BackendManager backend)
     {
         _grpc = grpc;
         _backend = backend;
 
-        // Initialize Theme from current state if needed
+        // Load initial data
+        _ = LoadPlugins();
     }
 
     partial void OnSelectedThemeIndexChanged(int value)
@@ -44,11 +49,51 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
+    public async Task LoadPlugins()
+    {
+        try
+        {
+            var response = await _grpc.Client.GetPluginsAsync(new Empty());
+            Plugins.Clear();
+            foreach (var p in response.Plugins)
+            {
+                Plugins.Add(PluginViewModel.FromProto(p));
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load plugins: {ex}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task UninstallPlugin(string pluginName)
+    {
+        try
+        {
+            await _grpc.Client.UninstallPluginAsync(new PluginName { Name = pluginName });
+            await LoadPlugins();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to uninstall plugin: {ex}");
+        }
+    }
+
     [RelayCommand]
     public async Task CheckForUpdates()
     {
-        // Todo: Implement update check logic via Backend or AutoUpdater
-        await Task.Delay(1000); // Mock delay
+        try
+        {
+            var result = await _grpc.Client.CheckForUpdatesAsync(new CheckUpdateRequest { IncludePrerelease = IncludeBetaUpdates });
+
+            // TODO: Show toast or dialog based on result
+            System.Diagnostics.Debug.WriteLine($"Update check: {result.UpdateAvailable} - {result.Version}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Update check failed: {ex}");
+        }
     }
 
     [RelayCommand]
@@ -72,11 +117,15 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     public async Task ClearLibrary()
     {
-        // Confirmation is handled in View usually, or here via Dialog service
-        // For now, executing directly
-        // There isn't a "ClearLibrary" RPC yet, would need to implement in Backend
-        // or iterate and remove all.
-        // Assuming we rely on Rescan for now.
+        try
+        {
+            await _grpc.Client.ClearLibraryAsync(new Empty());
+            await RescanLibrary(); // Refresh UI
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to clear library: {ex}");
+        }
     }
 
     [RelayCommand]
@@ -89,6 +138,12 @@ public partial class SettingsViewModel : ObservableObject
             {
                 Process.Start(new ProcessStartInfo { FileName = logPath, UseShellExecute = true });
             }
+            else
+            {
+                // Try create it
+                Directory.CreateDirectory(logPath);
+                Process.Start(new ProcessStartInfo { FileName = logPath, UseShellExecute = true });
+            }
         }
         catch { }
     }
@@ -97,5 +152,6 @@ public partial class SettingsViewModel : ObservableObject
     public void FactoryReset()
     {
         // Dangerous! 
+        // TODO: Call ResetSystem RPC
     }
 }

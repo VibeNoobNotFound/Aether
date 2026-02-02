@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:Aether.WinUI.Models"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -39,7 +40,8 @@
         <!-- Cover Image -->
         <Border CornerRadius="8" Background="#20FFFFFF">
             <Grid>
-                <Image x:Name="CoverImage" Stretch="UniformToFill"/>
+                <Image x:Name="CoverImage" Stretch="UniformToFill" 
+                       attached:ImageCache.Source="{x:Bind Game.CoverImageUrl, Mode=OneWay}"/>
                 <!-- Platform Badge -->
                 <Border VerticalAlignment="Top" HorizontalAlignment="Right" Margin="8"
                         Background="{x:Bind Game.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}"

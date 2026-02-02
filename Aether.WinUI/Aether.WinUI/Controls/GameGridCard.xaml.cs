@@ -16,23 +16,10 @@ public sealed partial class GameGridCard : UserControl
     public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(GameGridCard), new PropertyMetadata(null));
 
     public MainViewModel MainViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
-    private ImageCacheService ImageCache => (Application.Current as App)!.Services.GetRequiredService<ImageCacheService>();
 
     public GameGridCard()
     {
         this.InitializeComponent();
-    }
-
-    private async void UserControl_Loaded(object sender, RoutedEventArgs e)
-    {
-        if (Game?.CoverImageUrl != null)
-        {
-            var bitmap = await ImageCache.GetImageAsync(Game.CoverImageUrl);
-            if (bitmap != null)
-            {
-                CoverImage.Source = bitmap;
-            }
-        }
     }
 
     private async void MenuFlyoutItem_Click(object sender, RoutedEventArgs e)

@@ -11,17 +11,26 @@ public partial class PluginViewModel : ObservableObject
     [ObservableProperty] private string website = "";
     [ObservableProperty] private bool isEnabled;
     [ObservableProperty] private bool supportsManualAddition;
+    [ObservableProperty] private System.Collections.ObjectModel.ObservableCollection<string> capabilities = new();
+
+    public string AuthorBinding => $"by {Author}";
 
     public static PluginViewModel FromProto(PluginInfo proto)
     {
-        return new PluginViewModel
+        var vm = new PluginViewModel
         {
             Name = proto.Name,
             Version = proto.Version,
             Author = proto.Author,
-            // Website = proto.Website, // Not in proto
-            IsEnabled = true, // Assuming enabled by default or fetch from separate config
+            IsEnabled = proto.IsEnabled,
             SupportsManualAddition = proto.SupportsManualAddition
         };
+
+        if (proto.IsImporter) vm.Capabilities.Add("Importer");
+        if (proto.IsMetadataProvider) vm.Capabilities.Add("Metadata");
+        if (proto.IsGameLauncher) vm.Capabilities.Add("Launcher");
+        if (proto.IsNewsProvider) vm.Capabilities.Add("News");
+
+        return vm;
     }
 }

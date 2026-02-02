@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:Aether.WinUI.Models"
     xmlns:protos="using:Aether.Protos"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d"
     Title="Edit Metadata"
     PrimaryButtonText="Save"
@@ -66,7 +67,7 @@
                                                             <ColumnDefinition Width="*"/>
                                                         </Grid.ColumnDefinitions>
                                                         <Border Width="50" Height="70" CornerRadius="4" Background="#20FFFFFF">
-                                                            <Image Source="{x:Bind CoverImageUrl, Mode=OneWay}" Stretch="UniformToFill"/>
+                                                            <Image attached:ImageCache.Source="{x:Bind CoverImageUrl, Mode=OneWay}" Stretch="UniformToFill"/>
                                                         </Border>
                                                         <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="4">
                                                             <TextBlock Text="{x:Bind Title, Mode=OneWay}" FontWeight="SemiBold"/>
@@ -110,7 +111,7 @@
             
             <!-- Cover Image Preview -->
             <Border Height="150" CornerRadius="8" Background="#10FFFFFF">
-                <Image Source="{x:Bind ViewModel.CoverImageUrl, Mode=OneWay}" Stretch="Uniform"/>
+                <Image attached:ImageCache.Source="{x:Bind ViewModel.CoverImageUrl, Mode=OneWay}" Stretch="Uniform"/>
             </Border>
 
             <TextBox Header="Background Image URL" Text="{x:Bind ViewModel.BackgroundImageUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
@@ -173,7 +174,7 @@
                             </Grid>
                             <!-- Screenshot Preview -->
                             <Border Height="100" CornerRadius="8" Background="#10FFFFFF">
-                                <Image Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
+                                <Image attached:ImageCache.Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
                             </Border>
                         </StackPanel>
                     </DataTemplate>

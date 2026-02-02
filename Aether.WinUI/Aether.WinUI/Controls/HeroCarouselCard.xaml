@@ -4,10 +4,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d">
 
     <Grid CornerRadius="12" Margin="4,0">
-        <Image x:Name="HeroImage" Stretch="UniformToFill"/>
+        <Image x:Name="HeroImage" Stretch="UniformToFill"
+               attached:ImageCache.Source="{x:Bind Game.CoverImageUrl, Mode=OneWay}"/>
         
         <!-- Gradient Overlay -->
         <Border VerticalAlignment="Bottom" Height="140">
