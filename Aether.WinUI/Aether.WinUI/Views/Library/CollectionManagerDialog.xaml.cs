@@ -30,12 +30,13 @@ public sealed partial class CollectionManagerDialog : ContentDialog
 
         // Hide parent dialog before opening child
         this.Hide();
-        var result = await dialog.ShowAsync();
+        _ =  dialog.ShowAsync();
+        await dialog.ViewModel.WaitForWorkToFinishAsync();
 
         // Re-show parent dialog
         _ = this.ShowAsync();
 
-        if (result == ContentDialogResult.Primary)
+        if (dialog.ViewModel.Success)
         {
             // If saved, call backend Create
             await ViewModel.CreateCollectionAsync(newCollection.Name, newCollection.Icon, dialog.ViewModel.SelectedGameIds.ToList());
@@ -51,7 +52,8 @@ public sealed partial class CollectionManagerDialog : ContentDialog
 
             // Hide parent dialog before opening child
             this.Hide();
-            await dialog.ShowAsync();
+            _ = dialog.ShowAsync();
+            await dialog.ViewModel.WaitForWorkToFinishAsync();
 
             // Re-show parent dialog
             _ = this.ShowAsync();

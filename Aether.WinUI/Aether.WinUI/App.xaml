@@ -24,13 +24,9 @@
             <converters:StringEqualsConverter x:Key="StringEqualsConverter" />
             <ThemeShadow x:Key="SharedShadow" />
             
-            <!-- Custom Acrylic Brushes -->
             <AcrylicBrush x:Key="DarkAcrylicBackgroundBrush"
-                          TintColor="#000000"
-                          TintOpacity="0"
-                          TintLuminosityOpacity="0.6" />
-            <AcrylicBrush x:Key="DarkLightAcrylicBackgroundBrush"
-            TintOpacity="0.2" TintLuminosityOpacity="0.6" TintColor="Black" FallbackColor="DarkGray" />
+            TintOpacity="0.2" TintLuminosityOpacity="0.6" TintColor="Black" FallbackColor="Black" />
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

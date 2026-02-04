@@ -10,7 +10,9 @@
     mc:Ignorable="d"
     Title="Edit Collection"
     PrimaryButtonText="Save"
+    Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
     CloseButtonText="Cancel"
+    CornerRadius="24"
     DefaultButton="Primary">
 
     <Grid Width="500" Height="600">

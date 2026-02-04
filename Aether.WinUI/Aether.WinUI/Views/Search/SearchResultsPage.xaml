@@ -104,13 +104,12 @@
             <GridView x:Name="ResultsGrid"
                       ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
                       SelectionMode="None"
-                      IsItemClickEnabled="True"
-                      ItemClick="ResultsGrid_ItemClick"
+                      IsItemClickEnabled="False"
                       Padding="24"
                       Visibility="{x:Bind ViewModel.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models:GameViewModel">
-                        <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Margin="0,0,12,12"/>
+                        <controls:GameGridCard x:Name="GamegCard" Click="GamegCard_Click" Game="{x:Bind Mode=OneWay}" Margin="0,0,12,12"/>
                     </DataTemplate>
                 </GridView.ItemTemplate>
             </GridView>

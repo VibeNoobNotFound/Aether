@@ -11,20 +11,13 @@
     mc:Ignorable="d">
 
     <Grid>
-        <!-- 1. Liquid Background (Fixed) -->
-        <Grid x:Name="BackgroundLayer">
-            <Image Stretch="UniformToFill" Opacity="0.4"
-                   attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.DisplayBackgroundImageUrl, Mode=OneWay}"/>
-            <!-- Dark Overlay for readability -->
-            <Rectangle Fill="#99000000"/>
-        </Grid>
 
         <!-- 2. Parallax Header Image -->
         <ParallaxView Source="{x:Bind MainScrollViewer}" VerticalShift="100">
             <Grid Height="600" VerticalAlignment="Top">
                 <Image x:Name="HeaderImage" Stretch="UniformToFill" VerticalAlignment="Top" Height="600"
                        attached:ImageCache.Source="{x:Bind ViewModel.SelectedGame.DisplayBackgroundImageUrl, Mode=OneWay}"/>
-                
+
                 <!-- Bottom Gradient Fade -->
                 <Border VerticalAlignment="Bottom" Height="300">
                     <Border.Background>
@@ -42,7 +35,7 @@
         <ScrollViewer x:Name="MainScrollViewer" ViewChanged="MainScrollViewer_ViewChanged">
             <StackPanel>
                 <!-- Ghost Header Space + Title/Actions -->
-                <Grid Height="500" VerticalAlignment="Top"> 
+                <Grid Height="500" VerticalAlignment="Top">
                     <Grid VerticalAlignment="Bottom" Margin="40,0,40,40" ColumnSpacing="24">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -75,7 +68,7 @@
                                         <ThemeShadow/>
                                     </Image.Shadow>
                                 </Image>
-                                
+
                                 <TextBlock x:Name="TitleText" 
                                            Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
                                            Style="{StaticResource DisplayTextBlockStyle}" 
@@ -86,10 +79,10 @@
                                     </TextBlock.Shadow>
                                 </TextBlock>
                             </Grid>
-                            
+
                             <!-- Metadata Row -->
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                 <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
+                                <Border Background="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}" CornerRadius="4" Padding="6,2">
                                     <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
                                 </Border>
                                 <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#FFFFFFFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -104,7 +97,8 @@
                                         IsEnabled="{x:Bind ViewModel.CanLaunch, Mode=OneWay}"
                                         Visibility="{x:Bind ViewModel.SelectedGame.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Stopped}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon Glyph="&#xE768;" FontSize="18"/> <!-- Play -->
+                                        <FontIcon Glyph="&#xE768;" FontSize="18"/>
+                                        <!-- Play -->
                                         <TextBlock Text="{x:Bind ViewModel.GetLaunchButtonText(), Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
@@ -154,144 +148,162 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
-                
-                <!-- Details Body -->
-                <Grid BorderThickness="1" BorderBrush="{ThemeResource AppBarBorderThemeBrush}" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="24" Padding="40" Margin="20,-20,20,0">
-                     <Grid ColumnSpacing="40">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="1*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <StackPanel Spacing="32">
-                            <StackPanel.ChildrenTransitions>
-                                <TransitionCollection>
-                                    <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
-                                </TransitionCollection>
-                            </StackPanel.ChildrenTransitions>
-                            <!-- Media Gallery -->
-                            <ListView ItemsSource="{x:Bind ViewModel.MediaItems, Mode=OneWay}"
+
+                <StackPanel BorderThickness="1" BorderBrush="{ThemeResource AppBarBorderThemeBrush}" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" CornerRadius="24" Padding="40" Margin="20,-20,20,0">
+                    <!-- Details Body -->
+                    <Grid>
+                        <Grid ColumnSpacing="40">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="32">
+                                <StackPanel.ChildrenTransitions>
+                                    <TransitionCollection>
+                                        <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
+                                    </TransitionCollection>
+                                </StackPanel.ChildrenTransitions>
+                                <!-- Media Gallery -->
+                                <ListView ItemsSource="{x:Bind ViewModel.MediaItems, Mode=OneWay}"
                                       SelectionMode="None"
                                       IsItemClickEnabled="True"
                                       ItemClick="MediaItem_Click"
                                       ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                       ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                       Height="240">
-                                <ListView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsStackPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ListView.ItemsPanel>
-                                <ListView.ItemTemplate>
-                                    <DataTemplate x:DataType="models:MediaItemViewModel">
-                                        <Border Width="300" Height="169" CornerRadius="8" Margin="0,0,12,0"
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:MediaItemViewModel">
+                                            <Border Width="300" Height="169" CornerRadius="8" Margin="0,0,12,0"
                                                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                                            <Grid>
-                                                <Image attached:ImageCache.Source="{x:Bind Url, Mode=OneWay}"
+                                                <Grid>
+                                                    <Image attached:ImageCache.Source="{x:Bind Url, Mode=OneWay}"
                                                        Stretch="UniformToFill"
                                                        Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
-                                                <Grid Background="#66000000"
+                                                    <Grid Background="#66000000"
                                                       Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                    <FontIcon Glyph="&#xE768;" FontSize="40" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <FontIcon Glyph="&#xE768;" FontSize="40" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
                                                 </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
 
-                            <StackPanel Spacing="12">
-                                <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.DescriptionPlain, Mode=OneWay}" 
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedGame.DescriptionPlain, Mode=OneWay}" 
                                            TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
                                            FontSize="15" LineHeight="26"/>
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Genres, Mode=OneWay}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapGrid Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="12,6" Margin="0,0,8,8">
+                                                <TextBlock Text="{x:Bind Mode=OneWay}" FontSize="12"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                            
-                            <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Genres, Mode=OneWay}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapGrid Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="12,6" Margin="0,0,8,8">
-                                            <TextBlock Text="{x:Bind Mode=OneWay}" FontSize="12"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                        
-                        <StackPanel Grid.Column="1" Spacing="12">
-                            <StackPanel.ChildrenTransitions>
-                                <TransitionCollection>
-                                    <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
-                                </TransitionCollection>
-                            </StackPanel.ChildrenTransitions>
-                            <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
-                            
-                            <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">
-                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE787;"/></controls:SettingsCard.HeaderIcon>
-                            </controls:SettingsCard>
-                            
-                            <controls:SettingsCard Header="Playtime" Description="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay}">
-                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE916;"/></controls:SettingsCard.HeaderIcon>
-                            </controls:SettingsCard>
-                            
-                             <controls:SettingsCard Header="Last Played" Description="{x:Bind ViewModel.SelectedGame.FormattedLastPlayed, Mode=OneWay}">
-                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE81C;"/></controls:SettingsCard.HeaderIcon>
-                            </controls:SettingsCard>
-                            
-                            <controls:SettingsCard Header="Play Count" Description="{x:Bind ViewModel.SelectedGame.PlayCount, Mode=OneWay}">
-                                 <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE9D2;"/></controls:SettingsCard.HeaderIcon>
-                            </controls:SettingsCard>
 
-                            <MenuFlyoutSeparator Margin="0,12"/>
+                            <StackPanel Grid.Column="1" Spacing="12">
+                                <StackPanel.ChildrenTransitions>
+                                    <TransitionCollection>
+                                        <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
+                                    </TransitionCollection>
+                                </StackPanel.ChildrenTransitions>
+                                <TextBlock Text="Information" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
 
-                            <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
-                            <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
-                            <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
-                        </StackPanel>
+                                <controls:SettingsCard Header="Release Date" Description="{x:Bind ViewModel.SelectedGame.FormattedReleaseDate, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <FontIcon Glyph="&#xE787;"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                </controls:SettingsCard>
+
+                                <controls:SettingsCard Header="Playtime" Description="{x:Bind ViewModel.SelectedGame.FormattedPlaytime, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <FontIcon Glyph="&#xE916;"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                </controls:SettingsCard>
+
+                                <controls:SettingsCard Header="Last Played" Description="{x:Bind ViewModel.SelectedGame.FormattedLastPlayed, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <FontIcon Glyph="&#xE81C;"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                </controls:SettingsCard>
+
+                                <controls:SettingsCard Header="Play Count" Description="{x:Bind ViewModel.SelectedGame.PlayCount, Mode=OneWay}">
+                                    <controls:SettingsCard.HeaderIcon>
+                                        <FontIcon Glyph="&#xE9D2;"/>
+                                    </controls:SettingsCard.HeaderIcon>
+                                </controls:SettingsCard>
+
+                                <MenuFlyoutSeparator Margin="0,12"/>
+
+                                <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Grid>
                     </Grid>
-                </Grid>
 
-                <!-- News Section -->
-                <StackPanel Spacing="12" Margin="24,16,24,0"
+                    <!-- News Section -->
+                    <StackPanel Spacing="12"
                             Visibility="{x:Bind ViewModel.HasGameNews, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <TextBlock Text="Latest News" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                    <ItemsControl ItemsSource="{x:Bind ViewModel.GameNews, Mode=OneWay}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:NewsItemViewModel">
-                                <Button Click="NewsItem_Click" Tag="{x:Bind Url}" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
-                                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="0" Margin="0,0,0,10">
-                                        <StackPanel>
-                                            <Grid Height="140">
-                                                <Image Stretch="UniformToFill"
+                        <TextBlock Text="Latest News" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                        <ListView 
+                            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectionMode="None" 
+                            ScrollViewer.IsHorizontalRailEnabled="True"
+                            ItemsSource="{x:Bind ViewModel.GameNews, Mode=OneWay}">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:NewsItemViewModel">
+                                    <HyperlinkButton Margin="-12,0" NavigateUri="{x:Bind Url}" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                                        <Border MinWidth="300"  Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="0" Margin="0,0,0,10">
+                                            <StackPanel>
+                                                <Grid Height="140">
+                                                    <Image Stretch="UniformToFill"
                                                        attached:ImageCache.Source="{x:Bind ImageUrl, Mode=OneWay}"/>
-                                                <Rectangle Fill="#55000000"/>
-                                            </Grid>
-                                            <StackPanel Padding="12" Spacing="6">
-                                                <TextBlock Text="{x:Bind Source}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
-                                                <TextBlock Text="{x:Bind PublishedDateText}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <Rectangle Fill="#55000000"/>
+                                                </Grid>
+                                                <StackPanel Padding="12" Spacing="6">
+                                                    <TextBlock Text="{x:Bind Source}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
+                                                    <TextBlock Text="{x:Bind PublishedDateText}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
                                             </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                        </Border>
+                                    </HyperlinkButton>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
                 </StackPanel>
-                
-                <!-- Bottom Spacer -->
-                <Grid Height="100"/>
+
             </StackPanel>
         </ScrollViewer>
 
         <!-- 4. Sticky Header (Acrylic when scrolled) -->
         <Grid x:Name="StickyHeader" Height="80" VerticalAlignment="Top" Background="Transparent">
-             <!-- Could add Back button here if navigating deeper, for now just empty or could have title fade in -->
+            <!-- Could add Back button here if navigating deeper, for now just empty or could have title fade in -->
         </Grid>
     </Grid>
 </Page>

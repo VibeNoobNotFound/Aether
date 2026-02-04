@@ -1,4 +1,4 @@
-<UserControl
+<Button
     x:Class="Aether.WinUI.Controls.GameGridCard"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -6,9 +6,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:Aether.WinUI.Models"
     xmlns:attached="using:Aether.WinUI.AttachedProperties"
+    Background="Transparent"
+    BorderThickness="0"
+    BorderBrush="Transparent"
     mc:Ignorable="d">
-
-    <UserControl.Resources>
+    <Button.Resources>
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent"/>
         <MenuFlyout x:Key="GameContextMenu">
             <MenuFlyoutItem Text="Play" Icon="Play" Tag="Launch" Click="MenuFlyoutItem_Click"/>
             <MenuFlyoutItem Text="Stop" Icon="Stop" Tag="Stop" Click="MenuFlyoutItem_Click"/>
@@ -19,18 +24,14 @@
             <MenuFlyoutSeparator />
             <MenuFlyoutItem Text="Remove from Library" Icon="Delete" Tag="Remove" Click="MenuFlyoutItem_Click"/>
         </MenuFlyout>
-    </UserControl.Resources>
+    </Button.Resources>
 
     <Grid Width="200" Height="300" 
-          CornerRadius="8" 
+          CornerRadius="8"
           ContextFlyout="{StaticResource GameContextMenu}"
           PointerEntered="Grid_PointerEntered"
-          PointerExited="Grid_PointerExited"
-          RenderTransformOrigin="0.5,0.5">
+          PointerExited="Grid_PointerExited">
         
-        <Grid.RenderTransform>
-            <ScaleTransform x:Name="ScaleTransform" ScaleX="1.0" ScaleY="1.0"/>
-        </Grid.RenderTransform>
         
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -70,7 +71,7 @@
         </Border>
 
         <!-- Title & Genres -->
-        <StackPanel VerticalAlignment="Bottom" Margin="12,12,12,16">
+        <StackPanel Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" VerticalAlignment="Bottom" Padding="12,12,12,16">
             <TextBlock Text="{x:Bind Game.Title, Mode=OneWay}" 
                        Foreground="White" 
                        Style="{StaticResource BodyStrongTextBlockStyle}"
@@ -81,4 +82,4 @@
                        TextTrimming="CharacterEllipsis" MaxLines="1"/>
         </StackPanel>
     </Grid>
-</UserControl>
+</Button>

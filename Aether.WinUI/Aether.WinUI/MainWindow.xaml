@@ -13,7 +13,7 @@
         Title="Aether">
 
     <Window.SystemBackdrop>
-        <MicaBackdrop />
+        <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
     <Grid>
@@ -23,7 +23,7 @@
         </Grid.RowDefinitions>
 
         <!-- Window Background Image (set by pages like Home/Game Detail) -->
-        <Grid Grid.RowSpan="2">
+        <Grid x:Name="Background" Grid.RowSpan="2">
             <Image Stretch="UniformToFill"
                    Opacity="{x:Bind ViewModel.WindowBackgroundOpacity, Mode=OneWay}"
                    attached:ImageCache.Source="{x:Bind ViewModel.WindowBackgroundImageUrl, Mode=OneWay}"/>

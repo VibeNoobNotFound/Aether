@@ -1,11 +1,12 @@
 using Aether.Protos;
-using Aether.WinUI.Services;
 using Aether.WinUI.Models;
+using Aether.WinUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,6 +18,8 @@ public partial class CollectionEditorViewModel : ObservableObject
     private readonly MainViewModel _mainViewModel; // For accessing games list
 
     [ObservableProperty] private string name;
+    [ObservableProperty] private bool isWorkDone;
+    [ObservableProperty] private bool success;
     [ObservableProperty] private string iconGlyph;
     [ObservableProperty] private bool canEditName;
     [ObservableProperty] private bool isCustomCollection; // vs System
@@ -49,7 +52,25 @@ public partial class CollectionEditorViewModel : ObservableObject
             }
         }
     }
+    public Task WaitForWorkToFinishAsync()
+    {
+        if (IsWorkDone) return Task.CompletedTask;
 
+        var tcs = new TaskCompletionSource<bool>();
+
+        // Local function to handle the event/property change
+        void Handler(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(IsWorkDone) && IsWorkDone)
+            {
+                this.PropertyChanged -= Handler; // Clean up
+                tcs.TrySetResult(true);
+            }
+        }
+
+        this.PropertyChanged += Handler;
+        return tcs.Task;
+    }
     private static string MapIconToGlyph(string iconName)
     {
         var app = Application.Current as App;
@@ -102,6 +123,7 @@ public partial class CollectionEditorViewModel : ObservableObject
                     _originalCollection.GameIds.Remove(id);
                 }
             }
+            Success = true;
         }
         catch
         {

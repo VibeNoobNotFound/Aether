@@ -1,10 +1,11 @@
-using Aether.WinUI.ViewModels;
+using Aether.WinUI.Controls;
 using Aether.WinUI.Services;
+using Aether.WinUI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.System;
 using Windows.Foundation;
+using Windows.System;
 
 namespace Aether.WinUI.Views;
 
@@ -85,21 +86,6 @@ public sealed partial class HomePage : Page
         }
     }
 
-    private void CollectionGrid_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is Models.GameViewModel game)
-        {
-            if (sender is ListView listView && listView.ContainerFromItem(e.ClickedItem) is ListViewItem container)
-            {
-                if (container.ContentTemplateRoot is Controls.GameGridCard card && card.CoverImageElement != null)
-                {
-                    Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
-                }
-            }
-
-            ViewModel.GoToGameDetail(game.Id);
-        }
-    }
 
     private async void NewsItem_Click(object sender, RoutedEventArgs e)
     {
@@ -141,5 +127,18 @@ public sealed partial class HomePage : Page
             XamlRoot = this.XamlRoot
         };
         await dialog.ShowAsync();
+    }
+
+    private void Gamegcard_Click(object sender, RoutedEventArgs e)
+    {
+
+        if (sender is GameGridCard card)
+        {
+            if (card.CoverImageElement != null)
+            {
+                Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
+            }
+            ViewModel.GoToGameDetail(card.Game.Id);
+        }
     }
 }

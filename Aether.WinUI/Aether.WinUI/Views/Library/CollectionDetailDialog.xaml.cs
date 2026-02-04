@@ -15,6 +15,7 @@ public sealed partial class CollectionDetailDialog : ContentDialog
     {
         this.InitializeComponent();
         ViewModel = new CollectionEditorViewModel(collection, mainVm);
+        ViewModel.IsWorkDone = false;
         this.PrimaryButtonClick += CollectionDetailDialog_PrimaryButtonClick;
         this.Loaded += CollectionDetailDialog_Loaded;
     }
@@ -50,6 +51,7 @@ public sealed partial class CollectionDetailDialog : ContentDialog
         finally
         {
             deferral.Complete();
+            ViewModel.IsWorkDone = false;
         }
     }
 

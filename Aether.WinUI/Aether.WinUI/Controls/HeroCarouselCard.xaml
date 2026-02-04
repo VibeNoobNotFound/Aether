@@ -21,10 +21,10 @@
             </Border.Background>
         </Border>
 
-        <StackPanel VerticalAlignment="Bottom" Margin="24,0,24,24" Spacing="12">
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0,24,24" Spacing="12">
             <Image x:Name="LogoImage" 
                    attached:ImageCache.Source="{x:Bind Game.LogoImageUrl, Mode=OneWay}"
-                   MaxHeight="80"
+                   MaxHeight="200"
                    HorizontalAlignment="Left"
                    Visibility="{x:Bind Game.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
             <TextBlock x:Name="TitleText" Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"
@@ -35,6 +35,11 @@
                 <Button Content="Play Now"
                         Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}"
                         CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
+                        FontSize="24"
+                        Background="{ThemeResource AccentAcrylicInAppFillColorDefaultBrush}"
+                        FontWeight="SemiBold"
+                        CornerRadius="18"
+                        Padding="24,12"
                         Style="{StaticResource AccentButtonStyle}"
                         Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Stopped}"/>
 

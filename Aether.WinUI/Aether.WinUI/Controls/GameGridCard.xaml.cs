@@ -1,16 +1,20 @@
 using Aether.WinUI.Models;
 using Aether.WinUI.Services;
 using Aether.WinUI.ViewModels;
+using Aether.WinUI.Views.Library;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
-using Aether.WinUI.Views.Library;
+using System.Numerics;
+using System.Xml.Linq;
 
 namespace Aether.WinUI.Controls;
 
-public sealed partial class GameGridCard : UserControl
+public sealed partial class GameGridCard : Button
 {
     public GameViewModel Game { get { return (GameViewModel)GetValue(GameProperty); } set { SetValue(GameProperty, value); } }
     public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(GameGridCard), new PropertyMetadata(null, OnGameChanged));
@@ -110,16 +114,33 @@ public sealed partial class GameGridCard : UserControl
             }
         }
     }
+    Compositor _compositor = App.Current.MainWindow.Compositor;
+    SpringVector3NaturalMotionAnimation _springAnimation;
+
+    private void CreateOrUpdateSpringAnimation(float finalValue)
+    {
+        if (_springAnimation == null)
+        {
+            _springAnimation = _compositor.CreateSpringVector3Animation();
+            _springAnimation.Target = "Scale";
+        }
+
+        _springAnimation.FinalValue = new Vector3(finalValue);
+    }
 
     private void Grid_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        ScaleTransform.ScaleX = 1.05;
-        ScaleTransform.ScaleY = 1.05;
+        CreateOrUpdateSpringAnimation(1.05f);
+
+        (sender as UIElement).StartAnimation(_springAnimation);
+
     }
 
     private void Grid_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
-        ScaleTransform.ScaleX = 1.0;
-        ScaleTransform.ScaleY = 1.0;
+        CreateOrUpdateSpringAnimation(1.0f);
+
+        (sender as UIElement).StartAnimation(_springAnimation);
+
     }
 }

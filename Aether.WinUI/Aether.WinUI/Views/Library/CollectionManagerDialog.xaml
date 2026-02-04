@@ -8,6 +8,8 @@
     xmlns:models="using:Aether.WinUI.Models"
     xmlns:converters="using:Aether.WinUI.Converters"
     mc:Ignorable="d"
+    Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+    CornerRadius="24"
     Title="Manage Collections"
     PrimaryButtonText="Done"
     DefaultButton="Primary">

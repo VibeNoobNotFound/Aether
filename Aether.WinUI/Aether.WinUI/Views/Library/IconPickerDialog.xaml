@@ -7,6 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Title="Choose Icon"
+    Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+    CornerRadius="24"
     PrimaryButtonText="Cancel"
     CloseButtonText="Select"
     IsPrimaryButtonEnabled="True"

@@ -133,9 +133,9 @@
                 <ItemsControl ItemsSource="{x:Bind ViewModel.HomeCollections, Mode=OneWay}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:HomeCollectionViewModel">
-                            <StackPanel Spacing="12">
+                            <StackPanel Margin="12,16,0,0" Spacing="12">
                                 <StackPanel Orientation="Horizontal" Spacing="12" Padding="24,0">
-                                    <Border Width="32" Height="32" CornerRadius="16" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" VerticalAlignment="Center">
+                                    <Border CornerRadius="24" Background="{ThemeResource LayerFillColorAlt}" Padding="12" VerticalAlignment="Center">
                                         <FontIcon Glyph="{x:Bind Collection.Icon, Converter={StaticResource IconNameToGlyphConverter}}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <TextBlock Text="{x:Bind Collection.Name}" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
@@ -143,9 +143,8 @@
 
                                 <ListView ItemsSource="{x:Bind Games, Mode=OneWay}"
                                           SelectionMode="None"
-                                          IsItemClickEnabled="True"
-                                          ItemClick="CollectionGrid_ItemClick"
-                                          Padding="24,0"
+
+                                          IsItemClickEnabled="False"
                                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                           ScrollViewer.VerticalScrollBarVisibility="Disabled">
                                     <ListView.ItemsPanel>
@@ -155,7 +154,7 @@
                                     </ListView.ItemsPanel>
                                     <ListView.ItemTemplate>
                                         <DataTemplate x:DataType="models:GameViewModel">
-                                            <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Width="160" Height="240" Margin="0,0,12,12"/>
+                                            <controls:GameGridCard Click="Gamegcard_Click" x:Name="Gamegcard" Game="{x:Bind Mode=OneWay}"  Margin="0"/>
                                         </DataTemplate>
                                     </ListView.ItemTemplate>
                                 </ListView>
@@ -164,19 +163,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock Text="Recent Games" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,0,0,0"/>
-
-                <GridView ItemsSource="{x:Bind ViewModel.Games, Mode=OneWay}"
-                          SelectionMode="None"
-                          IsItemClickEnabled="True"
-                          ItemClick="GridView_ItemClick"
-                          Padding="24,0">
-                    <GridView.ItemTemplate>
-                        <DataTemplate x:DataType="models:GameViewModel">
-                                <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Width="160" Height="240" Margin="0,0,8,8"/>
-                        </DataTemplate>
-                    </GridView.ItemTemplate>
-                </GridView>
             </StackPanel>
         </ScrollViewer>
     </Grid>

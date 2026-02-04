@@ -1,3 +1,4 @@
+using Aether.WinUI.Controls;
 using Aether.WinUI.Models;
 using Aether.WinUI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,23 +14,6 @@ public sealed partial class LibraryPage : Page
     public LibraryPage()
     {
         this.InitializeComponent();
-    }
-
-    private void GridView_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is GameViewModel game)
-        {
-            // Prepare Connected Animation
-            if (sender is GridView gridView && gridView.ContainerFromItem(e.ClickedItem) is GridViewItem container)
-            {
-                if (container.ContentTemplateRoot is Controls.GameGridCard card && card.CoverImageElement != null)
-                {
-                    Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
-                }
-            }
-
-            ViewModel.GoToGameDetailCommand.Execute(game.Id);
-        }
     }
 
     private void AddGameMenu_Opening(object sender, object e)
@@ -53,6 +37,19 @@ public sealed partial class LibraryPage : Page
                 await dialog.ShowAsync();
             };
             menu.Items.Add(item);
+        }
+    }
+
+    private void Gamegcard_Click(object sender, RoutedEventArgs e)
+    {
+
+        if (sender is GameGridCard card)
+        {
+            if (card.CoverImageElement != null)
+            {
+                Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
+            }
+            ViewModel.GoToGameDetail(card.Game.Id);
         }
     }
 }

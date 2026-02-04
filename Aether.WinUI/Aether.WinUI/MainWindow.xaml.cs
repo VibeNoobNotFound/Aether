@@ -66,7 +66,22 @@ public sealed partial class MainWindow : Window
                 NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
             // No action for Top mode
         };
+        ContentFrame.Navigated += (_, _) =>
+        {
+            // Hide back button when navigating to main pages
+            if (ContentFrame.CurrentSourcePageType == typeof(LibraryPage) ||
+                ContentFrame.CurrentSourcePageType == typeof(SettingsPage) ||
+                ContentFrame.CurrentSourcePageType == typeof(SearchResultsPage))
+            {
+               
+                Background.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                Background.Visibility = Visibility.Visible;
+            }
 
+        };
     }
 
     private void NavView_Loaded(object sender, RoutedEventArgs e)

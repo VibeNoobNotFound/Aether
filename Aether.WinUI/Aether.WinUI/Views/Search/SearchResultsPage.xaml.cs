@@ -1,12 +1,13 @@
+using Aether.WinUI.Controls;
 using Aether.WinUI.Models;
 using Aether.WinUI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using System.ComponentModel;
-using System.Collections.Generic;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
+using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace Aether.WinUI.Views.Search;
 
@@ -41,22 +42,6 @@ public sealed partial class SearchResultsPage : Page
         if (sender is ToggleButton toggle && toggle.Tag is string platform)
         {
             toggle.IsChecked = string.Equals(ViewModel.FilterPlatform, platform, System.StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    private void ResultsGrid_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is GameViewModel game)
-        {
-            if (sender is GridView gridView && gridView.ContainerFromItem(e.ClickedItem) is GridViewItem container)
-            {
-                if (container.ContentTemplateRoot is Controls.GameGridCard card && card.CoverImageElement != null)
-                {
-                    Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView()
-                        .PrepareToAnimate("CoverAnimation", card.CoverImageElement);
-                }
-            }
-            MainViewModel.GoToGameDetailCommand.Execute(game.Id);
         }
     }
 
@@ -100,5 +85,17 @@ public sealed partial class SearchResultsPage : Page
             }
         }
         return null;
+    }
+
+    private void GamegCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is GameGridCard card)
+        {
+            if (card.CoverImageElement != null)
+            {
+                Microsoft.UI.Xaml.Media.Animation.ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("CoverAnimation", card.CoverImageElement);
+            }
+            MainViewModel.GoToGameDetailCommand.Execute(card.Game.Id);
+        }
     }
 }
