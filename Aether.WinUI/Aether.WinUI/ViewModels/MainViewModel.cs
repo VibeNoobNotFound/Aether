@@ -94,6 +94,7 @@ public partial class MainViewModel : ObservableObject
     private async Task InitializeDataAsync()
     {
         await RefreshLibraryAsync();
+        _ = RefreshCollectionsAsync();
         _ = LoadCarouselGamesAsync();
         _ = FetchPluginsAsync();
         _ = SubscribeToGameStateAsync();
@@ -350,6 +351,97 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Stop error: {ex.Message}";
+        }
+    }
+    public async Task RefreshCollectionsAsync()
+    {
+        try
+        {
+            // GetCollections is a standard RPC, not streaming
+            var response = await _grpc.Client.GetCollectionsAsync(new Empty());
+            var list = response.Collections.Select(CollectionViewModel.FromProto).ToList();
+
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                Collections = new ObservableCollection<CollectionViewModel>(list.OrderBy(c => c.SortOrder));
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to refresh collections: {ex.Message}");
+        }
+    }
+
+    public async Task CreateCollectionAsync(string name, string icon, IEnumerable<string> gameIds)
+    {
+        try
+        {
+            // Fix: IconName
+            var response = await _grpc.Client.CreateCollectionAsync(new CreateCollectionRequest { Name = name, IconName = icon });
+
+            if (gameIds != null && gameIds.Any())
+            {
+                foreach (var id in gameIds)
+                {
+                    // Fix: CollectionGameAction
+                    await _grpc.Client.AddGameToCollectionAsync(new CollectionGameAction { CollectionId = response.Id, GameId = id });
+                }
+            }
+
+            await RefreshCollectionsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create collection");
+        }
+    }
+
+    public async Task DeleteCollectionAsync(int collectionId)
+    {
+        try
+        {
+            await _grpc.Client.DeleteCollectionAsync(new CollectionId { Id = collectionId });
+            var col = Collections.FirstOrDefault(c => c.Id == collectionId);
+            if (col != null) Collections.Remove(col);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete collection");
+        }
+    }
+
+    public async Task ToggleCollectionVisibilityAsync(CollectionViewModel collection)
+    {
+        try
+        {
+            collection.IsVisible = !collection.IsVisible;
+            // Fix: IconName
+            await _grpc.Client.UpdateCollectionAsync(new UpdateCollectionRequest
+            {
+                Id = collection.Id,
+                Name = collection.Name,
+                IconName = collection.Icon,
+                IsVisible = collection.IsVisible
+            });
+        }
+        catch (Exception ex)
+        {
+            collection.IsVisible = !collection.IsVisible; // Revert
+            _logger.LogError(ex, "Failed to toggle visibility");
+        }
+    }
+
+    public async Task ReorderCollectionsAsync(IEnumerable<int> orderedIds)
+    {
+        try
+        {
+            var request = new ReorderCollectionsRequest();
+            request.CollectionIds.AddRange(orderedIds);
+            await _grpc.Client.ReorderCollectionsAsync(request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reorder collections");
         }
     }
 }

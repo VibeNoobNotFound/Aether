@@ -70,13 +70,8 @@ public sealed partial class HomePage : Page
 
     private async void ManageCollections_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ContentDialog
-        {
-            Title = "Manage Collections",
-            Content = "Collection management coming soon.",
-            CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot
-        };
+        var dialog = new Aether.WinUI.Views.Library.CollectionManagerDialog();
+        dialog.XamlRoot = this.XamlRoot;
         await dialog.ShowAsync();
     }
 }

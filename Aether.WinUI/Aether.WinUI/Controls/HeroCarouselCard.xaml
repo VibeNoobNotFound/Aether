@@ -26,9 +26,9 @@
                    attached:ImageCache.Source="{x:Bind Game.LogoImageUrl, Mode=OneWay}"
                    MaxHeight="80"
                    HorizontalAlignment="Left"
-                   Visibility="Collapsed"
-                   ImageOpened="LogoImage_ImageOpened"/>
-            <TextBlock x:Name="TitleText" Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"/>
+                   Visibility="{x:Bind Game.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBlock x:Name="TitleText" Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"
+                       Visibility="{x:Bind Game.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
             <Button Content="Play Now" 
                     Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}" 
                     CommandParameter="{x:Bind Game.Id, Mode=OneWay}"

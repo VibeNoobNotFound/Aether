@@ -14,22 +14,7 @@ public sealed partial class HeroCarouselCard : UserControl
 
     private static void OnGameChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is HeroCarouselCard card)
-        {
-            card.ResetLogoState();
-        }
-    }
-
-    private void ResetLogoState()
-    {
-        if (LogoImage != null) LogoImage.Visibility = Visibility.Collapsed;
-        if (TitleText != null) TitleText.Visibility = Visibility.Visible;
-    }
-
-    private void LogoImage_ImageOpened(object sender, RoutedEventArgs e)
-    {
-        LogoImage.Visibility = Visibility.Visible;
-        TitleText.Visibility = Visibility.Collapsed;
+        // No need to reset logo state manually now
     }
 
     public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();

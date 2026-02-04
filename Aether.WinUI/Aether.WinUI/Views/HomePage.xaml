@@ -10,8 +10,13 @@
     mc:Ignorable="d">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
         <!-- Blurred Background Layer -->
-        <Grid x:Name="BackgroundLayer">
+        <Grid x:Name="BackgroundLayer" Grid.RowSpan="2">
             <Image x:Name="BackgroundImage" 
                    Stretch="UniformToFill" 
                    Opacity="0.5"/>
@@ -20,7 +25,7 @@
         </Grid>
 
         <!-- Editing Toolbar -->
-        <CommandBar VerticalAlignment="Top" Background="Transparent" IsOpen="False" DefaultLabelPosition="Right" Margin="0,10,20,0">
+        <CommandBar Grid.Row="0" VerticalAlignment="Top" Background="Transparent" IsOpen="False" DefaultLabelPosition="Right" Margin="0,10,20,0">
             <CommandBar.Content>
                 <TextBlock Text="Home" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,12,0,0" Opacity="0.8"/>
             </CommandBar.Content>
@@ -30,7 +35,7 @@
         </CommandBar>
         
         <!-- Empty State -->
-        <Grid Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+        <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
               HorizontalAlignment="Center" 
               VerticalAlignment="Center">
             <StackPanel Spacing="20" HorizontalAlignment="Center" MaxWidth="500">
@@ -55,7 +60,7 @@
         </Grid>
 
         <!-- Main Content -->
-        <ScrollViewer Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
+        <ScrollViewer Grid.Row="1" Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
             <StackPanel Spacing="24" Padding="0,0,0,24">
                 <!-- Hero Carousel -->
                 <FlipView x:Name="HeroCarousel" Height="400" ItemsSource="{x:Bind ViewModel.CarouselGames, Mode=OneWay}"

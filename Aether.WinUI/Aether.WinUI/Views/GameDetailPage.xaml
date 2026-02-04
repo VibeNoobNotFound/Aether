@@ -70,8 +70,7 @@
                                        MaxHeight="140"
                                        Stretch="Uniform"
                                        HorizontalAlignment="Left"
-                                       Visibility="Collapsed"
-                                       ImageOpened="LogoImage_ImageOpened">
+                                       Visibility="{x:Bind ViewModel.SelectedGame.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <Image.Shadow>
                                         <ThemeShadow/>
                                     </Image.Shadow>
@@ -80,7 +79,8 @@
                                 <TextBlock x:Name="TitleText" 
                                            Text="{x:Bind ViewModel.SelectedGame.Title, Mode=OneWay}" 
                                            Style="{StaticResource DisplayTextBlockStyle}" 
-                                           Foreground="White">
+                                           Foreground="White"
+                                           Visibility="{x:Bind ViewModel.SelectedGame.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <TextBlock.Shadow>
                                         <ThemeShadow/>
                                     </TextBlock.Shadow>

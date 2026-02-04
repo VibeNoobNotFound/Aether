@@ -45,8 +45,6 @@ public sealed partial class GameDetailPage : Page
     {
         base.OnNavigatedTo(e);
 
-        ResetLogoState();
-
         if (e.Parameter is string gameId)
         {
             System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
@@ -89,18 +87,6 @@ public sealed partial class GameDetailPage : Page
         {
             StickyHeader.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
         }
-    }
-
-    private void LogoImage_ImageOpened(object sender, RoutedEventArgs e)
-    {
-        if (LogoImage != null) LogoImage.Visibility = Visibility.Visible;
-        if (TitleText != null) TitleText.Visibility = Visibility.Collapsed;
-    }
-
-    private void ResetLogoState()
-    {
-        if (LogoImage != null) LogoImage.Visibility = Visibility.Collapsed;
-        if (TitleText != null) TitleText.Visibility = Visibility.Visible;
     }
 
     private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
