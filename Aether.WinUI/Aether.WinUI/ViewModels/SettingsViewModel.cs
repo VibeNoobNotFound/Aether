@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly GrpcClientService _grpc;
     private readonly BackendManager _backend;
+    private readonly AppSettingsService _settings;
 
     [ObservableProperty] private string version = "1.0.0-alpha";
     [ObservableProperty] private int selectedThemeIndex = 0; // 0: System, 1: Dark, 2: Light
@@ -26,10 +27,16 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private ObservableCollection<PluginViewModel> plugins = new();
 
-    public SettingsViewModel(GrpcClientService grpc, BackendManager backend)
+    public SettingsViewModel(GrpcClientService grpc, BackendManager backend, AppSettingsService settings)
     {
         _grpc = grpc;
         _backend = backend;
+        _settings = settings;
+
+        // Load settings
+        SelectedThemeIndex = _settings.SelectedThemeIndex;
+        IsAutoUpdateEnabled = _settings.AutoUpdateEnabled;
+        IncludeBetaUpdates = _settings.IncludeBetaUpdates;
 
         // Load initial data
         _ = LoadPlugins();
@@ -37,8 +44,10 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnSelectedThemeIndexChanged(int value)
     {
+        _settings.SelectedThemeIndex = value;
+
         // 0: System (Default), 1: Dark, 2: Light
-        if (Window.Current?.Content is FrameworkElement root)
+        if (App.Current?.MainWindow?.Content is FrameworkElement root)
         {
             switch (value)
             {
@@ -47,6 +56,16 @@ public partial class SettingsViewModel : ObservableObject
                 default: root.RequestedTheme = ElementTheme.Default; break;
             }
         }
+    }
+
+    partial void OnIsAutoUpdateEnabledChanged(bool value)
+    {
+        _settings.AutoUpdateEnabled = value;
+    }
+
+    partial void OnIncludeBetaUpdatesChanged(bool value)
+    {
+        _settings.IncludeBetaUpdates = value;
     }
 
     public async Task LoadPlugins()

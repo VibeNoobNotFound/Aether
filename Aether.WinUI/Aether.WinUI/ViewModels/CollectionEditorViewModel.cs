@@ -1,4 +1,5 @@
 using Aether.Protos;
+using Aether.WinUI.Services;
 using Aether.WinUI.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,7 +36,7 @@ public partial class CollectionEditorViewModel : ObservableObject
         // Assuming the model stores either SF Symbol name (legacy) or Glyph.
         // For now, let's assume we store the Glyph. If it's a legacy name, we might default.
         // For new items, we store the Glyph directly.
-        IconGlyph = collection.Icon;
+        IconGlyph = MapIconToGlyph(collection.Icon);
 
         CanEditName = !collection.IsSystem;
         IsCustomCollection = collection.Type == CollectionType.CollectionCustom; // Fixed Enum
@@ -47,6 +48,13 @@ public partial class CollectionEditorViewModel : ObservableObject
                 SelectedGameIds.Add(id);
             }
         }
+    }
+
+    private static string MapIconToGlyph(string iconName)
+    {
+        var app = Application.Current as App;
+        var mapper = app?.Services.GetService<IconMapService>();
+        return mapper?.ToGlyph(iconName, iconName) ?? iconName;
     }
 
     public void UpdateSelectedGames(IEnumerable<string> newSelection)

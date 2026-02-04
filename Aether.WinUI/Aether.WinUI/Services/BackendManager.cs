@@ -128,6 +128,12 @@ public partial class BackendManager : ObservableObject
         StatusMessage = "Failed to connect to backend";
     }
 
+    public async Task RetryConnectionAsync()
+    {
+        StatusMessage = "Retrying connection...";
+        await StartHealthProbing();
+    }
+
     public void Stop()
     {
         if (_backendProcess != null && !_backendProcess.HasExited)

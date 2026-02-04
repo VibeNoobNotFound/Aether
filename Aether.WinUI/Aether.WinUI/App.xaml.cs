@@ -50,6 +50,8 @@ public partial class App : Application
         services.AddSingleton<GrpcClientService>();
         services.AddSingleton<BackendManager>();
         services.AddSingleton<ImageCacheService>();
+        services.AddSingleton<AppSettingsService>();
+        services.AddSingleton<IconMapService>();
 
         // ViewModels
         services.AddSingleton<MainViewModel>();

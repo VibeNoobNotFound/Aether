@@ -20,6 +20,7 @@
             <converters:GameStateToBoolConverter x:Key="GameStateToBoolConverter" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <converters:PlatformToColorConverter x:Key="PlatformToColorConverter" />
+            <converters:IconNameToGlyphConverter x:Key="IconNameToGlyphConverter" />
             <ThemeShadow x:Key="SharedShadow" />
             
             <!-- Custom Acrylic Brushes -->

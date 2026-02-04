@@ -444,4 +444,71 @@ public partial class MainViewModel : ObservableObject
             _logger.LogError(ex, "Failed to reorder collections");
         }
     }
+
+    public async Task<CanLaunchResponse?> CanLaunchGameAsync(string gameId)
+    {
+        try
+        {
+            return await _grpc.Client.CanLaunchGameAsync(new GameId { Id = gameId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check can launch");
+            return null;
+        }
+    }
+
+    public async Task<ActiveProcessesResponse?> GetActiveProcessesAsync(string gameId)
+    {
+        try
+        {
+            return await _grpc.Client.GetActiveProcessesAsync(new GameId { Id = gameId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get active processes");
+            return null;
+        }
+    }
+
+    public async Task<LibraryStatsResponse?> GetLibraryStatsAsync()
+    {
+        try
+        {
+            return await _grpc.Client.GetLibraryStatsAsync(new Empty());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get library stats");
+            return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<NewsItemViewModel>> FetchGeneralNewsAsync()
+    {
+        try
+        {
+            var response = await _grpc.Client.GetGeneralNewsAsync(new Empty());
+            return response.News.Select(NewsItemViewModel.FromProto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch general news");
+            return Array.Empty<NewsItemViewModel>();
+        }
+    }
+
+    public async Task<IReadOnlyList<NewsItemViewModel>> FetchGameNewsAsync(string gameId)
+    {
+        try
+        {
+            var response = await _grpc.Client.GetGameNewsAsync(new GameId { Id = gameId });
+            return response.News.Select(NewsItemViewModel.FromProto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch game news");
+            return Array.Empty<NewsItemViewModel>();
+        }
+    }
 }

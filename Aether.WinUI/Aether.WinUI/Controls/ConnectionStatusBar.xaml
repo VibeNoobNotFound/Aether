@@ -28,7 +28,7 @@
                    Style="{StaticResource CaptionTextBlockStyle}"/>
         
         <Button Grid.Column="2" Content="Retry" 
-                Command="{x:Bind ViewModel.RefreshLibraryCommand}" 
+                Click="Retry_Click"
                 Visibility="{x:Bind ViewModel.ConnectionState, Mode=OneWay, Converter={StaticResource ErrorStateToVisibilityConverter}}"
                 Margin="8,0,0,0" Padding="8,4" FontSize="10"/>
     </Grid>

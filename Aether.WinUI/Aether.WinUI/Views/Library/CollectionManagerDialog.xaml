@@ -44,7 +44,7 @@
                         <!-- Reorder Grip (Visual only) -->
                         <FontIcon Glyph="&#xE700;" Width="24" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
 
-                        <FontIcon Grid.Column="1" Glyph="{x:Bind Icon}" Margin="12,0" FontSize="16"/>
+                        <FontIcon Grid.Column="1" Glyph="{x:Bind Icon, Converter={StaticResource IconNameToGlyphConverter}}" Margin="12,0" FontSize="16"/>
 
                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}"/>
