@@ -301,9 +301,5 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- 4. Sticky Header (Acrylic when scrolled) -->
-        <Grid x:Name="StickyHeader" Height="80" VerticalAlignment="Top" Background="Transparent">
-            <!-- Could add Back button here if navigating deeper, for now just empty or could have title fade in -->
-        </Grid>
     </Grid>
 </Page>

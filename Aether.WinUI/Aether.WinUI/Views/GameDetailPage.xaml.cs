@@ -88,17 +88,6 @@ public sealed partial class GameDetailPage : Page
 
     private void MainScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
-        if (StickyHeader == null) return;
-
-        // Simple threshold for sticky header acrylic
-        if (MainScrollViewer.VerticalOffset > 10)
-        {
-            StickyHeader.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["DarkAcrylicBackgroundBrush"];
-        }
-        else
-        {
-            StickyHeader.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        }
     }
 
     private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
