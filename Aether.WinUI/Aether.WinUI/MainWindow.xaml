@@ -37,7 +37,11 @@
             </NavigationView.MenuItems>
 
             <NavigationView.AutoSuggestBox>
-                <AutoSuggestBox PlaceholderText="Search library..." QueryIcon="Find"/>
+                <AutoSuggestBox x:Name="SearchBox"
+                                PlaceholderText="Search library..."
+                                QueryIcon="Find"
+                                TextChanged="SearchBox_TextChanged"
+                                QuerySubmitted="SearchBox_QuerySubmitted"/>
             </NavigationView.AutoSuggestBox>
 
             <Frame x:Name="ContentFrame">

@@ -1,6 +1,7 @@
 using Aether.WinUI.Models;
 using Aether.WinUI.ViewModels;
 using Aether.WinUI.Views;
+using Aether.WinUI.Views.Search;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,6 +13,10 @@ namespace Aether.WinUI;
 public sealed partial class MainWindow : Window
 {
     public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
+    public SearchViewModel SearchViewModel => (Application.Current as App)!.Services.GetRequiredService<SearchViewModel>();
+
+    private bool _isSearchActive;
+    private Type? _lastContentPageType;
 
     public MainWindow()
     {
@@ -97,6 +102,70 @@ public sealed partial class MainWindow : Window
                     break;
             }
             title.IsBackButtonVisible = false;
+        }
+    }
+
+    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    {
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.ProgrammaticChange)
+        {
+            return;
+        }
+
+        SearchViewModel.Query = sender.Text ?? string.Empty;
+        UpdateSearchNavigation();
+    }
+
+    private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        SearchViewModel.Query = args.QueryText ?? string.Empty;
+        UpdateSearchNavigation();
+    }
+
+    private void UpdateSearchNavigation()
+    {
+        var hasQuery = !string.IsNullOrWhiteSpace(SearchViewModel.Query);
+
+        if (hasQuery && !_isSearchActive)
+        {
+            _lastContentPageType = ContentFrame.CurrentSourcePageType;
+            ContentFrame.Navigate(typeof(SearchResultsPage));
+            _isSearchActive = true;
+            title.IsBackButtonVisible = false;
+        }
+        else if (!hasQuery && _isSearchActive)
+        {
+            _isSearchActive = false;
+            NavigateToCurrentScreen();
+        }
+    }
+
+    private void NavigateToCurrentScreen()
+    {
+        switch (ViewModel.CurrentScreen)
+        {
+            case AppScreen.Home:
+                ContentFrame.Navigate(typeof(HomePage));
+                break;
+            case AppScreen.Library:
+                ContentFrame.Navigate(typeof(LibraryPage));
+                break;
+            case AppScreen.Settings:
+                ContentFrame.Navigate(typeof(SettingsPage));
+                break;
+            case AppScreen.Store:
+                ContentFrame.Navigate(typeof(HomePage));
+                break;
+            default:
+                if (_lastContentPageType != null)
+                {
+                    ContentFrame.Navigate(_lastContentPageType);
+                }
+                else
+                {
+                    ContentFrame.Navigate(typeof(HomePage));
+                }
+                break;
         }
     }
 }

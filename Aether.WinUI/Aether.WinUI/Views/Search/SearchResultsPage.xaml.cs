@@ -1,0 +1,96 @@
+using Aether.WinUI.Models;
+using Aether.WinUI.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using System.ComponentModel;
+using System.Collections.Generic;
+using Microsoft.UI.Xaml.Controls.Primitives;
+
+namespace Aether.WinUI.Views.Search;
+
+public sealed partial class SearchResultsPage : Page
+{
+    public SearchViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<SearchViewModel>();
+    public MainViewModel MainViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
+
+    public SearchResultsPage()
+    {
+        InitializeComponent();
+        Loaded += SearchResultsPage_Loaded;
+    }
+
+    private void SearchResultsPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        UpdatePlatformSelection();
+    }
+
+    private void PlatformFilter_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle && toggle.Tag is string platform)
+        {
+            ViewModel.TogglePlatformFilter(platform);
+            UpdatePlatformSelection();
+        }
+    }
+
+    private void PlatformFilter_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle && toggle.Tag is string platform)
+        {
+            toggle.IsChecked = string.Equals(ViewModel.FilterPlatform, platform, System.StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private void ResultsGrid_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is GameViewModel game)
+        {
+            MainViewModel.GoToGameDetailCommand.Execute(game.Id);
+        }
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ViewModel.FilterPlatform))
+        {
+            UpdatePlatformSelection();
+        }
+    }
+
+    private void UpdatePlatformSelection()
+    {
+        if (ImporterFilters?.ItemsPanelRoot is not Panel panel) return;
+
+        foreach (var child in panel.Children)
+        {
+            var toggle = FindVisualChild<ToggleButton>(child);
+            if (toggle?.Tag is string platform)
+            {
+                toggle.IsChecked = string.Equals(ViewModel.FilterPlatform, platform, System.StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        var count = VisualTreeHelper.GetChildrenCount(parent);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            var result = FindVisualChild<T>(child);
+            if (result != null)
+            {
+                return result;
+            }
+        }
+        return null;
+    }
+}

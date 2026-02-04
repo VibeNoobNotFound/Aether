@@ -1,0 +1,118 @@
+<Page
+    x:Class="Aether.WinUI.Views.Search.SearchResultsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Aether.WinUI.Models"
+    xmlns:controls="using:Aether.WinUI.Controls"
+    mc:Ignorable="d"
+    x:Name="RootPage">
+
+    <Page.Resources>
+        <Style x:Key="FilterChipStyle" TargetType="ToggleButton">
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Filter Bar -->
+        <Border Grid.Row="0"
+                Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+                CornerRadius="12"
+                Margin="20,16,20,8"
+                Padding="12,10">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ItemsControl x:Name="ImporterFilters" ItemsSource="{x:Bind ViewModel.AvailableImporters, Mode=OneWay}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:PluginViewModel">
+                                    <ToggleButton Style="{StaticResource FilterChipStyle}"
+                                                  Click="PlatformFilter_Click"
+                                                  Loaded="PlatformFilter_Loaded"
+                                                  Tag="{x:Bind Name}">
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource CaptionTextBlockStyle}"/>
+                                    </ToggleButton>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <ComboBox x:Name="SortByComboBox"
+                              MinWidth="140"
+                              SelectedIndex="{x:Bind ViewModel.SortByIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="Relevance"/>
+                        <ComboBoxItem Content="Name"/>
+                        <ComboBoxItem Content="Release Date"/>
+                        <ComboBoxItem Content="Playtime"/>
+                    </ComboBox>
+                    <ToggleButton IsChecked="{x:Bind ViewModel.SortAscending, Mode=TwoWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8CB;"/>
+                            <TextBlock Text="Asc" Style="{StaticResource CaptionTextBlockStyle}"/>
+                        </StackPanel>
+                    </ToggleButton>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Results -->
+        <Grid Grid.Row="1">
+            <!-- Loading -->
+            <Grid Visibility="{x:Bind ViewModel.ShowProgress, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ProgressRing IsActive="True" Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Empty State -->
+            <Grid Visibility="{x:Bind ViewModel.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Spacing="12" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE721;" FontSize="48" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="No games found" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Try a different search or filter."
+                               Style="{StaticResource BodyTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Results Grid -->
+            <GridView ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
+                      SelectionMode="None"
+                      IsItemClickEnabled="True"
+                      ItemClick="ResultsGrid_ItemClick"
+                      Padding="24"
+                      Visibility="{x:Bind ViewModel.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="models:GameViewModel">
+                        <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Margin="0,0,12,12"/>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+        </Grid>
+    </Grid>
+</Page>
