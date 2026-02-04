@@ -101,7 +101,8 @@
             </Grid>
 
             <!-- Results Grid -->
-            <GridView ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
+            <GridView x:Name="ResultsGrid"
+                      ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
                       SelectionMode="None"
                       IsItemClickEnabled="True"
                       ItemClick="ResultsGrid_ItemClick"

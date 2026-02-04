@@ -72,9 +72,23 @@ public partial class GameViewModel : ObservableObject
     public bool HasLogo => !string.IsNullOrEmpty(LogoImageUrl);
     public string? DisplayBackgroundImageUrl => !string.IsNullOrEmpty(BackgroundImageUrl) ? BackgroundImageUrl : CoverImageUrl;
     public string DisplayDescription => !string.IsNullOrEmpty(Description) ? Description : ShortDescription;
+    public string DescriptionPlain => StripHtml(DisplayDescription);
     public bool HasMetacriticScore => MetacriticScore > 0;
     public bool HasUserScore => UserScore > 0;
     public bool HasReleaseDate => ReleaseDateUnix > 0;
+
+    private static string StripHtml(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+        var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", string.Empty);
+        text = text.Replace("&nbsp;", " ")
+                   .Replace("&amp;", "&")
+                   .Replace("&lt;", "<")
+                   .Replace("&gt;", ">")
+                   .Replace("&quot;", "\"")
+                   .Replace("&#39;", "'");
+        return text.Trim();
+    }
 
     public static GameViewModel FromProto(Game proto)
     {

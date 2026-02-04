@@ -19,9 +19,7 @@
         <Grid x:Name="BackgroundLayer" Grid.RowSpan="2">
             <Image x:Name="BackgroundImage" 
                    Stretch="UniformToFill" 
-                   Opacity="0.5"/>
-            <!-- Acrylic overlay for depth -->
-            <Rectangle Fill="{ThemeResource DarkAcrylicBackgroundBrush}"/>
+                   Opacity="0"/>
         </Grid>
 
         <!-- Editing Toolbar -->
@@ -32,6 +30,11 @@
             <AppBarButton Icon="Pictures" Label="Edit Carousel" Click="EditCarousel_Click"/>
             <AppBarButton Icon="List" Label="Collections" Click="ManageCollections_Click"/>
             <AppBarButton Icon="Refresh" Label="Scan Library" Command="{x:Bind ViewModel.ScanLibraryCommand}"/>
+            <AppBarButton Label="Insights" Click="Insights_Click">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xE9D2;"/>
+                </AppBarButton.Icon>
+            </AppBarButton>
         </CommandBar>
         
         <!-- Empty State -->
@@ -61,16 +64,105 @@
 
         <!-- Main Content -->
         <ScrollViewer Grid.Row="1" Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter='Inverse'}">
-            <StackPanel Spacing="24" Padding="0,0,0,24">
-                <!-- Hero Carousel -->
-                <FlipView x:Name="HeroCarousel" Height="400" ItemsSource="{x:Bind ViewModel.CarouselGames, Mode=OneWay}"
-                          SelectionChanged="HeroCarousel_SelectionChanged">
-                    <FlipView.ItemTemplate>
-                        <DataTemplate x:DataType="models:GameViewModel">
-                            <controls:HeroCarouselCard Game="{x:Bind}" />
+            <StackPanel Spacing="28" Padding="0,0,0,24">
+                <!-- Hero + News -->
+                <Grid ColumnSpacing="20" Padding="24,0" x:Name="HeroRow">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="360"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Hero Carousel -->
+                    <FlipView x:Name="HeroCarousel"
+                              Grid.Column="0"
+                              SizeChanged="HeroCarousel_SizeChanged"
+                              ItemsSource="{x:Bind ViewModel.CarouselGames, Mode=OneWay}"
+                              SelectionChanged="HeroCarousel_SelectionChanged">
+                        <FlipView.ItemTemplate>
+                            <DataTemplate x:DataType="models:GameViewModel">
+                                <controls:HeroCarouselCard Game="{x:Bind}" />
+                            </DataTemplate>
+                        </FlipView.ItemTemplate>
+                    </FlipView>
+
+                    <!-- News Feed -->
+                    <ScrollView x:Name="NewsPanel"
+                            Grid.Column="1"
+                            CornerRadius="12"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            Padding="12">
+                        <StackPanel Spacing="12">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.GeneralNews, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:NewsItemViewModel">
+                                            <Button Click="NewsItem_Click"
+                                                    Tag="{x:Bind Url}"
+                                                    HorizontalAlignment="Stretch"
+                                                    Padding="0"
+                                                    Background="Transparent"
+                                                    BorderThickness="0">
+                                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="0" Margin="0,0,0,10">
+                                                    <StackPanel Spacing="8">
+                                                        <Grid Height="120">
+                                                            <Image Stretch="UniformToFill"
+                                                                   attached:ImageCache.Source="{x:Bind ImageUrl, Mode=OneWay}"/>
+                                                            <Rectangle Fill="#55000000"/>
+                                                        </Grid>
+                                                        <StackPanel Spacing="6" Padding="10">
+                                                            <TextBlock Text="{x:Bind Source}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <TextBlock Text="{x:Bind Author}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                                <TextBlock Text="{x:Bind PublishedDateText}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </ScrollView>
+                </Grid>
+
+                <!-- Dynamic Collections -->
+                <ItemsControl ItemsSource="{x:Bind ViewModel.HomeCollections, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:HomeCollectionViewModel">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="12" Padding="24,0">
+                                    <Border Width="32" Height="32" CornerRadius="16" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind Collection.Icon, Converter={StaticResource IconNameToGlyphConverter}}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="{x:Bind Collection.Name}" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <ListView ItemsSource="{x:Bind Games, Mode=OneWay}"
+                                          SelectionMode="None"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="CollectionGrid_ItemClick"
+                                          Padding="24,0"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:GameViewModel">
+                                            <controls:GameGridCard Game="{x:Bind Mode=OneWay}" Width="160" Height="240" Margin="0,0,12,12"/>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
                         </DataTemplate>
-                    </FlipView.ItemTemplate>
-                </FlipView>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <TextBlock Text="Recent Games" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,0,0,0"/>
 

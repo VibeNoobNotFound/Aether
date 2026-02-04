@@ -45,6 +45,10 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private ObservableCollection<CollectionViewModel> collections = new();
     [ObservableProperty] private ObservableCollection<PluginViewModel> plugins = new();
+    [ObservableProperty] private ObservableCollection<HomeCollectionViewModel> homeCollections = new();
+    [ObservableProperty] private ObservableCollection<NewsItemViewModel> generalNews = new();
+    [ObservableProperty] private string? windowBackgroundImageUrl;
+    [ObservableProperty] private double windowBackgroundOpacity = 0.5;
 
     [ObservableProperty] private AppScreen currentScreen = AppScreen.Home;
     [ObservableProperty] private string searchQuery = "";
@@ -97,6 +101,7 @@ public partial class MainViewModel : ObservableObject
         _ = RefreshCollectionsAsync();
         _ = LoadCarouselGamesAsync();
         _ = FetchPluginsAsync();
+        _ = LoadGeneralNewsAsync();
         _ = SubscribeToGameStateAsync();
     }
 
@@ -120,6 +125,7 @@ public partial class MainViewModel : ObservableObject
             {
                 Games = tempGames;
                 OnPropertyChanged(nameof(IsLibraryEmpty));
+                UpdateHomeCollections();
                 StatusMessage = "Ready";
             });
         }
@@ -189,6 +195,7 @@ public partial class MainViewModel : ObservableObject
             if (game != null)
             {
                 game.IsFavorite = !game.IsFavorite;
+                UpdateHomeCollections();
             }
         }
         catch (Exception ex)
@@ -221,6 +228,7 @@ public partial class MainViewModel : ObservableObject
             {
                 Games.Remove(game);
                 OnPropertyChanged(nameof(IsLibraryEmpty));
+                UpdateHomeCollections();
             }
         }
         catch (Exception ex)
@@ -276,11 +284,13 @@ public partial class MainViewModel : ObservableObject
                         {
                             Games.Add(newGame);
                         }
+                        UpdateHomeCollections();
                     }
                 });
             }
 
             StatusMessage = "Scan complete";
+            UpdateHomeCollections();
         }
         catch (Exception ex)
         {
@@ -364,12 +374,75 @@ public partial class MainViewModel : ObservableObject
             _dispatcherQueue.TryEnqueue(() =>
             {
                 Collections = new ObservableCollection<CollectionViewModel>(list.OrderBy(c => c.SortOrder));
+                UpdateHomeCollections();
             });
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to refresh collections: {ex.Message}");
         }
+    }
+
+    public async Task LoadGeneralNewsAsync()
+    {
+        var news = await FetchGeneralNewsAsync();
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            GeneralNews = new ObservableCollection<NewsItemViewModel>(news);
+        });
+    }
+
+    private void UpdateHomeCollections()
+    {
+        var visible = Collections
+            .Where(c => c.IsVisible)
+            .OrderBy(c => c.SortOrder)
+            .ToList();
+
+        var rows = new ObservableCollection<HomeCollectionViewModel>();
+        foreach (var collection in visible)
+        {
+            var games = GetGamesForCollection(collection);
+            if (games.Count > 0)
+            {
+                rows.Add(new HomeCollectionViewModel(collection, games));
+            }
+        }
+
+        HomeCollections = rows;
+    }
+
+    private ObservableCollection<GameViewModel> GetGamesForCollection(CollectionViewModel collection)
+    {
+        if (!string.IsNullOrWhiteSpace(collection.PlatformFilter))
+        {
+            var filter = collection.PlatformFilter.Trim().ToLowerInvariant();
+            var byPlatform = Games.Where(g => g.Platform?.ToLowerInvariant().Contains(filter) == true);
+            return new ObservableCollection<GameViewModel>(byPlatform);
+        }
+
+        if (collection.Type == CollectionType.CollectionFavorites)
+        {
+            return new ObservableCollection<GameViewModel>(Games.Where(g => g.IsFavorite));
+        }
+
+        if (collection.Type == CollectionType.CollectionRecentlyPlayed)
+        {
+            var oneMonthAgo = DateTimeOffset.UtcNow.AddDays(-30);
+            var recent = Games
+                .Where(g => g.LastPlayed.HasValue && g.LastPlayed.Value > oneMonthAgo)
+                .OrderByDescending(g => g.LastPlayed);
+            return new ObservableCollection<GameViewModel>(recent);
+        }
+
+        if (collection.Type == CollectionType.CollectionCustom && collection.GameIds.Count > 0)
+        {
+            var idSet = collection.GameIds.ToHashSet();
+            var custom = Games.Where(g => idSet.Contains(g.Id));
+            return new ObservableCollection<GameViewModel>(custom);
+        }
+
+        return new ObservableCollection<GameViewModel>();
     }
 
     public async Task CreateCollectionAsync(string name, string icon, IEnumerable<string> gameIds)
@@ -389,6 +462,7 @@ public partial class MainViewModel : ObservableObject
             }
 
             await RefreshCollectionsAsync();
+            UpdateHomeCollections();
         }
         catch (Exception ex)
         {
@@ -403,6 +477,7 @@ public partial class MainViewModel : ObservableObject
             await _grpc.Client.DeleteCollectionAsync(new CollectionId { Id = collectionId });
             var col = Collections.FirstOrDefault(c => c.Id == collectionId);
             if (col != null) Collections.Remove(col);
+            UpdateHomeCollections();
         }
         catch (Exception ex)
         {
@@ -423,6 +498,7 @@ public partial class MainViewModel : ObservableObject
                 IconName = collection.Icon,
                 IsVisible = collection.IsVisible
             });
+            UpdateHomeCollections();
         }
         catch (Exception ex)
         {
@@ -438,6 +514,7 @@ public partial class MainViewModel : ObservableObject
             var request = new ReorderCollectionsRequest();
             request.CollectionIds.AddRange(orderedIds);
             await _grpc.Client.ReorderCollectionsAsync(request);
+            UpdateHomeCollections();
         }
         catch (Exception ex)
         {

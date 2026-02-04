@@ -11,6 +11,7 @@ public partial class CollectionViewModel : ObservableObject
     [ObservableProperty] private string icon = ""; // Renamed from IconName to match app usage
     [ObservableProperty] private CollectionType type;
     [ObservableProperty] private bool isSystem;
+    [ObservableProperty] private string? platformFilter;
     [ObservableProperty] private int sortOrder;
     [ObservableProperty] private bool isVisible;
     [ObservableProperty] private int gameCount;
@@ -38,6 +39,7 @@ public partial class CollectionViewModel : ObservableObject
             Icon = proto.IconName, // Map IconName -> Icon
             Type = proto.Type,
             IsSystem = proto.IsSystem,
+            PlatformFilter = proto.HasPlatformFilter ? proto.PlatformFilter : null,
             SortOrder = proto.SortOrder,
             IsVisible = proto.IsVisible,
             GameCount = proto.GameCount

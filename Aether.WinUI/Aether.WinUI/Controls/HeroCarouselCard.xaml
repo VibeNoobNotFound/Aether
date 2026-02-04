@@ -9,7 +9,7 @@
 
     <Grid CornerRadius="12" Margin="4,0">
         <Image x:Name="HeroImage" Stretch="UniformToFill"
-               attached:ImageCache.Source="{x:Bind Game.BackgroundImageUrl, Mode=OneWay}"/>
+               attached:ImageCache.Source="{x:Bind Game.DisplayBackgroundImageUrl, Mode=OneWay}"/>
         
         <!-- Gradient Overlay -->
         <Border VerticalAlignment="Bottom" Height="140">
@@ -21,7 +21,7 @@
             </Border.Background>
         </Border>
 
-        <StackPanel VerticalAlignment="Bottom" Margin="24,0,24,24" Spacing="8">
+        <StackPanel VerticalAlignment="Bottom" Margin="24,0,24,24" Spacing="12">
             <Image x:Name="LogoImage" 
                    attached:ImageCache.Source="{x:Bind Game.LogoImageUrl, Mode=OneWay}"
                    MaxHeight="80"
@@ -29,10 +29,28 @@
                    Visibility="{x:Bind Game.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
             <TextBlock x:Name="TitleText" Text="{x:Bind Game.Title, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" Foreground="White"
                        Visibility="{x:Bind Game.HasLogo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
-            <Button Content="Play Now" 
-                    Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}" 
-                    CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
-                    Style="{StaticResource AccentButtonStyle}"/>
+
+            <!-- Play / Stop / Launching -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Play Now"
+                        Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}"
+                        CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Stopped}"/>
+
+                <Button Content="Stop"
+                        Command="{x:Bind ViewModel.StopGameCommand, Mode=OneWay}"
+                        CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
+                        Background="#FFB00020"
+                        Foreground="White"
+                        Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Running}"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8"
+                            Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Launching}">
+                    <ProgressRing IsActive="True" Width="18" Height="18"/>
+                    <TextBlock Text="Launching..." Foreground="White"/>
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
     </Grid>
 </UserControl>

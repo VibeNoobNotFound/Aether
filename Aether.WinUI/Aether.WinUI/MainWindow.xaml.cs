@@ -25,6 +25,7 @@ public sealed partial class MainWindow : Window
 
         ViewModel.NavigateToGameDetailRequested += (s, gameId) =>
         {
+            ClearSearchState();
             ContentFrame.Navigate(typeof(GameDetailPage), gameId);
             NavView.SelectedItem = null; // Clear selection as we are in detail view
             // Optionally enable back button
@@ -33,6 +34,7 @@ public sealed partial class MainWindow : Window
 
         ViewModel.NavigateToLibraryRequested += (s, e) =>
         {
+            ClearSearchState();
             ContentFrame.Navigate(typeof(LibraryPage));
             // Update nav selection to Library
             foreach (var item in NavView.MenuItems.OfType<NavigationViewItem>())
@@ -76,6 +78,7 @@ public sealed partial class MainWindow : Window
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        ClearSearchState();
         if (args.IsSettingsSelected)
         {
             ContentFrame.Navigate(typeof(SettingsPage));
@@ -137,6 +140,19 @@ public sealed partial class MainWindow : Window
         {
             _isSearchActive = false;
             NavigateToCurrentScreen();
+        }
+    }
+
+    private void ClearSearchState()
+    {
+        if (_isSearchActive || !string.IsNullOrWhiteSpace(SearchViewModel.Query))
+        {
+            SearchViewModel.ClearSearch();
+            if (SearchBox != null)
+            {
+                SearchBox.Text = string.Empty;
+            }
+            _isSearchActive = false;
         }
     }
 

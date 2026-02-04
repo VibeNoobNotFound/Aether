@@ -100,14 +100,34 @@
                                 <Button Style="{StaticResource AccentButtonStyle}" 
                                         Command="{x:Bind ViewModel.LaunchGameCommand}" 
                                         CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
-                                        Width="140" Height="48" CornerRadius="24">
+                                        Width="160" Height="48" CornerRadius="24"
+                                        IsEnabled="{x:Bind ViewModel.CanLaunch, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.SelectedGame.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Stopped}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE768;" FontSize="18"/> <!-- Play -->
-                                        <TextBlock Text="Play" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{x:Bind ViewModel.GetLaunchButtonText(), Mode=OneWay}" FontSize="16" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
 
-                                <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            Visibility="{x:Bind ViewModel.IsCheckingLaunch, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <ProgressRing IsActive="True" Width="20" Height="20"/>
+                                    <TextBlock Text="Checking launch..." Foreground="White" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                            Visibility="{x:Bind ViewModel.SelectedGame.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Launching}">
+                                    <ProgressRing IsActive="True" Width="20" Height="20"/>
+                                    <TextBlock Text="Launching..." Foreground="White" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{x:Bind ViewModel.LaunchReason, Mode=OneWay}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Visibility="{x:Bind ViewModel.CanLaunch, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
+
+                                <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+                                        Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
                                         CommandParameter="{x:Bind ViewModel.SelectedGame.Id, Mode=OneWay}"
                                         Height="48" CornerRadius="24" Padding="16,0">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -119,6 +139,15 @@
                                 <Button Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" Click="PropertiesButton_Click" Height="48" CornerRadius="24" Padding="16,0">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xE713;"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Background="#FFB00020" Click="StopGame_Click"
+                                        Height="48" CornerRadius="24" Padding="16,0"
+                                        Visibility="{x:Bind ViewModel.SelectedGame.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Running}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE71A;"/>
+                                        <TextBlock Text="Stop"/>
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
@@ -140,19 +169,40 @@
                                     <EntranceThemeTransition FromVerticalOffset="28" IsStaggeringEnabled="True"/>
                                 </TransitionCollection>
                             </StackPanel.ChildrenTransitions>
-                            <!-- Media Carousel -->
-                             <FlipView Height="400" ItemsSource="{x:Bind ViewModel.SelectedGame.Screenshots, Mode=OneWay}" 
-                                       Visibility="Visible" CornerRadius="12">
-                                <FlipView.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <Image attached:ImageCache.Source="{x:Bind Mode=OneWay}" Stretch="Uniform"/>
+                            <!-- Media Gallery -->
+                            <ListView ItemsSource="{x:Bind ViewModel.MediaItems, Mode=OneWay}"
+                                      SelectionMode="None"
+                                      IsItemClickEnabled="True"
+                                      ItemClick="MediaItem_Click"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                      Height="240">
+                                <ListView.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <ItemsStackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ListView.ItemsPanel>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:MediaItemViewModel">
+                                        <Border Width="300" Height="169" CornerRadius="8" Margin="0,0,12,0"
+                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                            <Grid>
+                                                <Image attached:ImageCache.Source="{x:Bind Url, Mode=OneWay}"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
+                                                <Grid Background="#66000000"
+                                                      Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                    <FontIcon Glyph="&#xE768;" FontSize="40" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
-                                </FlipView.ItemTemplate>
-                            </FlipView>
+                                </ListView.ItemTemplate>
+                            </ListView>
 
                             <StackPanel Spacing="12">
                                 <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.Description, Mode=OneWay}" 
+                                <TextBlock Text="{x:Bind ViewModel.SelectedGame.DescriptionPlain, Mode=OneWay}" 
                                            TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
                                            FontSize="15" LineHeight="26"/>
                             </StackPanel>
@@ -205,6 +255,34 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+
+                <!-- News Section -->
+                <StackPanel Spacing="12" Margin="24,16,24,0"
+                            Visibility="{x:Bind ViewModel.HasGameNews, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Latest News" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.GameNews, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:NewsItemViewModel">
+                                <Button Click="NewsItem_Click" Tag="{x:Bind Url}" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch">
+                                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="0" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <Grid Height="140">
+                                                <Image Stretch="UniformToFill"
+                                                       attached:ImageCache.Source="{x:Bind ImageUrl, Mode=OneWay}"/>
+                                                <Rectangle Fill="#55000000"/>
+                                            </Grid>
+                                            <StackPanel Padding="12" Spacing="6">
+                                                <TextBlock Text="{x:Bind Source}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                                <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" TextWrapping="Wrap" MaxLines="2"/>
+                                                <TextBlock Text="{x:Bind PublishedDateText}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
                 
                 <!-- Bottom Spacer -->
                 <Grid Height="100"/>

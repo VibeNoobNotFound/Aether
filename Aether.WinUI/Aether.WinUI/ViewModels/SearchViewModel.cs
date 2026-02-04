@@ -105,6 +105,20 @@ public partial class SearchViewModel : ObservableObject
         FilterGenre = null;
     }
 
+    public void ClearSearch()
+    {
+        _searchCts?.Cancel();
+        Query = string.Empty;
+        FilterPlatform = null;
+        FilterGenre = null;
+        Results.Clear();
+        TotalMatches = 0;
+        ErrorMessage = null;
+        IsSearching = false;
+        ShowProgress = false;
+        ShowEmptyState = false;
+    }
+
     public void TogglePlatformFilter(string platform)
     {
         if (string.Equals(FilterPlatform, platform, StringComparison.OrdinalIgnoreCase))
