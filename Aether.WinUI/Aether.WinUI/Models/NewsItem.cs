@@ -1,10 +1,15 @@
 using global::Aether.Protos;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 
 namespace Aether.WinUI.Models;
 
 public sealed class NewsItemViewModel
 {
+    private static ILogger<NewsItemViewModel> Logger =>
+        (Ioc.Default.GetService<ILogger<NewsItemViewModel>>()) ?? NullLogger<NewsItemViewModel>.Instance;
     public string Id { get; init; } = "";
     public string Title { get; init; } = "";
     public string Url { get; init; } = "";
@@ -24,6 +29,7 @@ public sealed class NewsItemViewModel
 
     public static NewsItemViewModel FromProto(NewsItem proto)
     {
+        Logger.LogDebug("NewsItemViewModel.FromProto: {NewsId}", proto.Id);
         return new NewsItemViewModel
         {
             Id = proto.Id,

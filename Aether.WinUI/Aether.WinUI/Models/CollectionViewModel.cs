@@ -1,11 +1,16 @@
 using global::Aether.Protos;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
 
 namespace Aether.WinUI.Models;
 
 public partial class CollectionViewModel : ObservableObject
 {
+    private static ILogger<CollectionViewModel> Logger =>
+        (Ioc.Default.GetService<ILogger<CollectionViewModel>>()) ?? NullLogger<CollectionViewModel>.Instance;
     [ObservableProperty] private int id;
     [ObservableProperty] private string name = "";
     [ObservableProperty] private string icon = ""; // Renamed from IconName to match app usage
@@ -32,6 +37,7 @@ public partial class CollectionViewModel : ObservableObject
 
     public static CollectionViewModel FromProto(Collection proto)
     {
+        Logger.LogDebug("CollectionViewModel.FromProto: {CollectionId}", proto.Id);
         var vm = new CollectionViewModel
         {
             Id = proto.Id,

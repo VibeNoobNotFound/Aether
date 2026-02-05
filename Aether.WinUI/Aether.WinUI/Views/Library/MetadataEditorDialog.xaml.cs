@@ -3,6 +3,7 @@ using Aether.WinUI.Models;
 using Aether.WinUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -17,16 +18,20 @@ namespace Aether.WinUI.Views.Library;
 public sealed partial class MetadataEditorDialog : ContentDialog
 {
     public MetadataEditorViewModel ViewModel { get; }
+    private readonly ILogger<MetadataEditorDialog> _logger;
 
     public MetadataEditorDialog(GameViewModel game)
     {
         this.InitializeComponent();
         ViewModel = new MetadataEditorViewModel(game);
+        _logger = Ioc.Default.GetRequiredService<ILogger<MetadataEditorDialog>>();
+        _logger.LogDebug("MetadataEditorDialog initialized");
         this.PrimaryButtonClick += MetadataEditorDialog_PrimaryButtonClick;
     }
 
     private async void MetadataEditorDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
+        _logger.LogInformation("MetadataEditorDialog primary button clicked");
         var deferral = args.GetDeferral();
         try
         {
@@ -44,6 +49,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private async void SearchButton_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("SearchButton clicked");
         var query = SearchBox.Text?.Trim();
         if (string.IsNullOrEmpty(query))
         {
@@ -75,6 +81,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Metadata search failed");
             SearchStatus.Text = $"Search failed: {ex.Message}";
         }
         finally
@@ -85,6 +92,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
+        _logger.LogTrace("SearchBox_KeyDown: {Key}", e.Key);
         if (e.Key == Windows.System.VirtualKey.Enter)
         {
             SearchButton_Click(sender, new RoutedEventArgs());
@@ -93,6 +101,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void SearchResult_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("SearchResult clicked");
         if (sender is Button button && button.Tag is MetadataSearchResult result)
         {
             ViewModel.ApplySearchResult(result);
@@ -102,6 +111,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void AddVideo_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("AddVideo clicked");
         var url = NewVideoUrl.Text?.Trim();
         if (!string.IsNullOrEmpty(url))
         {
@@ -112,6 +122,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void RemoveVideo_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("RemoveVideo clicked");
         if (sender is Button button && button.Tag is string videoUrl)
         {
             ViewModel.Videos.Remove(videoUrl);
@@ -120,6 +131,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void AddScreenshot_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("AddScreenshot clicked");
         var url = NewScreenshotUrl.Text?.Trim();
         if (!string.IsNullOrEmpty(url))
         {
@@ -130,6 +142,7 @@ public sealed partial class MetadataEditorDialog : ContentDialog
 
     private void RemoveScreenshot_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("RemoveScreenshot clicked");
         if (sender is Button button && button.Tag is string screenshotUrl)
         {
             ViewModel.Screenshots.Remove(screenshotUrl);
@@ -141,6 +154,7 @@ public partial class MetadataEditorViewModel : ObservableObject
 {
     private readonly GameViewModel _originalGame;
     private readonly GrpcClientService _grpc;
+    private readonly ILogger<MetadataEditorViewModel> _logger;
 
     [ObservableProperty] private string title;
     [ObservableProperty] private string developer;
@@ -163,7 +177,9 @@ public partial class MetadataEditorViewModel : ObservableObject
     public MetadataEditorViewModel(GameViewModel game)
     {
         _originalGame = game;
-        _grpc = (Application.Current as App)!.Services.GetRequiredService<GrpcClientService>();
+        _grpc = Ioc.Default.GetRequiredService<GrpcClientService>();
+        _logger = Ioc.Default.GetRequiredService<ILogger<MetadataEditorViewModel>>();
+        _logger.LogDebug("MetadataEditorViewModel initialized for game {GameId}", game.Id);
 
         // Init fields
         Title = game.Title;
@@ -197,6 +213,7 @@ public partial class MetadataEditorViewModel : ObservableObject
 
     public async Task SearchMetadataAsync(string query, string provider = "")
     {
+        _logger.LogInformation("SearchMetadataAsync: {Query} {Provider}", query, provider);
         var request = new MetadataSearchRequest
         {
             Query = query,
@@ -211,10 +228,12 @@ public partial class MetadataEditorViewModel : ObservableObject
             SearchResults.Add(result);
         }
         HasSearchResults = SearchResults.Count > 0;
+        _logger.LogDebug("Search results count: {Count}", SearchResults.Count);
     }
 
     public void ApplySearchResult(MetadataSearchResult result)
     {
+        _logger.LogInformation("ApplySearchResult: {Title}", result.Title);
         // Apply ALL available metadata from the search result (matching macOS behavior)
         Title = result.Title;
         Developer = result.Developer;
@@ -262,6 +281,7 @@ public partial class MetadataEditorViewModel : ObservableObject
 
     public async Task SaveAsync()
     {
+        _logger.LogInformation("SaveAsync invoked for game {GameId}", _originalGame.Id);
         var request = new GameMetadataUpdate
         {
             GameId = _originalGame.Id,
@@ -288,6 +308,7 @@ public partial class MetadataEditorViewModel : ObservableObject
         request.Screenshots.AddRange(Screenshots);
 
         await _grpc.Client.UpdateGameMetadataAsync(request);
+        _logger.LogInformation("UpdateGameMetadataAsync completed for {GameId}", _originalGame.Id);
 
         // Optimistically update the model
         _originalGame.Title = Title;

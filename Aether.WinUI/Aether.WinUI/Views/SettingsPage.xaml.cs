@@ -10,21 +10,26 @@ using Aether.WinUI.Services;
 using Windows.System;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.Extensions.Logging;
 
 namespace Aether.WinUI.Views;
 
 public sealed partial class SettingsPage : Page
 {
-    public SettingsViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<SettingsViewModel>();
-    private GrpcClientService Grpc => (Application.Current as App)!.Services.GetRequiredService<GrpcClientService>();
+    public SettingsViewModel ViewModel => Ioc.Default.GetRequiredService<SettingsViewModel>();
+    private GrpcClientService Grpc => Ioc.Default.GetRequiredService<GrpcClientService>();
+    private readonly ILogger<SettingsPage> _logger;
 
     public SettingsPage()
     {
         this.InitializeComponent();
+        _logger = Ioc.Default.GetRequiredService<ILogger<SettingsPage>>();
+        _logger.LogDebug("SettingsPage initialized");
     }
 
     private async void OpenMetadataSources_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("OpenMetadataSources clicked");
         var dialog = new MetadataSourcesDialog();
         dialog.XamlRoot = this.XamlRoot;
         await dialog.ShowAsync();
@@ -32,6 +37,7 @@ public sealed partial class SettingsPage : Page
 
     private async void AddPlugin_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("AddPlugin clicked");
         var picker = new FileOpenPicker();
         picker.FileTypeFilter.Add(".dll");
         picker.FileTypeFilter.Add(".zip");
@@ -65,12 +71,14 @@ public sealed partial class SettingsPage : Page
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Plugin install failed");
             await ShowMessageAsync("Plugin Install Failed", ex.Message);
         }
     }
 
     private async void PluginList_ItemClick(object sender, ItemClickEventArgs e)
     {
+        _logger.LogInformation("Plugin list item clicked");
         if (e.ClickedItem is Models.PluginViewModel plugin)
         {
             var dialog = new PluginSetupDialog(plugin.Name);
@@ -81,6 +89,7 @@ public sealed partial class SettingsPage : Page
 
     private async void FactoryReset_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("FactoryReset clicked");
         var confirm = new ContentDialog
         {
             Title = "Factory Reset",
@@ -101,12 +110,14 @@ public sealed partial class SettingsPage : Page
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Factory reset failed");
             await ShowMessageAsync("Reset Failed", ex.Message);
         }
     }
 
     private async Task ShowMessageAsync(string title, string message)
     {
+        _logger.LogDebug("ShowMessageAsync: {Title}", title);
         var dialog = new ContentDialog
         {
             Title = title,

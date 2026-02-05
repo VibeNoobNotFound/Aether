@@ -1,6 +1,7 @@
 using Aether.WinUI.Models;
 using Aether.WinUI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Linq;
@@ -9,15 +10,19 @@ namespace Aether.WinUI.Views.Library;
 
 public sealed partial class CollectionManagerDialog : ContentDialog
 {
-    public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
+    public MainViewModel ViewModel => Ioc.Default.GetRequiredService<MainViewModel>();
+    private readonly ILogger<CollectionManagerDialog> _logger;
 
     public CollectionManagerDialog()
     {
         this.InitializeComponent();
+        _logger = Ioc.Default.GetRequiredService<ILogger<CollectionManagerDialog>>();
+        _logger.LogDebug("CollectionManagerDialog initialized");
     }
 
     private async void NewCollection_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("NewCollection clicked");
         var newCollection = new CollectionViewModel
         {
             Name = "New Collection",
@@ -45,6 +50,7 @@ public sealed partial class CollectionManagerDialog : ContentDialog
 
     private async void Edit_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Edit collection clicked");
         if ((sender as Button)?.Tag is CollectionViewModel collection)
         {
             var dialog = new CollectionDetailDialog(collection, ViewModel);
@@ -63,6 +69,7 @@ public sealed partial class CollectionManagerDialog : ContentDialog
 
     private async void Visibility_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Toggle visibility clicked");
         if ((sender as Button)?.Tag is CollectionViewModel collection)
         {
             await ViewModel.ToggleCollectionVisibilityAsync(collection);
@@ -71,6 +78,7 @@ public sealed partial class CollectionManagerDialog : ContentDialog
 
     private async void Delete_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Delete collection clicked");
         if ((sender as Button)?.Tag is CollectionViewModel collection)
         {
             // Confirmation?

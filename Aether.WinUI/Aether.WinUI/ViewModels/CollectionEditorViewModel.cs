@@ -3,6 +3,7 @@ using Aether.WinUI.Models;
 using Aether.WinUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -16,6 +17,7 @@ public partial class CollectionEditorViewModel : ObservableObject
 {
     private readonly CollectionViewModel _originalCollection;
     private readonly MainViewModel _mainViewModel; // For accessing games list
+    private readonly ILogger<CollectionEditorViewModel> _logger;
 
     [ObservableProperty] private string name;
     [ObservableProperty] private bool isWorkDone;
@@ -29,10 +31,12 @@ public partial class CollectionEditorViewModel : ObservableObject
     // Track selected IDs manually since ListView binding is read-only for SelectedItems
     public HashSet<string> SelectedGameIds { get; private set; } = new();
 
-    public CollectionEditorViewModel(CollectionViewModel collection, MainViewModel mainVm)
+    public CollectionEditorViewModel(CollectionViewModel collection, MainViewModel mainVm, ILogger<CollectionEditorViewModel> logger)
     {
         _originalCollection = collection;
         _mainViewModel = mainVm;
+        _logger = logger;
+        _logger.LogDebug("CollectionEditorViewModel initialized for collection {CollectionId}", collection.Id);
 
         Name = collection.Name;
         // In WinUI implementation we use FontIcon glyphs.
@@ -54,6 +58,7 @@ public partial class CollectionEditorViewModel : ObservableObject
     }
     public Task WaitForWorkToFinishAsync()
     {
+        _logger.LogDebug("WaitForWorkToFinishAsync invoked");
         if (IsWorkDone) return Task.CompletedTask;
 
         var tcs = new TaskCompletionSource<bool>();
@@ -73,20 +78,23 @@ public partial class CollectionEditorViewModel : ObservableObject
     }
     private static string MapIconToGlyph(string iconName)
     {
-        var app = Application.Current as App;
-        var mapper = app?.Services.GetService<IconMapService>();
+        Ioc.Default.GetService<ILogger<CollectionEditorViewModel>>()?
+            .LogTrace("MapIconToGlyph iconName={IconName}", iconName);
+        var mapper = Ioc.Default.GetService<IconMapService>();
         return mapper?.ToGlyph(iconName, iconName) ?? iconName;
     }
 
     public void UpdateSelectedGames(IEnumerable<string> newSelection)
     {
+        _logger.LogDebug("UpdateSelectedGames invoked");
         SelectedGameIds.Clear();
         foreach (var id in newSelection) SelectedGameIds.Add(id);
     }
 
     public async Task SaveAsync()
     {
-        var client = (Application.Current as App)!.Services.GetRequiredService<Services.GrpcClientService>().Client;
+        _logger.LogInformation("SaveAsync invoked for collection {CollectionId}", _originalCollection.Id);
+        var client = Ioc.Default.GetRequiredService<Services.GrpcClientService>().Client;
 
         // Optimistic update
         _originalCollection.Name = Name;
@@ -115,19 +123,23 @@ public partial class CollectionEditorViewModel : ObservableObject
                     // Fix: Use CollectionGameAction
                     await client.AddGameToCollectionAsync(new CollectionGameAction { CollectionId = _originalCollection.Id, GameId = id });
                     _originalCollection.GameIds.Add(id);
+                    _logger.LogDebug("Added game to collection {CollectionId}: {GameId}", _originalCollection.Id, id);
                 }
                 foreach (var id in toRemove)
                 {
                     // Fix: Use CollectionGameAction
                     await client.RemoveGameFromCollectionAsync(new CollectionGameAction { CollectionId = _originalCollection.Id, GameId = id });
                     _originalCollection.GameIds.Remove(id);
+                    _logger.LogDebug("Removed game from collection {CollectionId}: {GameId}", _originalCollection.Id, id);
                 }
             }
             Success = true;
+            _logger.LogInformation("Collection saved {CollectionId}", _originalCollection.Id);
         }
-        catch
+        catch (Exception ex)
         {
             // Handle error
+            _logger.LogError(ex, "Failed to save collection {CollectionId}", _originalCollection.Id);
         }
     }
 }

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -5,6 +7,7 @@ namespace Aether.WinUI.Controls.Settings;
 
 public sealed partial class SettingsActionCard : UserControl
 {
+    private readonly ILogger<SettingsActionCard> _logger;
     public string Header
     {
         get => (string)GetValue(HeaderProperty);
@@ -34,10 +37,13 @@ public sealed partial class SettingsActionCard : UserControl
     public SettingsActionCard()
     {
         this.InitializeComponent();
+        _logger = Ioc.Default.GetRequiredService<ILogger<SettingsActionCard>>();
+        _logger.LogDebug("SettingsActionCard initialized");
     }
 
     private void SettingsCard_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("SettingsActionCard clicked: {Header}", Header);
         Click?.Invoke(this, e);
     }
 }

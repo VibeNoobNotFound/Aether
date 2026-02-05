@@ -2,6 +2,7 @@ using global::Aether.Protos;
 using Aether.WinUI.Controls.Renderer;
 using Aether.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -16,6 +17,7 @@ public sealed partial class LibraryAddMenu : ContentDialog
 {
     private readonly GrpcClientService _grpc;
     private readonly string _pluginName;
+    private readonly ILogger<LibraryAddMenu> _logger;
 
     // Store for form values from widgets
     private readonly Dictionary<string, string> _formValues = new();
@@ -27,18 +29,22 @@ public sealed partial class LibraryAddMenu : ContentDialog
         Title = $"Add to Library ({pluginName})";
 
         // Resolve services
-        _grpc = (Application.Current as App)!.Services.GetRequiredService<GrpcClientService>();
+        _grpc = Ioc.Default.GetRequiredService<GrpcClientService>();
+        _logger = Ioc.Default.GetRequiredService<ILogger<LibraryAddMenu>>();
+        _logger.LogDebug("LibraryAddMenu initialized for plugin {Plugin}", pluginName);
 
         this.Opened += LibraryAddMenu_Opened;
     }
 
     private async void LibraryAddMenu_Opened(ContentDialog sender, ContentDialogOpenedEventArgs args)
     {
+        _logger.LogInformation("LibraryAddMenu opened");
         await LoadWidgetsAsync();
     }
 
     private async Task LoadWidgetsAsync()
     {
+        _logger.LogInformation("LoadWidgetsAsync invoked for plugin {Plugin}", _pluginName);
         LoadingBar.Visibility = Visibility.Visible;
         ContentPanel.Children.Clear();
 
@@ -70,6 +76,7 @@ public sealed partial class LibraryAddMenu : ContentDialog
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to load widgets for plugin {Plugin}", _pluginName);
             ShowError($"Failed to load options: {ex.Message}");
         }
         finally
@@ -80,6 +87,7 @@ public sealed partial class LibraryAddMenu : ContentDialog
 
     private async void Renderer_ActionTriggered(string actionId, string payload)
     {
+        _logger.LogInformation("Renderer action triggered: {ActionId}", actionId);
         LoadingBar.Visibility = Visibility.Visible;
         ErrorText.Visibility = Visibility.Collapsed;
 
@@ -111,6 +119,7 @@ public sealed partial class LibraryAddMenu : ContentDialog
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Plugin action failed: {ActionId}", actionId);
             ShowError($"Action failed: {ex.Message}");
         }
         finally
@@ -121,6 +130,7 @@ public sealed partial class LibraryAddMenu : ContentDialog
 
     private void ShowError(string message)
     {
+        _logger.LogWarning("LibraryAddMenu error: {Message}", message);
         ErrorText.Text = message;
         ErrorText.Visibility = Visibility.Visible;
     }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -30,8 +31,17 @@ public sealed class IconMapService
         ["gamecontroller"] = "\uE7FC"
     };
 
+    private readonly ILogger<IconMapService> _logger;
+
+    public IconMapService(ILogger<IconMapService> logger)
+    {
+        _logger = logger;
+        _logger.LogDebug("IconMapService initialized");
+    }
+
     public string ToGlyph(string iconName, string fallbackGlyph = "\uE8A5")
     {
+        _logger.LogTrace("IconMapService.ToGlyph iconName={IconName}", iconName);
         if (string.IsNullOrWhiteSpace(iconName))
         {
             return fallbackGlyph;

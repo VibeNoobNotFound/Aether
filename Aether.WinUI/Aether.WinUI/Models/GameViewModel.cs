@@ -1,11 +1,16 @@
 using global::Aether.Protos;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 
 namespace Aether.WinUI.Models;
 
 public partial class GameViewModel : ObservableObject
 {
+    private static ILogger<GameViewModel> Logger =>
+        (Ioc.Default.GetService<ILogger<GameViewModel>>()) ?? NullLogger<GameViewModel>.Instance;
     [ObservableProperty] private string id = "";
     [ObservableProperty] private string title = "";
     [ObservableProperty] private string platform = "";
@@ -85,6 +90,7 @@ public partial class GameViewModel : ObservableObject
 
     private static string StripHtml(string html)
     {
+        Logger.LogTrace("StripHtml invoked");
         if (string.IsNullOrWhiteSpace(html)) return string.Empty;
         var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", string.Empty);
         text = text.Replace("&nbsp;", " ")
@@ -98,6 +104,7 @@ public partial class GameViewModel : ObservableObject
 
     public static GameViewModel FromProto(Game proto)
     {
+        Logger.LogDebug("GameViewModel.FromProto: {GameId}", proto.Id);
         return new GameViewModel
         {
             Id = proto.Id,

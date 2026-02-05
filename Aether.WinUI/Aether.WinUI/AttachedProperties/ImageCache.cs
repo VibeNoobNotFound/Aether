@@ -1,5 +1,6 @@
 using Aether.WinUI.Services;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -11,6 +12,10 @@ namespace Aether.WinUI.AttachedProperties;
 
 public static class ImageCache
 {
+    private static ILogger Logger =>
+        Ioc.Default.GetService<ILoggerFactory>()?.CreateLogger("ImageCache")
+        ?? NullLogger.Instance;
+
     public static readonly DependencyProperty SourceProperty =
         DependencyProperty.RegisterAttached(
             "Source",
@@ -33,6 +38,7 @@ public static class ImageCache
         if (d is not Image image) return;
 
         var url = e.NewValue as string;
+        Logger.LogDebug("ImageCache Source changed: {Url}", url);
 
         if (string.IsNullOrEmpty(url))
         {
@@ -45,8 +51,7 @@ public static class ImageCache
 
         try
         {
-            var app = Application.Current as App;
-            var service = app?.Services.GetService<ImageCacheService>();
+            var service = Ioc.Default.GetService<ImageCacheService>();
             
             if (service == null) return;
 
@@ -57,13 +62,14 @@ public static class ImageCache
             // Verify the URL matches what we requested (handling race conditions)
             if (GetSource(image) == url)
             {
+                Logger.LogDebug("ImageCache applied image: {Url}", url);
                 image.Source = bitmap;
                 // image.Opacity = 1.0;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[ImageCache] Error loading {url}: {ex.Message}");
+            Logger.LogWarning(ex, "ImageCache error loading {Url}", url);
         }
     }
 }

@@ -8,6 +8,8 @@ using System.Globalization;
 using Aether.WinUI.Services;
 using Aether.WinUI.AttachedProperties;
 using CommunityToolkit.WinUI.Helpers;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aether.WinUI.Controls.Renderer;
 
@@ -33,10 +35,13 @@ public sealed partial class WidgetRenderer : UserControl
 
     // Event for actions
     public event Action<string, string>? ActionTriggered;
+    private readonly ILogger<WidgetRenderer> _logger;
 
     public WidgetRenderer()
     {
         this.InitializeComponent();
+        _logger = Ioc.Default.GetRequiredService<ILogger<WidgetRenderer>>();
+        _logger.LogDebug("WidgetRenderer initialized");
         if (FormValues == null)
         {
             FormValues = new Dictionary<string, string>();
@@ -47,12 +52,14 @@ public sealed partial class WidgetRenderer : UserControl
     {
         if (d is WidgetRenderer renderer && e.NewValue is UIWidget widget)
         {
+            renderer._logger.LogDebug("Widget changed: {WidgetId} {ContentCase}", widget.Id, widget.ContentCase);
             renderer.RenderWidget(widget);
         }
     }
 
     private void RenderWidget(UIWidget widget)
     {
+        _logger.LogDebug("Render widget: {WidgetId} {ContentCase}", widget.Id, widget.ContentCase);
         var content = widget.ContentCase switch
         {
             UIWidget.ContentOneofCase.Text => RenderText(widget.Text),
@@ -71,6 +78,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderFolderPicker(FolderPickerWidget picker)
     {
+        _logger.LogDebug("Render folder picker: {Label} {FieldId}", picker.Label, picker.BoundFieldId);
         var stack = new StackPanel { Spacing = 8 };
         if (!string.IsNullOrEmpty(picker.Label))
         {
@@ -87,6 +95,7 @@ public sealed partial class WidgetRenderer : UserControl
 
         btn.Click += async (s, e) =>
         {
+            _logger.LogInformation("Folder picker clicked: {FieldId}", picker.BoundFieldId);
             var folderPicker = new Windows.Storage.Pickers.FolderPicker();
             folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder;
             folderPicker.FileTypeFilter.Add("*");
@@ -104,6 +113,7 @@ public sealed partial class WidgetRenderer : UserControl
             {
                 pathBox.Text = folder.Path;
                 UpdateFormValue(picker.BoundFieldId, folder.Path);
+                _logger.LogInformation("Folder selected: {FieldId} {Path}", picker.BoundFieldId, folder.Path);
             }
         };
 
@@ -116,6 +126,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderFilePicker(FilePickerWidget picker)
     {
+        _logger.LogDebug("Render file picker: {Label} {FieldId}", picker.Label, picker.BoundFieldId);
         var stack = new StackPanel { Spacing = 8 };
         if (!string.IsNullOrEmpty(picker.Label))
         {
@@ -132,6 +143,7 @@ public sealed partial class WidgetRenderer : UserControl
 
         btn.Click += async (s, e) =>
         {
+            _logger.LogInformation("File picker clicked: {FieldId}", picker.BoundFieldId);
             var filePicker = new Windows.Storage.Pickers.FileOpenPicker();
             filePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.ComputerFolder;
 
@@ -160,6 +172,7 @@ public sealed partial class WidgetRenderer : UserControl
             {
                 pathBox.Text = file.Path;
                 UpdateFormValue(picker.BoundFieldId, file.Path);
+                _logger.LogInformation("File selected: {FieldId} {Path}", picker.BoundFieldId, file.Path);
             }
         };
 
@@ -172,6 +185,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderContainer(ContainerWidget container)
     {
+        _logger.LogDebug("Render container: {Orientation} Children={Count}", container.Orientation, container.Children.Count);
         var panel = new StackPanel
         {
             Orientation = container.Orientation == ContainerWidget.Types.Orientation.Horizontal
@@ -203,7 +217,11 @@ public sealed partial class WidgetRenderer : UserControl
                     btn.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
                 }
 
-                btn.Click += (s, e) => ActionTriggered?.Invoke(action.Id, action.Type); // Map ID/Type to action
+                btn.Click += (s, e) =>
+                {
+                    _logger.LogInformation("Widget action triggered: {ActionId} {ActionType}", action.Id, action.Type);
+                    ActionTriggered?.Invoke(action.Id, action.Type);
+                };
                 actionPanel.Children.Add(btn);
 
                 // Special case: If this is a form container, the submit button might need to trigger validation.
@@ -217,6 +235,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderText(TextWidget text)
     {
+        _logger.LogDebug("Render text widget: {Text}", text.Text);
         var block = new TextBlock
         {
             Text = text.Text,
@@ -255,6 +274,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderButton(ButtonWidget button)
     {
+        _logger.LogDebug("Render button widget: {Label} {ActionId}", button.Label, button.ActionId);
         var iconGlyph = ResolveButtonIcon(button.Icon);
         var contentPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         if (!string.IsNullOrWhiteSpace(iconGlyph))
@@ -270,7 +290,11 @@ public sealed partial class WidgetRenderer : UserControl
                 Content = contentPanel,
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
-            link.Click += (s, e) => ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
+            link.Click += (s, e) =>
+            {
+                _logger.LogInformation("Widget link action triggered: {ActionId}", button.ActionId);
+                ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
+            };
             return link;
         }
 
@@ -291,13 +315,18 @@ public sealed partial class WidgetRenderer : UserControl
                 break;
         }
 
-        btn.Click += (s, e) => ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
+        btn.Click += (s, e) =>
+        {
+            _logger.LogInformation("Widget button action triggered: {ActionId}", button.ActionId);
+            ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
+        };
 
         return btn;
     }
 
     private FrameworkElement RenderTextInput(TextInputWidget input)
     {
+        _logger.LogDebug("Render text input: {Label} {FieldId}", input.Label, input.BoundFieldId);
         var stack = new StackPanel { Spacing = 8 };
 
         if (!string.IsNullOrEmpty(input.Label))
@@ -309,7 +338,11 @@ public sealed partial class WidgetRenderer : UserControl
         if (input.IsSecure)
         {
             var pb = new PasswordBox { PlaceholderText = input.Placeholder };
-            pb.PasswordChanged += (s, e) => UpdateFormValue(input.BoundFieldId, pb.Password);
+            pb.PasswordChanged += (s, e) =>
+            {
+                UpdateFormValue(input.BoundFieldId, pb.Password);
+                _logger.LogDebug("Password input changed: {FieldId}", input.BoundFieldId);
+            };
             box = pb;
 
             if (!string.IsNullOrEmpty(input.InitialValue)) pb.Password = input.InitialValue;
@@ -317,7 +350,11 @@ public sealed partial class WidgetRenderer : UserControl
         else
         {
             var tb = new TextBox { PlaceholderText = input.Placeholder };
-            tb.TextChanged += (s, e) => UpdateFormValue(input.BoundFieldId, tb.Text);
+            tb.TextChanged += (s, e) =>
+            {
+                UpdateFormValue(input.BoundFieldId, tb.Text);
+                _logger.LogDebug("Text input changed: {FieldId}", input.BoundFieldId);
+            };
             box = tb;
 
             if (!string.IsNullOrEmpty(input.InitialValue)) tb.Text = input.InitialValue;
@@ -329,6 +366,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement RenderToggle(ToggleWidget toggle)
     {
+        _logger.LogDebug("Render toggle widget: {Label} {FieldId}", toggle.Label, toggle.BoundFieldId);
         var current = FormValues.TryGetValue(toggle.BoundFieldId, out var value)
             ? value
             : toggle.InitialValue.ToString().ToLowerInvariant();
@@ -339,12 +377,17 @@ public sealed partial class WidgetRenderer : UserControl
             IsOn = string.Equals(current, "true", StringComparison.OrdinalIgnoreCase)
         };
 
-        control.Toggled += (s, e) => UpdateFormValue(toggle.BoundFieldId, control.IsOn.ToString().ToLowerInvariant());
+        control.Toggled += (s, e) =>
+        {
+            UpdateFormValue(toggle.BoundFieldId, control.IsOn.ToString().ToLowerInvariant());
+            _logger.LogDebug("Toggle changed: {FieldId} {Value}", toggle.BoundFieldId, control.IsOn);
+        };
         return control;
     }
 
     private FrameworkElement RenderImage(ImageWidget imageWidget)
     {
+        _logger.LogDebug("Render image widget: {Url}", imageWidget.Url);
         var image = new Image { Stretch = Stretch.UniformToFill };
         if (!string.IsNullOrWhiteSpace(imageWidget.Url))
         {
@@ -389,6 +432,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private FrameworkElement ApplyWidgetStyle(FrameworkElement content, UIWidget widget)
     {
+        _logger.LogDebug("Apply widget style: {WidgetId}", widget.Id);
         var style = widget.Style;
         if (style == null)
         {
@@ -424,6 +468,7 @@ public sealed partial class WidgetRenderer : UserControl
 
     private Brush? ResolveTextBrush(string colorToken)
     {
+        _logger.LogDebug("Resolve text brush: {ColorToken}", colorToken);
         if (string.IsNullOrWhiteSpace(colorToken))
         {
             return null;
@@ -449,12 +494,13 @@ public sealed partial class WidgetRenderer : UserControl
 
     private string? ResolveButtonIcon(string iconName)
     {
+        _logger.LogDebug("Resolve button icon: {IconName}", iconName);
         if (string.IsNullOrWhiteSpace(iconName))
         {
             return null;
         }
 
-        var iconMap = (Application.Current as App)?.Services.GetService(typeof(IconMapService)) as IconMapService;
+        var iconMap = Ioc.Default.GetService(typeof(IconMapService)) as IconMapService;
         return iconMap?.ToGlyph(iconName);
     }
 
@@ -463,6 +509,7 @@ public sealed partial class WidgetRenderer : UserControl
         if (FormValues != null && !string.IsNullOrEmpty(key))
         {
             FormValues[key] = value;
+            _logger.LogDebug("Form value updated: {Key}", key);
         }
     }
 }

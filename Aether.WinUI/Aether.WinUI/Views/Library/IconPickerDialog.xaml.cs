@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,10 +12,13 @@ public sealed partial class IconPickerDialog : ContentDialog
     public string SelectedIconGlyph { get; private set; } = "";
 
     private List<IconItem> _allIcons;
+    private readonly ILogger<IconPickerDialog> _logger;
 
     public IconPickerDialog()
     {
         this.InitializeComponent();
+        _logger = Ioc.Default.GetRequiredService<ILogger<IconPickerDialog>>();
+        _logger.LogDebug("IconPickerDialog initialized");
         
         // Populate standard Fluent icons
         _allIcons = new List<IconItem>
@@ -54,6 +59,7 @@ public sealed partial class IconPickerDialog : ContentDialog
 
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
+        _logger.LogTrace("Icon search changed: {Query}", sender.Text);
         if (string.IsNullOrWhiteSpace(sender.Text))
         {
              IconsGrid.ItemsSource = _allIcons;
@@ -67,6 +73,7 @@ public sealed partial class IconPickerDialog : ContentDialog
 
     private void IconsGrid_ItemClick(object sender, ItemClickEventArgs e)
     {
+        _logger.LogInformation("Icon selected");
         if (e.ClickedItem is IconItem icon)
         {
             SelectedIconGlyph = icon.Glyph;

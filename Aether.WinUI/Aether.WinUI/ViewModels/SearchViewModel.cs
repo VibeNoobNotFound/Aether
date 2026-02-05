@@ -3,6 +3,7 @@ using Aether.WinUI.Models;
 using Aether.WinUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Dispatching;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -17,6 +18,7 @@ public partial class SearchViewModel : ObservableObject
     private readonly GrpcClientService _grpc;
     private readonly MainViewModel _mainViewModel;
     private readonly DispatcherQueue _dispatcher;
+    private readonly ILogger<SearchViewModel> _logger;
 
     private CancellationTokenSource? _searchCts;
     private NotifyCollectionChangedEventHandler? _pluginsChangedHandler;
@@ -40,12 +42,14 @@ public partial class SearchViewModel : ObservableObject
 
     public ObservableCollection<PluginViewModel> AvailableImporters { get; } = new();
 
-    public SearchViewModel(GrpcClientService grpc, MainViewModel mainViewModel)
+    public SearchViewModel(GrpcClientService grpc, MainViewModel mainViewModel, ILogger<SearchViewModel> logger)
     {
         _grpc = grpc;
         _mainViewModel = mainViewModel;
+        _logger = logger;
         _dispatcher = App.Current?.MainWindow?.DispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
 
+        _logger.LogDebug("SearchViewModel initialized");
         HookPluginCollection();
         RefreshAvailableImporters();
     }
@@ -74,39 +78,46 @@ public partial class SearchViewModel : ObservableObject
 
     partial void OnQueryChanged(string value)
     {
+        _logger.LogTrace("Query changed: {Query}", value);
         DebounceSearch();
         UpdateEmptyState();
     }
 
     partial void OnFilterPlatformChanged(string? value)
     {
+        _logger.LogTrace("FilterPlatform changed: {Filter}", value);
         DebounceSearch();
     }
 
     partial void OnFilterGenreChanged(string? value)
     {
+        _logger.LogTrace("FilterGenre changed: {Filter}", value);
         DebounceSearch();
     }
 
     partial void OnSortByChanged(LibrarySearchRequest.Types.SortOption value)
     {
+        _logger.LogTrace("SortBy changed: {SortBy}", value);
         DebounceSearch();
         OnPropertyChanged(nameof(SortByIndex));
     }
 
     partial void OnSortAscendingChanged(bool value)
     {
+        _logger.LogTrace("SortAscending changed: {Value}", value);
         DebounceSearch();
     }
 
     public void ClearFilters()
     {
+        _logger.LogDebug("ClearFilters invoked");
         FilterPlatform = null;
         FilterGenre = null;
     }
 
     public void ClearSearch()
     {
+        _logger.LogDebug("ClearSearch invoked");
         _searchCts?.Cancel();
         Query = string.Empty;
         FilterPlatform = null;
@@ -121,6 +132,7 @@ public partial class SearchViewModel : ObservableObject
 
     public void TogglePlatformFilter(string platform)
     {
+        _logger.LogDebug("TogglePlatformFilter invoked: {Platform}", platform);
         if (string.Equals(FilterPlatform, platform, StringComparison.OrdinalIgnoreCase))
         {
             FilterPlatform = null;
@@ -133,6 +145,7 @@ public partial class SearchViewModel : ObservableObject
 
     private void DebounceSearch()
     {
+        _logger.LogTrace("DebounceSearch invoked");
         _searchCts?.Cancel();
 
         if (string.IsNullOrWhiteSpace(Query) && FilterPlatform == null && FilterGenre == null)
@@ -164,6 +177,7 @@ public partial class SearchViewModel : ObservableObject
 
     private async Task PerformSearchAsync(CancellationToken token)
     {
+        _logger.LogInformation("PerformSearchAsync invoked");
         try
         {
             await EnqueueAsync(() =>
@@ -217,11 +231,13 @@ public partial class SearchViewModel : ObservableObject
                 ErrorMessage = ex.Message;
                 UpdateEmptyState();
             });
+            _logger.LogError(ex, "Search failed");
         }
     }
 
     private void HookPluginCollection()
     {
+        _logger.LogDebug("HookPluginCollection invoked");
         _mainViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.Plugins))
@@ -236,6 +252,7 @@ public partial class SearchViewModel : ObservableObject
 
     private void AttachPluginsCollection()
     {
+        _logger.LogTrace("AttachPluginsCollection invoked");
         if (_pluginsChangedHandler != null)
         {
             _mainViewModel.Plugins.CollectionChanged -= _pluginsChangedHandler;
@@ -247,6 +264,7 @@ public partial class SearchViewModel : ObservableObject
 
     private void RefreshAvailableImporters()
     {
+        _logger.LogDebug("RefreshAvailableImporters invoked");
         var importers = _mainViewModel.Plugins
             .Where(p => p.Capabilities.Contains("Importer"))
             .OrderBy(p => p.Name)
@@ -264,11 +282,13 @@ public partial class SearchViewModel : ObservableObject
 
     private void UpdateEmptyState()
     {
+        _logger.LogTrace("UpdateEmptyState invoked");
         ShowEmptyState = !IsSearching && Results.Count == 0 && !string.IsNullOrWhiteSpace(Query);
     }
 
     private Task EnqueueAsync(Action action)
     {
+        _logger.LogTrace("EnqueueAsync invoked");
         var tcs = new TaskCompletionSource<bool>();
         _dispatcher.TryEnqueue(() =>
         {

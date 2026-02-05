@@ -3,6 +3,7 @@ using Aether.WinUI.ViewModels;
 using Aether.WinUI.Views;
 using Aether.WinUI.Views.Search;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -13,9 +14,10 @@ namespace Aether.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
-    public SearchViewModel SearchViewModel => (Application.Current as App)!.Services.GetRequiredService<SearchViewModel>();
-    public SettingsViewModel SettingsViewModel => (Application.Current as App)!.Services.GetRequiredService<SettingsViewModel>();
+    public MainViewModel ViewModel => Ioc.Default.GetRequiredService<MainViewModel>();
+    public SearchViewModel SearchViewModel => Ioc.Default.GetRequiredService<SearchViewModel>();
+    public SettingsViewModel SettingsViewModel => Ioc.Default.GetRequiredService<SettingsViewModel>();
+    private readonly ILogger<MainWindow> _logger;
 
     private bool _isSearchActive;
     private Type? _lastContentPageType;
@@ -24,11 +26,14 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "Aether";
+        _logger = Ioc.Default.GetRequiredService<ILogger<MainWindow>>();
+        _logger.LogInformation("MainWindow initialized");
         SettingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
         UpdateNavigationStyle();
 
         ViewModel.NavigateToGameDetailRequested += (s, gameId) =>
         {
+            _logger.LogInformation("Navigate to game detail: {GameId}", gameId);
             ClearSearchState();
             ContentFrame.Navigate(typeof(GameDetailPage), gameId);
             NavView.SelectedItem = null; // Clear selection as we are in detail view
@@ -38,6 +43,7 @@ public sealed partial class MainWindow : Window
 
         ViewModel.NavigateToLibraryRequested += (s, e) =>
         {
+            _logger.LogInformation("Navigate to library");
             ClearSearchState();
             ContentFrame.Navigate(typeof(LibraryPage));
             // Update nav selection to Library
@@ -54,6 +60,7 @@ public sealed partial class MainWindow : Window
 
         title.BackButtonClick += (_, _) =>
         {
+            _logger.LogDebug("Back button clicked");
             if (ContentFrame.CanGoBack)
                 ContentFrame.GoBack();
             
@@ -64,6 +71,7 @@ public sealed partial class MainWindow : Window
 
         title.PaneButtonClick += (_, _) =>
         {
+            _logger.LogDebug("Pane button clicked");
             if (NavView.PaneDisplayMode == NavigationViewPaneDisplayMode.Left)
                 NavView.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftCompact;
             else if (NavView.PaneDisplayMode == NavigationViewPaneDisplayMode.LeftCompact)
@@ -72,6 +80,7 @@ public sealed partial class MainWindow : Window
         };
         ContentFrame.Navigated += (_, _) =>
         {
+            _logger.LogDebug("ContentFrame navigated to {Page}", ContentFrame.CurrentSourcePageType?.Name);
             // Hide back button when navigating to main pages
             if (ContentFrame.CurrentSourcePageType == typeof(LibraryPage) ||
                 ContentFrame.CurrentSourcePageType == typeof(SettingsPage) ||
@@ -90,6 +99,7 @@ public sealed partial class MainWindow : Window
 
     private void NavView_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogDebug("NavView loaded");
         // Navigate to Home by default
         NavView.SelectedItem = NavView.MenuItems.OfType<NavigationViewItem>().First();
         ContentFrame.Navigate(typeof(HomePage));
@@ -97,6 +107,7 @@ public sealed partial class MainWindow : Window
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        _logger.LogDebug("NavView selection changed");
         ClearSearchState();
         if (args.IsSettingsSelected)
         {
@@ -129,6 +140,7 @@ public sealed partial class MainWindow : Window
 
     private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
+        _logger.LogTrace("SearchBox text changed: {Text}", sender.Text);
         if (args.Reason == AutoSuggestionBoxTextChangeReason.ProgrammaticChange)
         {
             return;
@@ -140,12 +152,14 @@ public sealed partial class MainWindow : Window
 
     private void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
+        _logger.LogInformation("SearchBox query submitted: {Query}", args.QueryText);
         SearchViewModel.Query = args.QueryText ?? string.Empty;
         UpdateSearchNavigation();
     }
 
     private void UpdateSearchNavigation()
     {
+        _logger.LogDebug("Update search navigation");
         var hasQuery = !string.IsNullOrWhiteSpace(SearchViewModel.Query);
 
         if (hasQuery && !_isSearchActive)
@@ -164,6 +178,7 @@ public sealed partial class MainWindow : Window
 
     private void ClearSearchState()
     {
+        _logger.LogDebug("Clear search state");
         if (_isSearchActive || !string.IsNullOrWhiteSpace(SearchViewModel.Query))
         {
             SearchViewModel.ClearSearch();
@@ -177,6 +192,7 @@ public sealed partial class MainWindow : Window
 
     private void NavigateToCurrentScreen()
     {
+        _logger.LogDebug("Navigate to current screen: {Screen}", ViewModel.CurrentScreen);
         switch (ViewModel.CurrentScreen)
         {
             case AppScreen.Home:
@@ -206,6 +222,7 @@ public sealed partial class MainWindow : Window
 
     private void SettingsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        _logger.LogTrace("SettingsViewModel property changed: {PropertyName}", e.PropertyName);
         if (e.PropertyName == nameof(SettingsViewModel.NavigationStyleIndex))
         {
             UpdateNavigationStyle();
@@ -214,6 +231,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateNavigationStyle()
     {
+        _logger.LogDebug("Update navigation style: {Index}", SettingsViewModel.NavigationStyleIndex);
         var useTop = SettingsViewModel.NavigationStyleIndex == 1;
         NavView.PaneDisplayMode = useTop ? NavigationViewPaneDisplayMode.Top : NavigationViewPaneDisplayMode.Left;
         NavView.IsPaneToggleButtonVisible = !useTop;

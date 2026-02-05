@@ -1,5 +1,7 @@
 using Aether.WinUI.Models;
 using Aether.WinUI.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -10,11 +12,15 @@ namespace Aether.WinUI.Views.Library;
 public sealed partial class CollectionDetailDialog : ContentDialog
 {
     public CollectionEditorViewModel ViewModel { get; }
+    private readonly ILogger<CollectionDetailDialog> _logger;
 
     public CollectionDetailDialog(CollectionViewModel collection, MainViewModel mainVm)
     {
         this.InitializeComponent();
-        ViewModel = new CollectionEditorViewModel(collection, mainVm);
+        _logger = Ioc.Default.GetRequiredService<ILogger<CollectionDetailDialog>>();
+        _logger.LogDebug("CollectionDetailDialog initialized");
+        var vmLogger = Ioc.Default.GetRequiredService<ILogger<CollectionEditorViewModel>>();
+        ViewModel = new CollectionEditorViewModel(collection, mainVm, vmLogger);
         ViewModel.IsWorkDone = false;
         this.PrimaryButtonClick += CollectionDetailDialog_PrimaryButtonClick;
         this.Loaded += CollectionDetailDialog_Loaded;
@@ -22,6 +28,7 @@ public sealed partial class CollectionDetailDialog : ContentDialog
 
     private void CollectionDetailDialog_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("CollectionDetailDialog loaded");
         // Must manually sync selection because ListView SelectedItems binding is tricky
         if (ViewModel.IsCustomCollection && GamesList != null)
         {
@@ -37,6 +44,7 @@ public sealed partial class CollectionDetailDialog : ContentDialog
 
     private async void CollectionDetailDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
+        _logger.LogInformation("CollectionDetailDialog primary button clicked");
         var deferral = args.GetDeferral();
         try
         {
@@ -57,6 +65,7 @@ public sealed partial class CollectionDetailDialog : ContentDialog
 
     private async void IconPicker_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("IconPicker clicked");
         var iconPicker = new IconPickerDialog();
         iconPicker.XamlRoot = this.XamlRoot;
 

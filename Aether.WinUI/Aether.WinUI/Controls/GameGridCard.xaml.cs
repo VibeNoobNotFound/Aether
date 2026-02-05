@@ -3,6 +3,7 @@ using Aether.WinUI.Services;
 using Aether.WinUI.ViewModels;
 using Aether.WinUI.Views.Library;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -19,12 +20,15 @@ public sealed partial class GameGridCard : Button
     public GameViewModel Game { get { return (GameViewModel)GetValue(GameProperty); } set { SetValue(GameProperty, value); } }
     public static readonly DependencyProperty GameProperty = DependencyProperty.Register("Game", typeof(GameViewModel), typeof(GameGridCard), new PropertyMetadata(null, OnGameChanged));
 
-    public MainViewModel MainViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
+    public MainViewModel MainViewModel => Ioc.Default.GetRequiredService<MainViewModel>();
+    private readonly ILogger<GameGridCard> _logger;
 
     public GameGridCard()
     {
         this.InitializeComponent();
         this.Loaded += GameGridCard_Loaded;
+        _logger = Ioc.Default.GetRequiredService<ILogger<GameGridCard>>();
+        _logger.LogDebug("GameGridCard initialized");
     }
 
     public Image CoverImageElement => CoverImage;
@@ -33,11 +37,13 @@ public sealed partial class GameGridCard : Button
     {
         if (d is GameGridCard card && e.NewValue is GameViewModel game)
         {
+            card._logger.LogDebug("GameGridCard game changed: {GameId}", game.Id);
             card.UpdateFavoriteButton();
             game.PropertyChanged += (s, args) =>
             {
                 if (args.PropertyName == nameof(GameViewModel.IsFavorite))
                 {
+                    card._logger.LogDebug("GameGridCard favorite changed: {GameId}", game.Id);
                     card.UpdateFavoriteButton();
                 }
             };
@@ -46,12 +52,14 @@ public sealed partial class GameGridCard : Button
 
     private void GameGridCard_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogDebug("GameGridCard loaded");
         UpdateFavoriteButton();
     }
 
     private void UpdateFavoriteButton()
     {
         if (Game == null || FavoriteMenuItem == null) return;
+        _logger.LogDebug("GameGridCard updating favorite button: {GameId} IsFavorite={IsFavorite}", Game.Id, Game.IsFavorite);
 
         if (Game.IsFavorite)
         {
@@ -69,6 +77,7 @@ public sealed partial class GameGridCard : Button
     {
         if (sender is MenuFlyoutItem item && item.Tag is string action && Game != null)
         {
+            _logger.LogInformation("GameGridCard menu action: {Action} for {GameId}", action, Game.Id);
             switch (action)
             {
                 case "Launch":
@@ -86,7 +95,7 @@ public sealed partial class GameGridCard : Button
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error showing properties: {ex}");
+                        _logger.LogError(ex, "Error showing properties for {GameId}", Game.Id);
                     }
                     break;
                 case "Favorite":
@@ -119,6 +128,7 @@ public sealed partial class GameGridCard : Button
 
     private void CreateOrUpdateSpringAnimation(float finalValue)
     {
+        _logger.LogDebug("GameGridCard spring animation updated: {FinalValue}", finalValue);
         if (_springAnimation == null)
         {
             _springAnimation = _compositor.CreateSpringVector3Animation();
@@ -130,6 +140,7 @@ public sealed partial class GameGridCard : Button
 
     private void Grid_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
+        _logger.LogDebug("GameGridCard pointer entered");
         CreateOrUpdateSpringAnimation(1.05f);
 
         (sender as UIElement).StartAnimation(_springAnimation);
@@ -138,6 +149,7 @@ public sealed partial class GameGridCard : Button
 
     private void Grid_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
+        _logger.LogDebug("GameGridCard pointer exited");
         CreateOrUpdateSpringAnimation(1.0f);
 
         (sender as UIElement).StartAnimation(_springAnimation);

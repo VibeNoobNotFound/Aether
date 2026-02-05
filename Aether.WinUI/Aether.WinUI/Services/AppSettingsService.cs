@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using Windows.Storage;
 
@@ -5,7 +6,8 @@ namespace Aether.WinUI.Services;
 
 public sealed class AppSettingsService
 {
-    private readonly ApplicationDataContainer _settings = ApplicationData.Current.LocalSettings;
+    private readonly ApplicationDataContainer _settings;
+    private readonly ILogger<AppSettingsService> _logger;
 
     private const string UseTopNavigationKey = "useTopNavigation";
     private const string UseLiquidGlassCardsKey = "useLiquidGlassCards";
@@ -13,6 +15,13 @@ public sealed class AppSettingsService
     private const string AutoUpdateEnabledKey = "automaticallyCheckForUpdates";
     private const string HasCompletedOnboardingKey = "hasCompletedOnboarding";
     private const string SelectedThemeIndexKey = "selectedThemeIndex";
+
+    public AppSettingsService(ILogger<AppSettingsService> logger)
+    {
+        _logger = logger;
+        _settings = ApplicationData.Current.LocalSettings;
+        _logger.LogDebug("AppSettingsService initialized");
+    }
 
     public bool UseTopNavigation
     {
@@ -52,11 +61,13 @@ public sealed class AppSettingsService
 
     public void ClearAll()
     {
+        _logger.LogInformation("Clearing all app settings");
         _settings.Values.Clear();
     }
 
     private bool ReadBool(string key, bool fallback)
     {
+        _logger.LogTrace("ReadBool key={Key}", key);
         if (_settings.Values.TryGetValue(key, out var value) && value is bool b)
         {
             return b;
@@ -66,11 +77,13 @@ public sealed class AppSettingsService
 
     private void WriteBool(string key, bool value)
     {
+        _logger.LogTrace("WriteBool key={Key} value={Value}", key, value);
         _settings.Values[key] = value;
     }
 
     private int ReadInt(string key, int fallback)
     {
+        _logger.LogTrace("ReadInt key={Key}", key);
         if (_settings.Values.TryGetValue(key, out var value) && value is int i)
         {
             return i;
@@ -80,6 +93,7 @@ public sealed class AppSettingsService
 
     private void WriteInt(string key, int value)
     {
+        _logger.LogTrace("WriteInt key={Key} value={Value}", key, value);
         _settings.Values[key] = value;
     }
 }

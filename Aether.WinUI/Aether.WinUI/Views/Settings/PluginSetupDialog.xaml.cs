@@ -2,6 +2,7 @@ using Aether.Protos;
 using Aether.WinUI.Controls.Renderer;
 using Aether.WinUI.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -17,24 +18,29 @@ public sealed partial class PluginSetupDialog : ContentDialog
     private readonly GrpcClientService _grpc;
     private readonly string _pluginName;
     private readonly Dictionary<string, string> _formValues = new();
+    private readonly ILogger<PluginSetupDialog> _logger;
 
     public PluginSetupDialog(string pluginName)
     {
         InitializeComponent();
         _pluginName = pluginName;
         Title = $"Setup {_pluginName}";
-        _grpc = (Application.Current as App)!.Services.GetRequiredService<GrpcClientService>();
+        _grpc = Ioc.Default.GetRequiredService<GrpcClientService>();
+        _logger = Ioc.Default.GetRequiredService<ILogger<PluginSetupDialog>>();
+        _logger.LogDebug("PluginSetupDialog initialized for {Plugin}", pluginName);
 
         Opened += PluginSetupDialog_Opened;
     }
 
     private async void PluginSetupDialog_Opened(ContentDialog sender, ContentDialogOpenedEventArgs args)
     {
+        _logger.LogInformation("PluginSetupDialog opened");
         await LoadWidgetsAsync();
     }
 
     private async Task LoadWidgetsAsync()
     {
+        _logger.LogInformation("LoadWidgetsAsync for plugin {Plugin}", _pluginName);
         LoadingBar.Visibility = Visibility.Visible;
         ErrorText.Visibility = Visibility.Collapsed;
         ContentPanel.Children.Clear();
@@ -66,6 +72,7 @@ public sealed partial class PluginSetupDialog : ContentDialog
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to load plugin settings");
             ShowError($"Failed to load settings: {ex.Message}");
         }
         finally
@@ -76,6 +83,7 @@ public sealed partial class PluginSetupDialog : ContentDialog
 
     private async void Renderer_ActionTriggered(string actionId, string payload)
     {
+        _logger.LogInformation("Plugin action triggered: {ActionId}", actionId);
         LoadingBar.Visibility = Visibility.Visible;
         ErrorText.Visibility = Visibility.Collapsed;
 
@@ -105,6 +113,7 @@ public sealed partial class PluginSetupDialog : ContentDialog
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Plugin action failed: {ActionId}", actionId);
             ShowError($"Action failed: {ex.Message}");
         }
         finally
@@ -115,6 +124,7 @@ public sealed partial class PluginSetupDialog : ContentDialog
 
     private void ShowError(string message)
     {
+        _logger.LogWarning("PluginSetupDialog error: {Message}", message);
         ErrorText.Text = message;
         ErrorText.Visibility = Visibility.Visible;
     }

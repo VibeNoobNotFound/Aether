@@ -12,23 +12,28 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.Media.Core;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Extensions.Logging;
 
 namespace Aether.WinUI.Views;
 
 public sealed partial class GameDetailPage : Page
 {
     private GameDetailViewModel? _viewModel;
-    public GameDetailViewModel ViewModel => _viewModel ??= (Application.Current as App)!.Services.GetRequiredService<GameDetailViewModel>();
-    private ImageCacheService ImageCache => (Application.Current as App)!.Services.GetRequiredService<ImageCacheService>();
+    public GameDetailViewModel ViewModel => _viewModel ??= Ioc.Default.GetRequiredService<GameDetailViewModel>();
+    private ImageCacheService ImageCache => Ioc.Default.GetRequiredService<ImageCacheService>();
+    private readonly ILogger<GameDetailPage> _logger;
 
     public GameDetailPage()
     {
         this.InitializeComponent();
         this.Loaded += GameDetailPage_Loaded;
+        _logger = Ioc.Default.GetRequiredService<ILogger<GameDetailPage>>();
+        _logger.LogDebug("GameDetailPage initialized");
     }
 
     private void GameDetailPage_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogDebug("GameDetailPage loaded");
         UpdateFavoriteButton();
     }
 
@@ -54,6 +59,7 @@ public sealed partial class GameDetailPage : Page
 
         if (e.Parameter is string gameId)
         {
+            _logger.LogInformation("Navigated to GameDetailPage: {GameId}", gameId);
             System.Diagnostics.Debug.WriteLine($"[GameDetailPage] Navigated to gameId: {gameId}");
 
             // Connected Animation
@@ -90,10 +96,12 @@ public sealed partial class GameDetailPage : Page
 
     private void MainScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
+        _logger.LogTrace("MainScrollViewer_ViewChanged");
     }
 
     private async void PropertiesButton_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Properties button clicked");
         if (ViewModel.SelectedGame == null) return;
 
         var dialog = new Aether.WinUI.Views.Library.MetadataEditorDialog(ViewModel.SelectedGame);
@@ -103,6 +111,7 @@ public sealed partial class GameDetailPage : Page
 
     private async void StopGame_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Stop game clicked");
         if (ViewModel.SelectedGame == null) return;
 
         var processes = await ViewModel.MainViewModel.GetActiveProcessesAsync(ViewModel.SelectedGame.Id);
@@ -145,6 +154,7 @@ public sealed partial class GameDetailPage : Page
 
     private async void NewsItem_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("News item clicked");
         if (sender is Button button && button.Tag is string url && !string.IsNullOrWhiteSpace(url))
         {
             try
@@ -161,6 +171,7 @@ public sealed partial class GameDetailPage : Page
 
     private async void MediaItem_Click(object sender, ItemClickEventArgs e)
     {
+        _logger.LogInformation("Media item clicked");
         if (e.ClickedItem is not MediaItemViewModel media) return;
 
         var items = ViewModel.MediaItems?.ToList() ?? new List<MediaItemViewModel>();
@@ -237,6 +248,7 @@ public sealed partial class GameDetailPage : Page
 
     private async Task<FrameworkElement> CreateMediaContentAsync(MediaItemViewModel media)
     {
+        _logger.LogDebug("CreateMediaContentAsync: {Url}", media.Url);
         if (media.IsVideo)
         {
             return new MediaPlayerElement

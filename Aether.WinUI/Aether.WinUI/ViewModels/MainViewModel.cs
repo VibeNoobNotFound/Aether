@@ -29,12 +29,14 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void GoToGameDetail(string gameId)
     {
+        _logger.LogInformation("GoToGameDetail: {GameId}", gameId);
         NavigateToGameDetailRequested?.Invoke(this, gameId);
     }
 
     [RelayCommand]
     public void GoToLibrary()
     {
+        _logger.LogInformation("GoToLibrary invoked");
         CurrentScreen = AppScreen.Library;
         NavigateToLibraryRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -92,11 +94,13 @@ public partial class MainViewModel : ObservableObject
 
     public async Task StartBackendAsync()
     {
+        _logger.LogInformation("StartBackendAsync invoked");
         await _backend.StartAsync();
     }
 
     private async Task InitializeDataAsync()
     {
+        _logger.LogInformation("InitializeDataAsync invoked");
         await RefreshLibraryAsync();
         _ = RefreshCollectionsAsync();
         _ = LoadCarouselGamesAsync();
@@ -108,6 +112,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshLibraryAsync()
     {
+        _logger.LogInformation("RefreshLibraryAsync invoked");
         try
         {
             StatusMessage = "Refreshing library...";
@@ -132,11 +137,13 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
+            _logger.LogError(ex, "RefreshLibraryAsync failed");
         }
     }
 
     public async Task LoadCarouselGamesAsync()
     {
+        _logger.LogInformation("LoadCarouselGamesAsync invoked");
         try
         {
             var call = _grpc.Client.GetCarouselGames(new Empty());
@@ -154,25 +161,27 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading carousel games: {ex.Message}");
+            _logger.LogError(ex, "Error loading carousel games");
         }
     }
 
     public async Task<CarouselConfig?> LoadCarouselConfigAsync()
     {
+        _logger.LogInformation("LoadCarouselConfigAsync invoked");
         try
         {
             return await _grpc.Client.GetCarouselConfigAsync(new Empty());
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading carousel config: {ex.Message}");
+            _logger.LogError(ex, "Error loading carousel config");
             return null;
         }
     }
 
     public async Task SaveCarouselConfigAsync(CarouselConfig config)
     {
+        _logger.LogInformation("SaveCarouselConfigAsync invoked");
         try
         {
             await _grpc.Client.SetCarouselConfigAsync(config);
@@ -180,13 +189,14 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error saving carousel config: {ex.Message}");
+            _logger.LogError(ex, "Error saving carousel config");
         }
     }
 
     [RelayCommand]
     public async Task ToggleFavorite(string gameId)
     {
+        _logger.LogInformation("ToggleFavorite invoked: {GameId}", gameId);
         try
         {
             await _grpc.Client.ToggleFavoriteAsync(new GameId { Id = gameId });
@@ -207,6 +217,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task OpenGameLocation(string gameId)
     {
+        _logger.LogInformation("OpenGameLocation invoked: {GameId}", gameId);
         try
         {
             await _grpc.Client.OpenGameLocationAsync(new GameId { Id = gameId });
@@ -220,6 +231,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task RemoveGame(string gameId)
     {
+        _logger.LogInformation("RemoveGame invoked: {GameId}", gameId);
         try
         {
             await _grpc.Client.RemoveGameAsync(new GameId { Id = gameId });
@@ -239,6 +251,7 @@ public partial class MainViewModel : ObservableObject
 
     private async Task FetchPluginsAsync()
     {
+        _logger.LogInformation("FetchPluginsAsync invoked");
         try
         {
             var response = await _grpc.Client.GetPluginsAsync(new Empty());
@@ -251,14 +264,14 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            // Log error
-            System.Diagnostics.Debug.WriteLine($"Failed to fetch plugins: {ex.Message}");
+            _logger.LogError(ex, "Failed to fetch plugins");
         }
     }
 
     [RelayCommand]
     public async Task ScanLibraryAsync()
     {
+        _logger.LogInformation("ScanLibraryAsync invoked");
         try
         {
             StatusMessage = "Scanning library...";
@@ -295,11 +308,13 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Scan failed: {ex.Message}";
+            _logger.LogError(ex, "ScanLibraryAsync failed");
         }
     }
 
     private async Task SubscribeToGameStateAsync()
     {
+        _logger.LogInformation("SubscribeToGameStateAsync invoked");
         _gameStateCts?.Cancel();
         _gameStateCts = new CancellationTokenSource();
 
@@ -320,15 +335,17 @@ public partial class MainViewModel : ObservableObject
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Reconnect logic could go here
+            _logger.LogError(ex, "SubscribeToGameStateAsync failed");
         }
     }
 
     [RelayCommand]
     public async Task LaunchGameAsync(string gameId)
     {
+        _logger.LogInformation("LaunchGameAsync invoked: {GameId}", gameId);
         try
         {
             var game = Games.FirstOrDefault(g => g.Id == gameId);
@@ -348,12 +365,14 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Launch error: {ex.Message}";
+            _logger.LogError(ex, "LaunchGameAsync failed");
         }
     }
 
     [RelayCommand]
     public async Task StopGameAsync(string gameId)
     {
+        _logger.LogInformation("StopGameAsync invoked: {GameId}", gameId);
         try
         {
             await _grpc.Client.StopGameAsync(new GameId { Id = gameId });
@@ -361,10 +380,12 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"Stop error: {ex.Message}";
+            _logger.LogError(ex, "StopGameAsync failed");
         }
     }
     public async Task RefreshCollectionsAsync()
     {
+        _logger.LogInformation("RefreshCollectionsAsync invoked");
         try
         {
             // GetCollections is a standard RPC, not streaming
@@ -379,12 +400,13 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to refresh collections: {ex.Message}");
+            _logger.LogError(ex, "Failed to refresh collections");
         }
     }
 
     public async Task LoadGeneralNewsAsync()
     {
+        _logger.LogInformation("LoadGeneralNewsAsync invoked");
         var news = await FetchGeneralNewsAsync();
         _dispatcherQueue.TryEnqueue(() =>
         {
@@ -394,6 +416,7 @@ public partial class MainViewModel : ObservableObject
 
     private void UpdateHomeCollections()
     {
+        _logger.LogDebug("UpdateHomeCollections invoked");
         var visible = Collections
             .Where(c => c.IsVisible)
             .OrderBy(c => c.SortOrder)
@@ -414,6 +437,7 @@ public partial class MainViewModel : ObservableObject
 
     private ObservableCollection<GameViewModel> GetGamesForCollection(CollectionViewModel collection)
     {
+        _logger.LogTrace("GetGamesForCollection: {CollectionId}", collection.Id);
         if (!string.IsNullOrWhiteSpace(collection.PlatformFilter))
         {
             var filter = collection.PlatformFilter.Trim().ToLowerInvariant();
@@ -447,6 +471,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task CreateCollectionAsync(string name, string icon, IEnumerable<string> gameIds)
     {
+        _logger.LogInformation("CreateCollectionAsync invoked: {Name}", name);
         try
         {
             // Fix: IconName
@@ -472,6 +497,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task DeleteCollectionAsync(int collectionId)
     {
+        _logger.LogInformation("DeleteCollectionAsync invoked: {CollectionId}", collectionId);
         try
         {
             await _grpc.Client.DeleteCollectionAsync(new CollectionId { Id = collectionId });
@@ -487,6 +513,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task ToggleCollectionVisibilityAsync(CollectionViewModel collection)
     {
+        _logger.LogInformation("ToggleCollectionVisibilityAsync invoked: {CollectionId}", collection.Id);
         try
         {
             collection.IsVisible = !collection.IsVisible;
@@ -509,6 +536,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task ReorderCollectionsAsync(IEnumerable<int> orderedIds)
     {
+        _logger.LogInformation("ReorderCollectionsAsync invoked");
         try
         {
             var request = new ReorderCollectionsRequest();
@@ -524,6 +552,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task<CanLaunchResponse?> CanLaunchGameAsync(string gameId)
     {
+        _logger.LogInformation("CanLaunchGameAsync invoked: {GameId}", gameId);
         try
         {
             return await _grpc.Client.CanLaunchGameAsync(new GameId { Id = gameId });
@@ -537,6 +566,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task<ActiveProcessesResponse?> GetActiveProcessesAsync(string gameId)
     {
+        _logger.LogInformation("GetActiveProcessesAsync invoked: {GameId}", gameId);
         try
         {
             return await _grpc.Client.GetActiveProcessesAsync(new GameId { Id = gameId });
@@ -550,6 +580,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task<LibraryStatsResponse?> GetLibraryStatsAsync()
     {
+        _logger.LogInformation("GetLibraryStatsAsync invoked");
         try
         {
             return await _grpc.Client.GetLibraryStatsAsync(new Empty());
@@ -563,6 +594,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task<IReadOnlyList<NewsItemViewModel>> FetchGeneralNewsAsync()
     {
+        _logger.LogInformation("FetchGeneralNewsAsync invoked");
         try
         {
             var response = await _grpc.Client.GetGeneralNewsAsync(new Empty());
@@ -577,6 +609,7 @@ public partial class MainViewModel : ObservableObject
 
     public async Task<IReadOnlyList<NewsItemViewModel>> FetchGameNewsAsync(string gameId)
     {
+        _logger.LogInformation("FetchGameNewsAsync invoked: {GameId}", gameId);
         try
         {
             var response = await _grpc.Client.GetGameNewsAsync(new GameId { Id = gameId });

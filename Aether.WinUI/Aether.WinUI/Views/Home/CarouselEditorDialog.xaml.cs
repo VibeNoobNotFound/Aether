@@ -1,5 +1,6 @@
 using Aether.WinUI.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -11,17 +12,21 @@ namespace Aether.WinUI.Views.Home;
 
 public sealed partial class CarouselEditorDialog : ContentDialog
 {
-    public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
+    public MainViewModel ViewModel => Ioc.Default.GetRequiredService<MainViewModel>();
+    private readonly ILogger<CarouselEditorDialog> _logger;
 
     public CarouselEditorDialog()
     {
         this.InitializeComponent();
         this.Loaded += CarouselEditorDialog_Loaded;
         this.PrimaryButtonClick += CarouselEditorDialog_PrimaryButtonClick;
+        _logger = Ioc.Default.GetRequiredService<ILogger<CarouselEditorDialog>>();
+        _logger.LogDebug("CarouselEditorDialog initialized");
     }
 
     private async void CarouselEditorDialog_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("CarouselEditorDialog loaded");
         var config = await ViewModel.LoadCarouselConfigAsync();
         if (config != null)
         {
@@ -68,6 +73,7 @@ public sealed partial class CarouselEditorDialog : ContentDialog
 
     private async void CarouselEditorDialog_PrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
+        _logger.LogInformation("CarouselEditorDialog primary button clicked");
         var deferral = args.GetDeferral();
 
         try
@@ -100,11 +106,13 @@ public sealed partial class CarouselEditorDialog : ContentDialog
 
     private void SourceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        _logger.LogDebug("SourceComboBox selection changed");
         UpdateVisibility();
     }
 
     private void UpdateVisibility()
     {
+        _logger.LogDebug("UpdateVisibility invoked");
         if (CollectionPanel == null || ManualPanel == null) return;
 
         var tag = (SourceComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();

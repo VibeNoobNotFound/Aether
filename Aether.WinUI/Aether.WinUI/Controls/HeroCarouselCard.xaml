@@ -7,7 +7,7 @@
     xmlns:attached="using:Aether.WinUI.AttachedProperties"
     mc:Ignorable="d">
 
-    <Grid CornerRadius="12" Margin="4,0">
+    <Grid x:Name="RootGrid" CornerRadius="12" Margin="4,0" SizeChanged="HeroCarouselCard_SizeChanged">
         <Image x:Name="HeroImage" Stretch="UniformToFill"
                attached:ImageCache.Source="{x:Bind Game.DisplayBackgroundImageUrl, Mode=OneWay}"/>
         
@@ -32,7 +32,7 @@
 
             <!-- Play / Stop / Launching -->
             <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button Content="Play Now"
+                <Button x:Name="PlayButton" Content="Play Now"
                         Command="{x:Bind ViewModel.LaunchGameCommand, Mode=OneWay}"
                         CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
                         FontSize="24"
@@ -43,7 +43,7 @@
                         Style="{StaticResource AccentButtonStyle}"
                         Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter=Stopped}"/>
 
-                <Button Content="Stop"
+                <Button x:Name="StopButton" Content="Stop"
                         Command="{x:Bind ViewModel.StopGameCommand, Mode=OneWay}"
                         CommandParameter="{x:Bind Game.Id, Mode=OneWay}"
                         Background="#FFB00020"

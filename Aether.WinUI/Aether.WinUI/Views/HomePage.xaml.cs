@@ -1,7 +1,9 @@
 using Aether.WinUI.Controls;
 using Aether.WinUI.Services;
 using Aether.WinUI.ViewModels;
+using Aether.WinUI.Views.Insights;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
@@ -11,17 +13,21 @@ namespace Aether.WinUI.Views;
 
 public sealed partial class HomePage : Page
 {
-    public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
-    private ImageCacheService ImageCache => (Application.Current as App)!.Services.GetRequiredService<ImageCacheService>();
+    public MainViewModel ViewModel => Ioc.Default.GetRequiredService<MainViewModel>();
+    private ImageCacheService ImageCache => Ioc.Default.GetRequiredService<ImageCacheService>();
+    private readonly ILogger<HomePage> _logger;
 
     public HomePage()
     {
         this.InitializeComponent();
         this.Loaded += HomePage_Loaded;
+        _logger = Ioc.Default.GetRequiredService<ILogger<HomePage>>();
+        _logger.LogDebug("HomePage initialized");
     }
 
     private void HomePage_Loaded(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("HomePage loaded");
         // Load initial background from first carousel item
         UpdateBackgroundImage();
         _ = ViewModel.LoadGeneralNewsAsync();
@@ -29,11 +35,13 @@ public sealed partial class HomePage : Page
 
     private void HeroCarousel_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        _logger.LogDebug("HeroCarousel selection changed");
         UpdateBackgroundImage();
     }
 
     private async void UpdateBackgroundImage()
     {
+        _logger.LogTrace("UpdateBackgroundImage invoked");
         if (HeroCarousel.SelectedItem is Models.GameViewModel game)
         {
             var imageUrl = game.BackgroundImageUrl ?? game.CoverImageUrl;
@@ -57,6 +65,7 @@ public sealed partial class HomePage : Page
 
     private void HeroCarousel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
+        _logger.LogTrace("HeroCarousel size changed");
         // Match macOS aspect ratio 460 / 215
         var ratio = 215.0 / 460.0;
         var newHeight = e.NewSize.Width * ratio;
@@ -73,6 +82,7 @@ public sealed partial class HomePage : Page
 
     private void GridView_ItemClick(object sender, ItemClickEventArgs e)
     {
+        _logger.LogInformation("GridView item clicked");
         if (e.ClickedItem is Models.GameViewModel game)
         {
             // Prepare Connected Animation
@@ -91,6 +101,7 @@ public sealed partial class HomePage : Page
 
     private async void NewsItem_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("News item clicked");
         if (sender is Button button && button.Tag is string url && !string.IsNullOrWhiteSpace(url))
         {
             try
@@ -107,6 +118,7 @@ public sealed partial class HomePage : Page
 
     private async void EditCarousel_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("EditCarousel clicked");
         var dialog = new Aether.WinUI.Views.Home.CarouselEditorDialog();
         dialog.XamlRoot = this.XamlRoot;
         await dialog.ShowAsync();
@@ -114,6 +126,7 @@ public sealed partial class HomePage : Page
 
     private async void ManageCollections_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("ManageCollections clicked");
         var dialog = new Aether.WinUI.Views.Library.CollectionManagerDialog();
         dialog.XamlRoot = this.XamlRoot;
         await dialog.ShowAsync();
@@ -121,18 +134,15 @@ public sealed partial class HomePage : Page
 
     private async void Insights_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ContentDialog
-        {
-            Title = "Insights",
-            Content = "Insights are coming soon. We’ll surface playtime, genre trends, and top games here.",
-            CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot
-        };
+        _logger.LogInformation("Insights clicked");
+        var dialog = new InsightsDialog();
+        dialog.XamlRoot = this.XamlRoot;
         await dialog.ShowAsync();
     }
 
     private void Gamegcard_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Game grid card clicked");
 
         if (sender is GameGridCard card)
         {

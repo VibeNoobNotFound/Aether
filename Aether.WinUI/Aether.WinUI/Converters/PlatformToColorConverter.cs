@@ -1,4 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System;
@@ -8,8 +12,12 @@ namespace Aether.WinUI.Converters;
 
 public class PlatformToColorConverter : IValueConverter
 {
+    private static ILogger<PlatformToColorConverter> Logger =>
+        Ioc.Default.GetService<ILogger<PlatformToColorConverter>>() ?? NullLogger<PlatformToColorConverter>.Instance;
+
     public object Convert(object value, Type targetType, object parameter, string language)
     {
+        Logger.LogTrace("PlatformToColorConverter.Convert value={Value}", value);
         if (value is string platform)
         {
             var color = GetColorForPlatform(platform);
@@ -18,10 +26,15 @@ public class PlatformToColorConverter : IValueConverter
         return new SolidColorBrush(Colors.Gray);
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, string language) => throw new NotImplementedException();
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
+    {
+        Logger.LogTrace("PlatformToColorConverter.ConvertBack value={Value}", value);
+        throw new NotImplementedException();
+    }
 
     private Color GetColorForPlatform(string platform)
     {
+        Logger.LogTrace("PlatformToColorConverter.GetColorForPlatform platform={Platform}", platform);
         return platform.ToLowerInvariant() switch
         {
             "steam" => Color.FromArgb(255, 0, 122, 255), // Blue

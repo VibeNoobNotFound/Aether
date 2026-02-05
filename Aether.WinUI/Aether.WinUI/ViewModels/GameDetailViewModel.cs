@@ -21,6 +21,7 @@ public partial class GameDetailViewModel : ObservableObject
     {
         _mainViewModel = mainViewModel;
         _logger = logger;
+        _logger.LogDebug("GameDetailViewModel initialized");
     }
 
     public MainViewModel MainViewModel => _mainViewModel;
@@ -46,6 +47,7 @@ public partial class GameDetailViewModel : ObservableObject
 
     public async Task LoadGameAsync(string gameId)
     {
+        _logger.LogInformation("LoadGameAsync: {GameId}", gameId);
         System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Loading game: {gameId}");
         System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] MainViewModel.Games count: {_mainViewModel.Games.Count}");
 
@@ -54,10 +56,12 @@ public partial class GameDetailViewModel : ObservableObject
         if (SelectedGame == null)
         {
             System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Game NOT FOUND in cache!");
+            _logger.LogWarning("Game not found in cache: {GameId}", gameId);
         }
         else
         {
             System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Game loaded: {SelectedGame.Title}");
+            _logger.LogDebug("Game loaded: {GameTitle}", SelectedGame.Title);
         }
 
         BuildMediaItems();
@@ -67,6 +71,7 @@ public partial class GameDetailViewModel : ObservableObject
 
     partial void OnSelectedGameChanged(GameViewModel? value)
     {
+        _logger.LogDebug("Selected game changed: {GameId}", value?.Id);
         IsDescriptionExpanded = false;
         OnPropertyChanged(nameof(HasLongDescription));
         OnPropertyChanged(nameof(DescriptionMaxLines));
@@ -75,6 +80,7 @@ public partial class GameDetailViewModel : ObservableObject
 
     partial void OnIsDescriptionExpandedChanged(bool value)
     {
+        _logger.LogDebug("Description expanded changed: {IsExpanded}", value);
         OnPropertyChanged(nameof(DescriptionMaxLines));
         OnPropertyChanged(nameof(ShowReadMore));
     }
@@ -82,23 +88,27 @@ public partial class GameDetailViewModel : ObservableObject
     [RelayCommand]
     public async Task LaunchGame(string gameId)
     {
+        _logger.LogInformation("LaunchGame command: {GameId}", gameId);
         await _mainViewModel.LaunchGameCommand.ExecuteAsync(gameId);
     }
 
     [RelayCommand]
     public async Task ToggleFavorite(string gameId)
     {
+        _logger.LogInformation("ToggleFavorite command: {GameId}", gameId);
         await _mainViewModel.ToggleFavoriteCommand.ExecuteAsync(gameId);
     }
 
     [RelayCommand]
     private void ExpandDescription()
     {
+        _logger.LogInformation("ExpandDescription invoked");
         IsDescriptionExpanded = true;
     }
 
     public string GetLaunchButtonText()
     {
+        _logger.LogTrace("GetLaunchButtonText method: {LaunchMethod}", LaunchMethod);
         if (string.IsNullOrWhiteSpace(LaunchMethod)) return "Play Now";
         return LaunchMethod.ToLowerInvariant() switch
         {
@@ -112,6 +122,7 @@ public partial class GameDetailViewModel : ObservableObject
 
     private async Task RefreshLaunchStateAsync(string gameId)
     {
+        _logger.LogDebug("RefreshLaunchStateAsync: {GameId}", gameId);
         IsCheckingLaunch = true;
         var response = await _mainViewModel.CanLaunchGameAsync(gameId);
         if (response != null)
@@ -119,25 +130,30 @@ public partial class GameDetailViewModel : ObservableObject
             CanLaunch = response.CanLaunch;
             LaunchReason = response.Reason;
             LaunchMethod = response.LaunchMethod;
+            _logger.LogDebug("Launch state: canLaunch={CanLaunch} method={LaunchMethod}", CanLaunch, LaunchMethod);
         }
         else
         {
             CanLaunch = false;
             LaunchReason = "Unable to check";
             LaunchMethod = null;
+            _logger.LogWarning("Launch state unavailable for {GameId}", gameId);
         }
         IsCheckingLaunch = false;
     }
 
     private async Task RefreshNewsAsync(string gameId)
     {
+        _logger.LogDebug("RefreshNewsAsync: {GameId}", gameId);
         var news = await _mainViewModel.FetchGameNewsAsync(gameId);
         GameNews = new ObservableCollection<NewsItemViewModel>(news);
         OnPropertyChanged(nameof(HasGameNews));
+        _logger.LogDebug("Game news loaded: {Count}", GameNews.Count);
     }
 
     private void BuildMediaItems()
     {
+        _logger.LogDebug("BuildMediaItems invoked");
         var list = new ObservableCollection<MediaItemViewModel>();
         if (SelectedGame != null)
         {
@@ -165,5 +181,6 @@ public partial class GameDetailViewModel : ObservableObject
         }
 
         MediaItems = list;
+        _logger.LogDebug("Media items count: {Count}", MediaItems.Count);
     }
 }

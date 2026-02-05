@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using System;
@@ -6,8 +9,12 @@ namespace Aether.WinUI.Converters;
 
 public class BoolToVisibilityConverter : IValueConverter
 {
+    private static ILogger<BoolToVisibilityConverter> Logger =>
+        Ioc.Default.GetService<ILogger<BoolToVisibilityConverter>>() ?? NullLogger<BoolToVisibilityConverter>.Instance;
+
     public object Convert(object value, Type targetType, object parameter, string language)
     {
+        Logger.LogTrace("BoolToVisibilityConverter.Convert value={Value} parameter={Parameter}", value, parameter);
         if (value is bool boolValue)
         {
             // Default: true -> Visible, false -> Collapsed
@@ -24,6 +31,7 @@ public class BoolToVisibilityConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
     {
+        Logger.LogTrace("BoolToVisibilityConverter.ConvertBack value={Value}", value);
         return DependencyProperty.UnsetValue;
     }
 }

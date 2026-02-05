@@ -14,36 +14,22 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Text="Library" Style="{StaticResource TitleTextBlockStyle}" VerticalAlignment="Center"/>
-
-            <StackPanel Orientation="Horizontal" Grid.Column="1" Spacing="8">
-                 <DropDownButton Content="Add Game">
-                    <DropDownButton.Flyout>
-                        <MenuFlyout x:Name="AddGameMenu" Opening="AddGameMenu_Opening">
-                             <MenuFlyoutItem Text="Scan Library" Icon="Refresh" Command="{x:Bind ViewModel.ScanLibraryCommand}"/>
-                             <MenuFlyoutSeparator/>
-                             <!-- Plugins added in code-behind -->
-                        </MenuFlyout>
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-                
-                <Button Command="{x:Bind ViewModel.RefreshLibraryCommand}">
-                    <Button.Content>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE72C;"/>
-                            <TextBlock Text="Refresh"/> 
-                        </StackPanel>
-                    </Button.Content>
-                </Button>
-            </StackPanel>
-        </Grid>
+        <!-- Toolbar -->
+        <CommandBar Grid.Row="0" VerticalAlignment="Top" Background="Transparent" IsOpen="False" DefaultLabelPosition="Right" Margin="0,10,20,0">
+            <CommandBar.Content>
+                <TextBlock Text="Library" Style="{StaticResource SubtitleTextBlockStyle}" Margin="24,12,0,0" Opacity="0.8"/>
+            </CommandBar.Content>
+            <AppBarButton Icon="Add" Label="Add Game">
+                <AppBarButton.Flyout>
+                    <MenuFlyout x:Name="AddGameMenu" Opening="AddGameMenu_Opening">
+                        <MenuFlyoutItem Text="Scan Library" Icon="Refresh" Command="{x:Bind ViewModel.ScanLibraryCommand}"/>
+                        <MenuFlyoutSeparator/>
+                        <!-- Plugins added in code-behind -->
+                    </MenuFlyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton Icon="Refresh" Label="Refresh" Command="{x:Bind ViewModel.RefreshLibraryCommand}"/>
+        </CommandBar>
 
         <!-- Empty State -->
         <Grid Grid.Row="1" 
