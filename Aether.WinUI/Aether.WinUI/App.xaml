@@ -22,6 +22,8 @@
             <converters:PlatformToColorConverter x:Key="PlatformToColorConverter" />
             <converters:IconNameToGlyphConverter x:Key="IconNameToGlyphConverter" />
             <converters:StringEqualsConverter x:Key="StringEqualsConverter" />
+            <converters:ScoreToBrushConverter x:Key="ScoreToBrushConverter" />
+            <converters:BoolToYesNoConverter x:Key="BoolToYesNoConverter" />
             <ThemeShadow x:Key="SharedShadow" />
             
             <AcrylicBrush x:Key="DarkAcrylicBackgroundBrush"

@@ -86,6 +86,15 @@
                                     <TextBlock Text="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}" FontSize="12" Foreground="White" FontWeight="Bold"/>
                                 </Border>
                                 <TextBlock Text="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}" Foreground="#FFFFFFFF" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <Border CornerRadius="6"
+                                        Background="{x:Bind ViewModel.SelectedGame.MetacriticScore, Mode=OneWay, Converter={StaticResource ScoreToBrushConverter}}"
+                                        Padding="6,2"
+                                        Visibility="{x:Bind ViewModel.SelectedGame.HasMetacriticScore, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedGame.MetacriticScore, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter='METASCORE {0:0}'}"
+                                               FontSize="11"
+                                               Foreground="Black"
+                                               FontWeight="Bold"/>
+                                </Border>
                             </StackPanel>
 
                             <!-- Action Buttons -->
@@ -165,41 +174,56 @@
                                     </TransitionCollection>
                                 </StackPanel.ChildrenTransitions>
                                 <!-- Media Gallery -->
-                                <ListView ItemsSource="{x:Bind ViewModel.MediaItems, Mode=OneWay}"
-                                      SelectionMode="None"
-                                      IsItemClickEnabled="True"
-                                      ItemClick="MediaItem_Click"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                      Height="240">
-                                    <ListView.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <ItemsStackPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
-                                    </ListView.ItemsPanel>
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:MediaItemViewModel">
-                                            <Border Width="300" Height="169" CornerRadius="8" Margin="0,0,12,0"
-                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                                                <Grid>
-                                                    <Image attached:ImageCache.Source="{x:Bind Url, Mode=OneWay}"
-                                                       Stretch="UniformToFill"
-                                                       Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
-                                                    <Grid Background="#66000000"
-                                                      Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <FontIcon Glyph="&#xE768;" FontSize="40" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Gallery" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <ListView ItemsSource="{x:Bind ViewModel.MediaItems, Mode=OneWay}"
+                                          SelectionMode="None"
+                                          IsItemClickEnabled="True"
+                                          ItemClick="MediaItem_Click"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                          Height="240">
+                                        <ListView.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <ItemsStackPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ListView.ItemsPanel>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="models:MediaItemViewModel">
+                                                <Border Width="300" Height="169" CornerRadius="8" Margin="0,0,12,0"
+                                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                                    <Grid>
+                                                        <Image attached:ImageCache.Source="{x:Bind Url, Mode=OneWay}"
+                                                           Stretch="UniformToFill"
+                                                           Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}"/>
+                                                        <Grid Background="#66000000"
+                                                          Visibility="{x:Bind IsVideo, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <FontIcon Glyph="&#xE768;" FontSize="40" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Grid>
                                                     </Grid>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
 
                                 <StackPanel Spacing="12">
                                     <TextBlock Text="About" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                                    <TextBlock Text="{x:Bind ViewModel.SelectedGame.DescriptionPlain, Mode=OneWay}" 
-                                           TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
-                                           FontSize="15" LineHeight="26"/>
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedGame.DescriptionPlain, Mode=OneWay}"
+                                           TextWrapping="Wrap"
+                                           TextTrimming="WordEllipsis"
+                                           MaxLines="{x:Bind ViewModel.DescriptionMaxLines, Mode=OneWay}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           FontSize="15"
+                                           LineHeight="26"/>
+                                    <Button Content="Read More"
+                                            Command="{x:Bind ViewModel.ExpandDescriptionCommand}"
+                                            HorizontalAlignment="Left"
+                                            Padding="16,6"
+                                            CornerRadius="16"
+                                            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                            Visibility="{x:Bind ViewModel.ShowReadMore, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                 </StackPanel>
 
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Genres, Mode=OneWay}">
@@ -216,6 +240,44 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <StackPanel Spacing="8"
+                                            Visibility="{x:Bind ViewModel.SelectedGame.HasTags, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Tags" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Tags, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapGrid Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="12,6" Margin="0,0,8,8">
+                                                    <TextBlock Text="{x:Bind Mode=OneWay}" FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <StackPanel Spacing="8"
+                                            Visibility="{x:Bind ViewModel.SelectedGame.HasCategories, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <TextBlock Text="Categories" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.SelectedGame.Categories, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapGrid Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="16" Padding="12,6" Margin="0,0,8,8">
+                                                    <TextBlock Text="{x:Bind Mode=OneWay}" FontSize="12"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Spacing="12">
@@ -255,6 +317,16 @@
                                 <controls:SettingsCard Header="Platform" Description="{x:Bind ViewModel.SelectedGame.Platform, Mode=OneWay}"/>
                                 <controls:SettingsCard Header="Developer" Description="{x:Bind ViewModel.SelectedGame.Developer, Mode=OneWay}"/>
                                 <controls:SettingsCard Header="Publisher" Description="{x:Bind ViewModel.SelectedGame.Publisher, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Achievements" Description="{x:Bind ViewModel.SelectedGame.AchievementsDisplay, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Cloud Saves" Description="{x:Bind ViewModel.SelectedGame.HasCloudSaves, Mode=OneWay, Converter={StaticResource BoolToYesNoConverter}}"/>
+                                <controls:SettingsCard Header="Multiplayer" Description="{x:Bind ViewModel.SelectedGame.HasMultiplayer, Mode=OneWay, Converter={StaticResource BoolToYesNoConverter}}"/>
+                                <controls:SettingsCard Header="Single Player" Description="{x:Bind ViewModel.SelectedGame.HasSinglePlayer, Mode=OneWay, Converter={StaticResource BoolToYesNoConverter}}"/>
+
+                                <MenuFlyoutSeparator Margin="0,12"/>
+
+                                <controls:SettingsCard Header="Minimum Requirements" Description="{x:Bind ViewModel.SelectedGame.MinimumRequirementsDisplay, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Recommended Requirements" Description="{x:Bind ViewModel.SelectedGame.RecommendedRequirementsDisplay, Mode=OneWay}"/>
+                                <controls:SettingsCard Header="Supported Languages" Description="{x:Bind ViewModel.SelectedGame.SupportedLanguagesDisplay, Mode=OneWay}"/>
                             </StackPanel>
                         </Grid>
                     </Grid>

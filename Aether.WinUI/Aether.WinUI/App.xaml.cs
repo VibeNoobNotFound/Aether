@@ -20,8 +20,9 @@ public partial class App : Application
         // Setup Serilog
        var baseDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Aether", "logs");
-        var logPath = Path.Combine("frontend",baseDir, "log-.log");
+            "Aether", "logs", "frontend");
+        var logPath = Path.Combine(baseDir, "log-.log");
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Debug()

@@ -4,6 +4,10 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using Aether.WinUI.Services;
+using Aether.WinUI.AttachedProperties;
+using CommunityToolkit.WinUI.Helpers;
 
 namespace Aether.WinUI.Controls.Renderer;
 
@@ -33,6 +37,10 @@ public sealed partial class WidgetRenderer : UserControl
     public WidgetRenderer()
     {
         this.InitializeComponent();
+        if (FormValues == null)
+        {
+            FormValues = new Dictionary<string, string>();
+        }
     }
 
     private static void OnWidgetChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -45,17 +53,20 @@ public sealed partial class WidgetRenderer : UserControl
 
     private void RenderWidget(UIWidget widget)
     {
-        Content = widget.ContentCase switch
+        var content = widget.ContentCase switch
         {
             UIWidget.ContentOneofCase.Text => RenderText(widget.Text),
             UIWidget.ContentOneofCase.Button => RenderButton(widget.Button),
             UIWidget.ContentOneofCase.TextInput => RenderTextInput(widget.TextInput),
             UIWidget.ContentOneofCase.FolderPicker => RenderFolderPicker(widget.FolderPicker),
             UIWidget.ContentOneofCase.FilePicker => RenderFilePicker(widget.FilePicker),
+            UIWidget.ContentOneofCase.Toggle => RenderToggle(widget.Toggle),
             UIWidget.ContentOneofCase.Container => RenderContainer(widget.Container),
-            // TODO: Implement other widgets
+            UIWidget.ContentOneofCase.Image => RenderImage(widget.Image),
             _ => new TextBlock { Text = $"Unsupported Widget: {widget.ContentCase}", Foreground = new SolidColorBrush(Microsoft.UI.Colors.Red) }
         };
+
+        Content = ApplyWidgetStyle(content, widget);
     }
 
     private FrameworkElement RenderFolderPicker(FolderPickerWidget picker)
@@ -233,26 +244,54 @@ public sealed partial class WidgetRenderer : UserControl
                 break;
         }
 
+        var colorBrush = ResolveTextBrush(text.Color);
+        if (colorBrush != null)
+        {
+            block.Foreground = colorBrush;
+        }
+
         return block;
     }
 
     private FrameworkElement RenderButton(ButtonWidget button)
     {
+        var iconGlyph = ResolveButtonIcon(button.Icon);
+        var contentPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        if (!string.IsNullOrWhiteSpace(iconGlyph))
+        {
+            contentPanel.Children.Add(new FontIcon { Glyph = iconGlyph });
+        }
+        contentPanel.Children.Add(new TextBlock { Text = button.Label });
+
+        if (button.Style == ButtonWidget.Types.Style.Link)
+        {
+            var link = new HyperlinkButton
+            {
+                Content = contentPanel,
+                HorizontalAlignment = HorizontalAlignment.Stretch
+            };
+            link.Click += (s, e) => ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
+            return link;
+        }
+
         var btn = new Button
         {
-            Content = button.Label,
+            Content = contentPanel,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
-        if (button.Style == ButtonWidget.Types.Style.Primary)
+        switch (button.Style)
         {
-            btn.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+            case ButtonWidget.Types.Style.Primary:
+                btn.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+                break;
+            case ButtonWidget.Types.Style.Destructive:
+                btn.Background = new SolidColorBrush(Microsoft.UI.Colors.DarkRed);
+                btn.Foreground = new SolidColorBrush(Microsoft.UI.Colors.White);
+                break;
         }
 
-        btn.Click += (s, e) =>
-        {
-            ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
-        };
+        btn.Click += (s, e) => ActionTriggered?.Invoke(button.ActionId, button.PayloadJson);
 
         return btn;
     }
@@ -286,6 +325,137 @@ public sealed partial class WidgetRenderer : UserControl
 
         stack.Children.Add(box);
         return stack;
+    }
+
+    private FrameworkElement RenderToggle(ToggleWidget toggle)
+    {
+        var current = FormValues.TryGetValue(toggle.BoundFieldId, out var value)
+            ? value
+            : toggle.InitialValue.ToString().ToLowerInvariant();
+
+        var control = new ToggleSwitch
+        {
+            Header = toggle.Label,
+            IsOn = string.Equals(current, "true", StringComparison.OrdinalIgnoreCase)
+        };
+
+        control.Toggled += (s, e) => UpdateFormValue(toggle.BoundFieldId, control.IsOn.ToString().ToLowerInvariant());
+        return control;
+    }
+
+    private FrameworkElement RenderImage(ImageWidget imageWidget)
+    {
+        var image = new Image { Stretch = Stretch.UniformToFill };
+        if (!string.IsNullOrWhiteSpace(imageWidget.Url))
+        {
+            ImageCache.SetSource(image, imageWidget.Url);
+        }
+
+        var border = new Border
+        {
+            CornerRadius = new CornerRadius(8),
+            Child = image
+        };
+
+        var height = imageWidget.Size switch
+        {
+            ImageWidget.Types.Size.Small => 90,
+            ImageWidget.Types.Size.Medium => 140,
+            ImageWidget.Types.Size.Large => 220,
+            ImageWidget.Types.Size.FullWidth => 260,
+            _ => 140
+        };
+
+        border.Height = height;
+        border.HorizontalAlignment = imageWidget.Size == ImageWidget.Types.Size.FullWidth
+            ? HorizontalAlignment.Stretch
+            : HorizontalAlignment.Left;
+
+        var stack = new StackPanel { Spacing = 8 };
+        stack.Children.Add(border);
+
+        if (!string.IsNullOrWhiteSpace(imageWidget.Caption))
+        {
+            stack.Children.Add(new TextBlock
+            {
+                Text = imageWidget.Caption,
+                Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+            });
+        }
+
+        return stack;
+    }
+
+    private FrameworkElement ApplyWidgetStyle(FrameworkElement content, UIWidget widget)
+    {
+        var style = widget.Style;
+        if (style == null)
+        {
+            return content;
+        }
+
+        var hasPadding = style.HasPaddingVertical || style.HasPaddingHorizontal;
+        var hasBackground = style.HasBackgroundColor && !string.IsNullOrWhiteSpace(style.BackgroundColor);
+
+        if (!hasPadding && !hasBackground)
+        {
+            return content;
+        }
+
+        var border = new Border
+        {
+            Child = content,
+            Padding = new Thickness(
+                style.HasPaddingHorizontal ? style.PaddingHorizontal : 0,
+                style.HasPaddingVertical ? style.PaddingVertical : 0,
+                style.HasPaddingHorizontal ? style.PaddingHorizontal : 0,
+                style.HasPaddingVertical ? style.PaddingVertical : 0)
+        };
+
+        if (hasBackground)
+        {
+            border.Background = new SolidColorBrush(style.BackgroundColor.ToColor());
+            border.CornerRadius = new CornerRadius(10);
+        }
+
+        return border;
+    }
+
+    private Brush? ResolveTextBrush(string colorToken)
+    {
+        if (string.IsNullOrWhiteSpace(colorToken))
+        {
+            return null;
+        }
+
+        switch (colorToken.Trim().ToLowerInvariant())
+        {
+            case "primary":
+                return (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+            case "secondary":
+                return (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+            case "accent":
+                return (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+        }
+
+        if (colorToken.StartsWith("#", StringComparison.Ordinal))
+        {
+            return new SolidColorBrush(colorToken.ToColor());
+        }
+
+        return null;
+    }
+
+    private string? ResolveButtonIcon(string iconName)
+    {
+        if (string.IsNullOrWhiteSpace(iconName))
+        {
+            return null;
+        }
+
+        var iconMap = (Application.Current as App)?.Services.GetService(typeof(IconMapService)) as IconMapService;
+        return iconMap?.ToGlyph(iconName);
     }
 
     private void UpdateFormValue(string key, string value)

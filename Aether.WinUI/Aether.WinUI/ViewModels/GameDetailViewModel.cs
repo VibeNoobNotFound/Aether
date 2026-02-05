@@ -35,6 +35,15 @@ public partial class GameDetailViewModel : ObservableObject
 
     [ObservableProperty] private ObservableCollection<MediaItemViewModel> mediaItems = new();
 
+    [ObservableProperty] private bool isDescriptionExpanded;
+
+    public bool HasLongDescription
+        => (SelectedGame?.DescriptionPlain?.Length ?? 0) > 400;
+
+    public int DescriptionMaxLines => IsDescriptionExpanded ? 1000 : 6;
+
+    public bool ShowReadMore => HasLongDescription && !IsDescriptionExpanded;
+
     public async Task LoadGameAsync(string gameId)
     {
         System.Diagnostics.Debug.WriteLine($"[GameDetailViewModel] Loading game: {gameId}");
@@ -56,6 +65,20 @@ public partial class GameDetailViewModel : ObservableObject
         await RefreshNewsAsync(gameId);
     }
 
+    partial void OnSelectedGameChanged(GameViewModel? value)
+    {
+        IsDescriptionExpanded = false;
+        OnPropertyChanged(nameof(HasLongDescription));
+        OnPropertyChanged(nameof(DescriptionMaxLines));
+        OnPropertyChanged(nameof(ShowReadMore));
+    }
+
+    partial void OnIsDescriptionExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(DescriptionMaxLines));
+        OnPropertyChanged(nameof(ShowReadMore));
+    }
+
     [RelayCommand]
     public async Task LaunchGame(string gameId)
     {
@@ -66,6 +89,12 @@ public partial class GameDetailViewModel : ObservableObject
     public async Task ToggleFavorite(string gameId)
     {
         await _mainViewModel.ToggleFavoriteCommand.ExecuteAsync(gameId);
+    }
+
+    [RelayCommand]
+    private void ExpandDescription()
+    {
+        IsDescriptionExpanded = true;
     }
 
     public string GetLaunchButtonText()

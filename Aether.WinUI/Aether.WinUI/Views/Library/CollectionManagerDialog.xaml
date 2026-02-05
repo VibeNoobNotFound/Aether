@@ -17,6 +17,51 @@
     <ContentDialog.Resources>
         <converters:BoolToEyeIconConverter x:Key="BoolToEyeIconConverter"/>
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <Style x:Key="IconActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Root"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{TemplateBinding CornerRadius}">
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                        </Grid>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource AccentFillColorSecondaryBrush}"/>
+                                        <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <Setter Target="ContentPresenter.Foreground" Value="White"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </ContentDialog.Resources>
 
     <Grid Width="500" Height="600">
@@ -54,15 +99,16 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
-                            <Button Click="Visibility_Click" Tag="{x:Bind}" Background="Transparent" BorderThickness="0">
-                                <FontIcon Glyph="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BoolToEyeIconConverter}}"/>
+                            <Button Click="Visibility_Click" Tag="{x:Bind}" Style="{StaticResource IconActionButtonStyle}">
+                                <FontIcon Glyph="{x:Bind IsVisible, Mode=OneWay, Converter={StaticResource BoolToEyeIconConverter}}"
+                                        />
                             </Button>
                             
-                            <Button Click="Edit_Click" Tag="{x:Bind}" Background="Transparent" BorderThickness="0">
+                            <Button Click="Edit_Click" Tag="{x:Bind}" Style="{StaticResource IconActionButtonStyle}">
                                 <FontIcon Glyph="&#xE70F;"/> <!-- Pencil -->
                             </Button>
 
-                            <Button Click="Delete_Click" Tag="{x:Bind}" Background="Transparent" BorderThickness="0" 
+                            <Button Click="Delete_Click" Tag="{x:Bind}" Style="{StaticResource IconActionButtonStyle}"
                                     Visibility="{x:Bind IsSystem, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
                                 <FontIcon Glyph="&#xE74D;" Foreground="Red"/> <!-- Trash -->
                             </Button>

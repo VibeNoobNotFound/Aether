@@ -22,6 +22,7 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private string version = "1.0.0-alpha";
     [ObservableProperty] private int selectedThemeIndex = 0; // 0: System, 1: Dark, 2: Light
+    [ObservableProperty] private int navigationStyleIndex = 0; // 0: Sidebar, 1: Top
     [ObservableProperty] private bool isAutoUpdateEnabled = true;
     [ObservableProperty] private bool includeBetaUpdates = false;
 
@@ -37,6 +38,7 @@ public partial class SettingsViewModel : ObservableObject
         SelectedThemeIndex = _settings.SelectedThemeIndex;
         IsAutoUpdateEnabled = _settings.AutoUpdateEnabled;
         IncludeBetaUpdates = _settings.IncludeBetaUpdates;
+        NavigationStyleIndex = _settings.UseTopNavigation ? 1 : 0;
 
         // Load initial data
         _ = LoadPlugins();
@@ -66,6 +68,11 @@ public partial class SettingsViewModel : ObservableObject
     partial void OnIncludeBetaUpdatesChanged(bool value)
     {
         _settings.IncludeBetaUpdates = value;
+    }
+
+    partial void OnNavigationStyleIndexChanged(int value)
+    {
+        _settings.UseTopNavigation = value == 1;
     }
 
     public async Task LoadPlugins()
@@ -116,12 +123,6 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void OpenMetadataSources()
-    {
-        // Todo: Open dialog or navigation
-    }
-
-    [RelayCommand]
     public async Task RescanLibrary()
     {
         try
@@ -167,10 +168,17 @@ public partial class SettingsViewModel : ObservableObject
         catch { }
     }
 
-    [RelayCommand]
-    public void FactoryReset()
+    public async Task FactoryResetAsync()
     {
-        // Dangerous! 
-        // TODO: Call ResetSystem RPC
+        try
+        {
+            await _grpc.Client.ResetSystemAsync(new Empty());
+            _settings.ClearAll();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Factory reset failed: {ex}");
+            throw;
+        }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Linq;
+using System.ComponentModel;
 
 namespace Aether.WinUI;
 
@@ -14,6 +15,7 @@ public sealed partial class MainWindow : Window
 {
     public MainViewModel ViewModel => (Application.Current as App)!.Services.GetRequiredService<MainViewModel>();
     public SearchViewModel SearchViewModel => (Application.Current as App)!.Services.GetRequiredService<SearchViewModel>();
+    public SettingsViewModel SettingsViewModel => (Application.Current as App)!.Services.GetRequiredService<SettingsViewModel>();
 
     private bool _isSearchActive;
     private Type? _lastContentPageType;
@@ -22,6 +24,8 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "Aether";
+        SettingsViewModel.PropertyChanged += SettingsViewModel_PropertyChanged;
+        UpdateNavigationStyle();
 
         ViewModel.NavigateToGameDetailRequested += (s, gameId) =>
         {
@@ -198,5 +202,21 @@ public sealed partial class MainWindow : Window
                 }
                 break;
         }
+    }
+
+    private void SettingsViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsViewModel.NavigationStyleIndex))
+        {
+            UpdateNavigationStyle();
+        }
+    }
+
+    private void UpdateNavigationStyle()
+    {
+        var useTop = SettingsViewModel.NavigationStyleIndex == 1;
+        NavView.PaneDisplayMode = useTop ? NavigationViewPaneDisplayMode.Top : NavigationViewPaneDisplayMode.Left;
+        NavView.IsPaneToggleButtonVisible = !useTop;
+        title.IsPaneButtonVisible = !useTop;
     }
 }

@@ -8,6 +8,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.System;
 using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Windows.Media.Core;
 using Microsoft.UI.Xaml.Media;
 
@@ -161,35 +163,102 @@ public sealed partial class GameDetailPage : Page
     {
         if (e.ClickedItem is not MediaItemViewModel media) return;
 
-        FrameworkElement content;
-        if (media.IsVideo)
+        var items = ViewModel.MediaItems?.ToList() ?? new List<MediaItemViewModel>();
+        if (items.Count == 0) return;
+
+        var index = items.IndexOf(media);
+        if (index < 0) index = 0;
+
+        var contentHost = new ContentControl();
+        var prevButton = new Button { Content = "Previous" };
+        var nextButton = new Button { Content = "Next" };
+
+        var navPanel = new StackPanel
         {
-            var player = new MediaPlayerElement
-            {
-                Source = MediaSource.CreateFromUri(new Uri(media.Url)),
-                AreTransportControlsEnabled = true,
-                AutoPlay = true
-            };
-            content = player;
-        }
-        else
-        {
-            var image = new Image
-            {
-                Stretch = Stretch.Uniform
-            };
-            image.Source = await ImageCache.GetImageAsync(media.Url);
-            content = image;
-        }
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        navPanel.Children.Add(prevButton);
+        navPanel.Children.Add(nextButton);
+
+        var root = new Grid { RowDefinitions = { new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }, new RowDefinition { Height = GridLength.Auto } } };
+        root.Background = new SolidColorBrush(Microsoft.UI.Colors.Black);
+        root.Children.Add(contentHost);
+        Grid.SetRow(navPanel, 1);
+        root.Children.Add(navPanel);
 
         var dialog = new ContentDialog
         {
-            Title = media.IsVideo ? "Video" : "Screenshot",
-            Content = content,
+            Content = root,
             CloseButtonText = "Close",
-            XamlRoot = this.XamlRoot
+            XamlRoot = this.XamlRoot,
+            MinWidth = 720,
+            MinHeight = 480,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Stretch,
+            Padding = new Thickness(0),
+            CornerRadius = new CornerRadius(12)
         };
 
+        if (XamlRoot != null)
+        {
+            dialog.MaxWidth = Math.Max(720, XamlRoot.Size.Width - 40);
+            dialog.MaxHeight = Math.Max(480, XamlRoot.Size.Height - 40);
+        }
+
+        async Task UpdateMediaAsync()
+        {
+            var current = items[index];
+            contentHost.Content = await CreateMediaContentAsync(current);
+            dialog.Title = $"{(current.IsVideo ? "Video" : "Screenshot")} {index + 1} of {items.Count}";
+            prevButton.IsEnabled = index > 0;
+            nextButton.IsEnabled = index < items.Count - 1;
+        }
+
+        prevButton.Click += async (_, _) =>
+        {
+            if (index <= 0) return;
+            index--;
+            await UpdateMediaAsync();
+        };
+
+        nextButton.Click += async (_, _) =>
+        {
+            if (index >= items.Count - 1) return;
+            index++;
+            await UpdateMediaAsync();
+        };
+
+        await UpdateMediaAsync();
         await dialog.ShowAsync();
+    }
+
+    private async Task<FrameworkElement> CreateMediaContentAsync(MediaItemViewModel media)
+    {
+        if (media.IsVideo)
+        {
+            return new MediaPlayerElement
+            {
+                Source = MediaSource.CreateFromUri(new Uri(media.Url)),
+                AreTransportControlsEnabled = true,
+                AutoPlay = true,
+                Stretch = Stretch.Uniform
+            };
+        }
+
+        var image = new Image { Stretch = Stretch.Uniform };
+        image.Source = await ImageCache.GetImageAsync(media.Url);
+
+        return new ScrollViewer
+        {
+            Content = image,
+            ZoomMode = ZoomMode.Enabled,
+            MinZoomFactor = 1,
+            MaxZoomFactor = 4,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
     }
 }

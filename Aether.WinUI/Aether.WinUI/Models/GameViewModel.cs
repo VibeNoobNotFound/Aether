@@ -64,6 +64,10 @@ public partial class GameViewModel : ObservableObject
     public string TagsText => string.Join(", ", Tags ?? Array.Empty<string>());
     public string CategoriesText => string.Join(", ", Categories ?? Array.Empty<string>());
     public string SupportedLanguagesText => string.Join(", ", SupportedLanguages ?? Array.Empty<string>());
+    public string MinimumRequirementsDisplay => string.IsNullOrWhiteSpace(MinimumRequirements) ? "Unknown" : MinimumRequirements!;
+    public string RecommendedRequirementsDisplay => string.IsNullOrWhiteSpace(RecommendedRequirements) ? "Unknown" : RecommendedRequirements!;
+    public string SupportedLanguagesDisplay => string.IsNullOrWhiteSpace(SupportedLanguagesText) ? "Unknown" : SupportedLanguagesText;
+    public string AchievementsDisplay => HasAchievements ? $"{AchievementCount} achievements" : "No achievements";
 
     public Uri? CoverImageUri => !string.IsNullOrEmpty(CoverImageUrl) && Uri.TryCreate(CoverImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
     public Uri? BackgroundImageUri => !string.IsNullOrEmpty(BackgroundImageUrl) && Uri.TryCreate(BackgroundImageUrl, UriKind.RelativeOrAbsolute, out var uri) ? uri : null;
@@ -76,6 +80,8 @@ public partial class GameViewModel : ObservableObject
     public bool HasMetacriticScore => MetacriticScore > 0;
     public bool HasUserScore => UserScore > 0;
     public bool HasReleaseDate => ReleaseDateUnix > 0;
+    public bool HasTags => Tags != null && Tags.Length > 0;
+    public bool HasCategories => Categories != null && Categories.Length > 0;
 
     private static string StripHtml(string html)
     {

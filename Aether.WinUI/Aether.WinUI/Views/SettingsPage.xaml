@@ -69,7 +69,7 @@
                     <!-- Navigation Style & Card Style placeholders -->
                     <controls:SettingsCard Header="Navigation Style" Description="Choose between sidebar or top navigation">
                          <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE700;" Foreground="Orange"/></controls:SettingsCard.HeaderIcon>
-                         <ComboBox SelectedIndex="0" IsEnabled="False" ToolTipService.ToolTip="Coming Soon">
+                         <ComboBox SelectedIndex="{x:Bind ViewModel.NavigationStyleIndex, Mode=TwoWay}" MinWidth="140">
                             <ComboBoxItem Content="Sidebar"/>
                             <ComboBoxItem Content="Top"/>
                         </ComboBox>
@@ -99,7 +99,7 @@
                     <TextBlock Text="LIBRARY" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="12,0,0,0"/>
 
                      <local:SettingsActionCard Header="Metadata Sources" Description="Configure provider priority" 
-                                              IconGlyph="&#xE721;" Click="{x:Bind ViewModel.OpenMetadataSources}"/>
+                                              IconGlyph="&#xE721;" Click="OpenMetadataSources_Click"/>
                      
                      <local:SettingsActionCard Header="Rescan Library" Description="Scan all sources for new games" 
                                               IconGlyph="&#xE8F3;" Click="{x:Bind ViewModel.RescanLibrary}"/>
@@ -112,7 +112,7 @@
                 <StackPanel Spacing="12">
                     <Grid Margin="12,0">
                          <TextBlock Text="INSTALLED PLUGINS" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
-                         <HyperlinkButton HorizontalAlignment="Right" Content="Add Plugin">
+                         <HyperlinkButton HorizontalAlignment="Right" Content="Add Plugin" Click="AddPlugin_Click">
                              <HyperlinkButton.ContentTemplate>
                                  <DataTemplate>
                                      <StackPanel Orientation="Horizontal" Spacing="4">
@@ -124,13 +124,16 @@
                          </HyperlinkButton>
                     </Grid>
 
-                    <ItemsControl ItemsSource="{x:Bind ViewModel.Plugins, Mode=OneWay}">
-                        <ItemsControl.ItemTemplate>
+                    <ListView ItemsSource="{x:Bind ViewModel.Plugins, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="True"
+                              ItemClick="PluginList_ItemClick">
+                        <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:PluginViewModel">
                                 <local:PluginCard Plugin="{x:Bind}" Margin="0,0,0,8"/>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </StackPanel>
 
                 <!-- 6. ADVANCED -->
@@ -141,7 +144,7 @@
                                               IconGlyph="&#xE8F4;" Click="{x:Bind ViewModel.OpenLogsFolder}"/>
                      
                      <local:SettingsActionCard Header="Factory Reset" Description="Clear library, reset settings, and restart onboarding" 
-                                              IconGlyph="&#xE7BA;" Click="{x:Bind ViewModel.FactoryReset}"/>
+                                              IconGlyph="&#xE7BA;" Click="FactoryReset_Click"/>
                 </StackPanel>
                 
                 <Grid Height="40"/> <!-- Spacer -->

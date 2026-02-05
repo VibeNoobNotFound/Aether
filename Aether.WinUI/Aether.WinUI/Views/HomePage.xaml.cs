@@ -44,11 +44,13 @@ public sealed partial class HomePage : Page
                 {
                     BackgroundImage.Source = bitmap;
                     ViewModel.WindowBackgroundImageUrl = imageUrl;
+                    ViewModel.WindowBackgroundOpacity = 0.5;
                 }
             }
             else
             {
                 ViewModel.WindowBackgroundImageUrl = null;
+                ViewModel.WindowBackgroundOpacity = 0.0;
             }
         }
     }
