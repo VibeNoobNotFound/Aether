@@ -1,3 +1,8 @@
+
+> You may wonder whether this project has been abandoned. And the answer to that is No, It's not abandoned. But I'm away from development for a while becuase of a reason (Well actually an [exam](https://en.wikipedia.org/wiki/GCE_Advanced_Level_in_Sri_Lanka#Criticism) ).  
+> I will be back after this August. Also I will though slowly commit some changes as well as the Windows Platform ([#15](https://github.com/VibeNoobNotFound/Aether/pull/15)) everything in a slower pace.
+
+
 # Aether 🌌
 
 **The Ultimate Universal Game Launcher.**
