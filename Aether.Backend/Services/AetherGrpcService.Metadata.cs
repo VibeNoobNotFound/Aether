@@ -40,6 +40,7 @@ public partial class AetherGrpcService
                                 Publisher = metadata.Publisher ?? "",
                                 Description = metadata.Description ?? "",
                                 CoverImageUrl = metadata.CoverImageUrl ?? "",
+                                BackgroundImageUrl = metadata.BackgroundImageUrl ?? "",
                                 LogoImageUrl = metadata.LogoImageUrl ?? "",
                                 ReleaseYear = metadata.ReleaseDate?.Year ?? 0,
                                 MetacriticScore = (int)(metadata.MetacriticScore ?? 0)

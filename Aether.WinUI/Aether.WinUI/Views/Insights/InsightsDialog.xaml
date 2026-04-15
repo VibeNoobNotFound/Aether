@@ -1,0 +1,138 @@
+<ContentDialog
+    x:Class="Aether.WinUI.Views.Insights.InsightsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Aether.WinUI.ViewModels"
+    xmlns:models="using:Aether.WinUI.Models"
+    mc:Ignorable="d"
+    CornerRadius="24"
+    Background="#FF0F0F13">
+
+    <ContentDialog.Resources>
+        <AcrylicBrush x:Key="DialogAcrylicBrush"
+                      TintColor="#141A24"
+                      TintOpacity="0.75"
+                      FallbackColor="#FF0F0F13"/>
+    </ContentDialog.Resources>
+
+    <Grid MinWidth="960" MinHeight="680" MaxWidth="1400" MaxHeight="900" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FF0B0B10" Offset="0"/>
+                <GradientStop Color="#FF141A24" Offset="0.5"/>
+                <GradientStop Color="#FF0A0A0F" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Aurora blobs -->
+        <Canvas IsHitTestVisible="False">
+            <Ellipse Width="520" Height="520" Fill="#334C9DFF" Canvas.Left="-120" Canvas.Top="-160"/>
+            <Ellipse Width="460" Height="460" Fill="#333BC7A0" Canvas.Left="520" Canvas.Top="-140"/>
+            <Ellipse Width="520" Height="520" Fill="#334B3AFF" Canvas.Left="260" Canvas.Top="260"/>
+        </Canvas>
+
+        <Grid RowDefinitions="Auto,*,Auto" Padding="24">
+            <!-- Header -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE9D2;" FontSize="18" Foreground="White"/>
+                    <TextBlock Text="Library Insights" Style="{StaticResource SubtitleTextBlockStyle}" Foreground="White"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Close" Click="Close_Click" Background="Transparent" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </Grid>
+
+            <!-- Content -->
+            <Grid Grid.Row="1">
+                <Grid Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <ProgressRing IsActive="True" Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Inverse}">
+                    <Border Background="{StaticResource DialogAcrylicBrush}" CornerRadius="16" Padding="12">
+                        <FlipView Background="Transparent" x:Name="Slides">
+                        <FlipViewItem Background="Transparent">
+                            <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="Welcome back" FontSize="18" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="Library Insights" FontSize="40" FontWeight="SemiBold" Foreground="White"/>
+                                <TextBlock Text="A quick look at your collection" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <StackPanel Spacing="6" Margin="0,12,0,0">
+                                    <TextBlock Text="{x:Bind ViewModel.TotalGames, Mode=OneWay}" FontSize="72" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="GAMES COLLECTED" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </FlipViewItem>
+
+                        <FlipViewItem>
+                            <Grid ColumnDefinitions="*,*" VerticalAlignment="Center">
+                                <StackPanel Spacing="10" HorizontalAlignment="Center">
+                                    <TextBlock Text="Total Playtime" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.TotalHours, Mode=OneWay}" FontSize="56" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Hours" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="10" HorizontalAlignment="Center">
+                                    <TextBlock Text="Active Days" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Text="{x:Bind ViewModel.ActiveDays, Mode=OneWay}" FontSize="56" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="Days" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </FlipViewItem>
+
+                        <FlipViewItem>
+                            <StackPanel Spacing="16" Padding="24">
+                                <TextBlock Text="Top Games" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.TopGames, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:GameViewModel">
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                                <TextBlock Text="{x:Bind Title}" Foreground="White"/>
+                                                <TextBlock Grid.Column="1" Text="{x:Bind FormattedPlaytime}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </FlipViewItem>
+
+                        <FlipViewItem>
+                            <StackPanel Spacing="16" Padding="24">
+                                <TextBlock Text="Top Genres" FontSize="24" FontWeight="SemiBold" Foreground="White"/>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.TopGenres, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:GenreStatViewModel">
+                                            <StackPanel Spacing="6" Margin="0,0,0,12">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="{x:Bind Name}" Foreground="White"/>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Count}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                </Grid>
+                                                <ProgressBar Minimum="0" Maximum="1" Value="{x:Bind Percent}" Height="6"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </FlipViewItem>
+
+                        <FlipViewItem>
+                            <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock Text="Summary" FontSize="28" FontWeight="SemiBold" Foreground="White"/>
+                                <TextBlock Text="{x:Bind ViewModel.TotalGames, Mode=OneWay}" FontSize="48" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Text="games collected" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Top genre: {x:Bind ViewModel.TopGenre, Mode=OneWay}" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </FlipViewItem>
+                        </FlipView>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Footer -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
+                <Button x:Name="BackButton" Content="Back" Click="Back_Click" Padding="16,6"/>
+                <TextBlock x:Name="SlideTextBlock" Grid.Column="1" Text="1 / 5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="NextButton" Grid.Column="2" Content="Next" Click="Next_Click" Padding="16,6"/>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentDialog>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <Window
+        x:Class="Aether.WinUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Aether.WinUI"
+        xmlns:controls="using:Aether.WinUI.Controls"
+        xmlns:attached="using:Aether.WinUI.AttachedProperties"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ctkc="using:CommunityToolkit.WinUI.Controls"
+        mc:Ignorable="d"
+        Title="Aether">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Window Background Image (set by pages like Home/Game Detail) -->
+        <Grid x:Name="Background" Grid.RowSpan="2">
+            <Image Stretch="UniformToFill"
+                   Opacity="{x:Bind ViewModel.WindowBackgroundOpacity, Mode=OneWay}"
+                   attached:ImageCache.Source="{x:Bind ViewModel.WindowBackgroundImageUrl, Mode=OneWay}"/>
+            <Rectangle Fill="{ThemeResource DarkAcrylicBackgroundBrush}"/>
+        </Grid>
+        <ctkc:TitleBar Margin="6,12" AutoConfigureCustomTitleBar="True" IsPaneButtonVisible="True" x:Name="title" VerticalAlignment="Top" Title="Aether"/>
+        <!-- Custom Title Bar -->
+        <NavigationView
+            Grid.Row="1"
+            x:Name="NavView"
+            IsPaneToggleButtonVisible="False"
+            PaneDisplayMode="Top"
+            IsBackButtonVisible="Collapsed"
+            Background="Transparent"
+            SelectionChanged="NavView_SelectionChanged"
+            Loaded="NavView_Loaded">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Tag="Home" Content="Home" Icon="Home"/>
+                <NavigationViewItem Tag="Library" Content="Library" Icon="Library"/>
+                <NavigationViewItem Tag="Store" Content="Store" Icon="Shop"/>
+            </NavigationView.MenuItems>
+
+            <NavigationView.AutoSuggestBox>
+                <AutoSuggestBox x:Name="SearchBox"
+                                PlaceholderText="Search library..."
+                                QueryIcon="Find"
+                                TextChanged="SearchBox_TextChanged"
+                                QuerySubmitted="SearchBox_QuerySubmitted"/>
+            </NavigationView.AutoSuggestBox>
+
+            <Frame x:Name="ContentFrame">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition/>
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
+        </NavigationView>
+
+        <!-- Status Bar Overlay (Bottom Center) -->
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,20">
+            <controls:UpdateStatusPill/>
+            <controls:ConnectionStatusBar/>
+        </StackPanel>
+    </Grid>
+</Window>

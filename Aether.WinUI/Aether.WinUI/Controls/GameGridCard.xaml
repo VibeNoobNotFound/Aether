@@ -1,0 +1,85 @@
+<Button
+    x:Class="Aether.WinUI.Controls.GameGridCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Aether.WinUI.Models"
+    xmlns:attached="using:Aether.WinUI.AttachedProperties"
+    Background="Transparent"
+    BorderThickness="0"
+    BorderBrush="Transparent"
+    mc:Ignorable="d">
+    <Button.Resources>
+        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent"/>
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent"/>
+        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent"/>
+        <MenuFlyout x:Key="GameContextMenu">
+            <MenuFlyoutItem Text="Play" Icon="Play" Tag="Launch" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutItem Text="Stop" Icon="Stop" Tag="Stop" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem x:Name="FavoriteMenuItem" Tag="Favorite" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutItem Text="Show in Explorer" Icon="Folder" Tag="ShowInExplorer" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutItem Text="Properties" Icon="Setting" Tag="Properties" Click="MenuFlyoutItem_Click"/>
+            <MenuFlyoutSeparator />
+            <MenuFlyoutItem Text="Remove from Library" Icon="Delete" Tag="Remove" Click="MenuFlyoutItem_Click"/>
+        </MenuFlyout>
+    </Button.Resources>
+
+    <Grid Width="200" Height="300" 
+          CornerRadius="8"
+          ContextFlyout="{StaticResource GameContextMenu}"
+          PointerEntered="Grid_PointerEntered"
+          PointerExited="Grid_PointerExited">
+        
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <!-- <RowDefinition Height="Auto"/> -->
+        </Grid.RowDefinitions>
+
+        <!-- Cover Image -->
+        <Border CornerRadius="8" Background="#20FFFFFF">
+            <Grid>
+                <Image x:Name="CoverImage" Stretch="UniformToFill" 
+                       attached:ImageCache.Source="{x:Bind Game.CoverImageUrl, Mode=OneWay}"/>
+                <!-- Platform Badge -->
+                <Border VerticalAlignment="Top" HorizontalAlignment="Right" Margin="8"
+                        Background="{x:Bind Game.Platform, Mode=OneWay, Converter={StaticResource PlatformToColorConverter}}"
+                        CornerRadius="4" Padding="6,2" Opacity="0.95"
+                        Shadow="{StaticResource SharedShadow}">
+                    <TextBlock Text="{x:Bind Game.Platform, Mode=OneWay}" FontSize="10" Foreground="White" FontWeight="Bold"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Hover Overlay / State Overlay -->
+        <Border CornerRadius="8" Background="#40000000" 
+                Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter='Active'}">
+            <ProgressRing IsActive="True" Foreground="White" Width="40" Height="40" 
+                          Visibility="{x:Bind Game.State, Mode=OneWay, Converter={StaticResource GameStateToVisibilityConverter}, ConverterParameter='Launching'}"/>
+        </Border>
+
+        <!-- Gradient Overlay at bottom -->
+        <Border VerticalAlignment="Bottom" Height="90" CornerRadius="0,0,8,8">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                    <GradientStop Color="#00000000" Offset="0"/>
+                    <GradientStop Color="#E6000000" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <!-- Title & Genres -->
+        <StackPanel Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" VerticalAlignment="Bottom" Padding="12,12,12,16">
+            <TextBlock Text="{x:Bind Game.Title, Mode=OneWay}" 
+                       Foreground="White" 
+                       Style="{StaticResource BodyStrongTextBlockStyle}"
+                       TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{x:Bind Game.GenresText, Mode=OneWay}" 
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="White" Opacity="0.75"
+                       TextTrimming="CharacterEllipsis" MaxLines="1"/>
+        </StackPanel>
+    </Grid>
+</Button>

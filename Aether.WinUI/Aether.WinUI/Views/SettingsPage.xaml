@@ -1,0 +1,155 @@
+<Page
+    x:Class="Aether.WinUI.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:local="using:Aether.WinUI.Controls.Settings"
+    xmlns:models="using:Aether.WinUI.Models"
+    mc:Ignorable="d">
+
+    <Grid>
+        <!-- Subtle Background Blobs (Optional - can be done with specialized controls but stick to simple for now) -->
+        
+        <ScrollViewer>
+            <StackPanel Spacing="32" Padding="40" HorizontalAlignment="Stretch">
+                
+                <!-- Header -->
+                <StackPanel Spacing="8" Margin="0,20,0,0">
+                    <TextBlock Text="Settings" Style="{StaticResource TitleLargeTextBlockStyle}" FontWeight="Bold"/>
+                    <TextBlock Text="Manage your library and plugins" Style="{StaticResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+
+                <!-- 1. ABOUT -->
+                <controls:SettingsCard>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Icon -->
+                        <Image Source="/Assets/Square44x44Logo.targetsize-48.png" Width="48" Height="48" Margin="0,0,16,0"/>
+                        
+                        <!-- Text -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Aether" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{x:Bind ViewModel.Version, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Links -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12">
+                            <HyperlinkButton NavigateUri="https://discord.gg/NzJmjvvEgP" ToolTipService.ToolTip="Join Discord">
+                                <FontIcon Glyph="&#xE913;" FontSize="20"/> <!-- Chat bubbles -->
+                            </HyperlinkButton>
+                            <HyperlinkButton NavigateUri="https://github.com/VibeNoobNotFound/Aether" ToolTipService.ToolTip="GitHub">
+                                <FontIcon Glyph="&#xE71B;" FontSize="20"/> <!-- Link/Code -->
+                            </HyperlinkButton>
+                        </StackPanel>
+                    </Grid>
+                </controls:SettingsCard>
+
+                <!-- 2. APPEARANCE -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="APPEARANCE" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="12,0,0,0"/>
+                    
+                    <controls:SettingsCard Header="Theme" Description="Choose application theme">
+                         <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE790;" Foreground="Orange"/></controls:SettingsCard.HeaderIcon>
+                         <ComboBox SelectedIndex="{x:Bind ViewModel.SelectedThemeIndex, Mode=TwoWay}" MinWidth="140">
+                            <ComboBoxItem Content="System Default"/>
+                            <ComboBoxItem Content="Dark"/>
+                            <ComboBoxItem Content="Light"/>
+                        </ComboBox>
+                    </controls:SettingsCard>
+                    
+                    <!-- Navigation Style & Card Style placeholders -->
+                    <controls:SettingsCard Header="Navigation Style" Description="Choose between sidebar or top navigation">
+                         <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE700;" Foreground="Orange"/></controls:SettingsCard.HeaderIcon>
+                         <ComboBox SelectedIndex="{x:Bind ViewModel.NavigationStyleIndex, Mode=TwoWay}" MinWidth="140">
+                            <ComboBoxItem Content="Sidebar"/>
+                            <ComboBoxItem Content="Top"/>
+                        </ComboBox>
+                    </controls:SettingsCard>
+                </StackPanel>
+
+                <!-- 3. UPDATES -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="UPDATES" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="12,0,0,0"/>
+                    
+                    <controls:SettingsCard Header="Automatic Updates" Description="Check for updates automatically on startup">
+                        <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE895;" Foreground="Green"/></controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch IsOn="{x:Bind ViewModel.IsAutoUpdateEnabled, Mode=TwoWay}"/>
+                    </controls:SettingsCard>
+                    
+                    <controls:SettingsCard Header="Include Beta Updates" Description="Receive beta builds and experimental features">
+                         <controls:SettingsCard.HeaderIcon><FontIcon Glyph="&#xE736;" Foreground="Purple"/></controls:SettingsCard.HeaderIcon>
+                        <ToggleSwitch IsOn="{x:Bind ViewModel.IncludeBetaUpdates, Mode=TwoWay}"/>
+                    </controls:SettingsCard>
+
+                    <local:SettingsActionCard Header="Check for Updates" Description="Scan for the latest version" 
+                                              IconGlyph="&#xE895;" Click="{x:Bind ViewModel.CheckForUpdates}"/>
+                </StackPanel>
+
+                <!-- 4. LIBRARY -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="LIBRARY" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="12,0,0,0"/>
+
+                     <local:SettingsActionCard Header="Metadata Sources" Description="Configure provider priority" 
+                                              IconGlyph="&#xE721;" Click="OpenMetadataSources_Click"/>
+                     
+                     <local:SettingsActionCard Header="Rescan Library" Description="Scan all sources for new games" 
+                                              IconGlyph="&#xE8F3;" Click="{x:Bind ViewModel.RescanLibrary}"/>
+                     
+                     <local:SettingsActionCard Header="Clear Library" Description="Remove all games from the database" 
+                                              IconGlyph="&#xE74D;" Click="{x:Bind ViewModel.ClearLibrary}"/>
+                </StackPanel>
+
+                <!-- 5. PLUGINS -->
+                <StackPanel Spacing="12">
+                    <Grid Margin="12,0">
+                         <TextBlock Text="INSTALLED PLUGINS" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+                         <HyperlinkButton HorizontalAlignment="Right" Content="Add Plugin" Click="AddPlugin_Click">
+                             <HyperlinkButton.ContentTemplate>
+                                 <DataTemplate>
+                                     <StackPanel Orientation="Horizontal" Spacing="4">
+                                         <FontIcon Glyph="&#xE710;" FontSize="12"/>
+                                         <TextBlock Text="Add Plugin"/>
+                                     </StackPanel>
+                                 </DataTemplate>
+                             </HyperlinkButton.ContentTemplate>
+                         </HyperlinkButton>
+                    </Grid>
+
+                    <ListView ItemsSource="{x:Bind ViewModel.Plugins, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="True"
+                              ItemClick="PluginList_ItemClick">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:PluginViewModel">
+                                <local:PluginCard Plugin="{x:Bind}" Margin="0,0,0,8"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+
+                <!-- 6. ADVANCED -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="ADVANCED" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="Bold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="12,0,0,0"/>
+
+                     <local:SettingsActionCard Header="Open Logs Folder" Description="View application logs and data" 
+                                              IconGlyph="&#xE8F4;" Click="{x:Bind ViewModel.OpenLogsFolder}"/>
+                     
+                     <local:SettingsActionCard Header="Factory Reset" Description="Clear library, reset settings, and restart onboarding" 
+                                              IconGlyph="&#xE7BA;" Click="FactoryReset_Click"/>
+                </StackPanel>
+                
+                <Grid Height="40"/> <!-- Spacer -->
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

@@ -1,0 +1,36 @@
+<ContentDialog
+    x:Class="Aether.WinUI.Views.Library.IconPickerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Aether.WinUI.Views.Library"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Choose Icon"
+    Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+    CornerRadius="24"
+    PrimaryButtonText="Cancel"
+    CloseButtonText="Select"
+    IsPrimaryButtonEnabled="True"
+    IsSecondaryButtonEnabled="False"
+    DefaultButton="Close">
+
+    <Grid MaxWidth="400" MaxHeight="500">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <AutoSuggestBox x:Name="SearchBox" QueryIcon="Find" PlaceholderText="Search icons" TextChanged="SearchBox_TextChanged" Margin="0,0,0,12"/>
+
+        <GridView x:Name="IconsGrid" Grid.Row="1" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="IconsGrid_ItemClick">
+            <GridView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Width="48" Height="48" CornerRadius="4" Background="Transparent" ToolTipService.ToolTip="{Binding Name}">
+                        <FontIcon Glyph="{Binding Glyph}" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+    </Grid>
+</ContentDialog>
